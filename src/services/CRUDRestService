@@ -1,0 +1,22 @@
+import Api from '@/services/Api'
+
+export default class CRUDRestService {
+    constructor(model) {
+        this.path = '/'+model;
+    }
+    create( obj ) {
+        return Api().post(this.path, obj );
+    }
+    readAll() {
+        return Api().get(this.path+'/list')
+    }
+    read( id ) {
+        return Api().get(this.path+'/'+id)
+    }
+    update( obj ) {
+        return Api().put( this.path+'/'+obj._id, obj );
+    }
+    delete( id ) {
+        return Api().delete( this.path+'/'+id );
+    }
+}
