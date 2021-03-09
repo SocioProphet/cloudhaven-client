@@ -35,6 +35,7 @@ export default {
       }
 
     return {
+      testMsg: 'Test Message',
       dataModel:dataModel,
       uiMethods: uiMethods,
       metaData: {
@@ -140,15 +141,6 @@ export default {
     created() {
     },
     mounted() {
-      var parentEl = this.$refs.formDiv;
-//      var sheetInst = new VSheet({propsData: {width:"100px", height:"100px", color:"#E0E0E0"}})
-//      var btnInst = new VBtn({propsData: {color:'FF0000'}});
-//      var btnVNode = h(btnInst)
-  //    sheetInst.$slots.default = [btnVNode];
-
-//      btnInst.$mount();
-//      sheetInst.$mount();
-//      parentEl.appendChild(sheetInst.$el);
     },
     watch: {
     },

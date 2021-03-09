@@ -33,8 +33,16 @@ function makeComponent( h, metaData, methods, rootThis ) {
     }
     return o;
   },{});
+/*  if (metaData.scopedSlots) {
+    var keys = Object.keys(metaData.scopedSlots);
+    var scopedSlots = {};
+     keys.forEach((k) => {
+      var slotName = metaData.scopedSlots[k];
+      scopedSlots[k] = 
+    })
+    dataObj.scopedSlots = scopedSlots
+  }*/
   if (metaData.dataModelProps) {
-    debugger;
     if (!dataObj.props) dataObj.props = {};
     Object.keys(metaData.dataModelProps).forEach((k)=>{
       var modelProp = metaData.dataModelProps[k];
@@ -58,6 +66,14 @@ function makeComponent( h, metaData, methods, rootThis ) {
   var hhh = h( vcomp, dataObj, children);
   return hhh;
 }
+function prepMethods( pThis, methods ) {
+  var funcNames = Object.keys( methods );
+  var retMethods = {};
+  funcNames.forEach((f)=>{
+    retMethods[f] = methods[f].bind( pThis );
+  })
+  return retMethods;
+}
 
 const DynamicUI = Vue.component('DynamicUI', {
   props: {
@@ -72,18 +88,18 @@ const DynamicUI = Vue.component('DynamicUI', {
     new Vue({
       el: '#dynamicUIDiv',
       data() {
-        return Object.assign(outerThis.dataModel, {cardTitle: 'XXASDASDASDSDDASDDS'});
+        return outerThis.dataModel;
       },
       vuetify,
+      methods: this.uiMethods,
       render(h) {
         return makeComponent( h, outerThis.uiSchema, outerThis.uiMethods, this );
       },
       mounted() {
-        debugger;
-        var func = outerThis.uiMethods.getTableData.bind(this);
-        (func)();
+        this.getTableData();
       }
     })
+
   }
 });
 
