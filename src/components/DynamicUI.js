@@ -1,6 +1,8 @@
 import Vue from 'vue';
 import * as VueLib from 'vuetify/lib';
 import _ from 'lodash'
+import vuetify from '@/plugins/vuetify'
+
 const uiElementToVueCompMap = {
   div: 'div',
   row: 'VRow',
@@ -17,7 +19,7 @@ const uiElementToVueCompMap = {
   textField: 'VTextField',
   icon: 'VIcon'
 }
-function makeComponent( h, metaData ) {
+function makeComponent( h, metaData, methods, rootThis ) {
   var isArray = Array.isArray(metaData);
   if (isArray) {
     throw "Array is not allowed metaData";
@@ -31,29 +33,57 @@ function makeComponent( h, metaData ) {
     }
     return o;
   },{});
+  if (metaData.dataModelProps) {
+    debugger;
+    if (!dataObj.props) dataObj.props = {};
+    Object.keys(metaData.dataModelProps).forEach((k)=>{
+      var modelProp = metaData.dataModelProps[k];
+      dataObj.props[k] = rootThis[modelProp];
+    })
+  }
   var vcomp = VueLib[vueComponent];
-  debugger;
-  var hhh = h( vcomp, dataObj, metaData.contents? (
-    _.isString( metaData.contents) ? metaData.contents : (
-      Array.isArray( metaData.contents ) ?
-      metaData.contents.map((el)=>{
-        return makeComponent( h, el );
-      }) :
-      [makeComponent( h, metaData.contents )]
-    )
-    ):null
-  )
-  debugger;
+  var children = null;
+  if (metaData.contents) {
+    if (_.isString( metaData.contents)) {
+      children = metaData.contents;
+    } else if (Array.isArray( metaData.contents )) {
+      children = metaData.contents.map((el)=>{ return makeComponent( h, el, methods, rootThis ); })
+    } else {
+      children = [makeComponent( h, metaData.contents, methods, rootThis )]
+    }
+  } else if (metaData.template) {
+    const compiledTemplate = Vue.compile(metaData.template);
+    children = [compiledTemplate.render.call(rootThis, h)]
+  }
+  var hhh = h( vcomp, dataObj, children);
   return hhh;
 }
+
 const DynamicUI = Vue.component('DynamicUI', {
   props: {
-    metaData: { type: Object, required: true}
+    uiSchema: { type: Object, required: true },
+    dataModel: { type: Object, required: true },
+    uiMethods: { type: Object, required: true }
   },
-  render(h){
-    var xxx = makeComponent( h, this.metaData );
-    debugger;
-    return xxx;
+  vuetify,
+  template: '<div id="dynamicUIDiv"></div>',
+  mounted() {
+    var outerThis = this;
+    new Vue({
+      el: '#dynamicUIDiv',
+      data() {
+        return Object.assign(outerThis.dataModel, {cardTitle: 'XXASDASDASDSDDASDDS'});
+      },
+      vuetify,
+      render(h) {
+        return makeComponent( h, outerThis.uiSchema, outerThis.uiMethods, this );
+      },
+      mounted() {
+        debugger;
+        var func = outerThis.uiMethods.getTableData.bind(this);
+        (func)();
+      }
+    })
   }
 });
 

@@ -1,5 +1,5 @@
 <template>
-  <DynamicUI :metaData="metaData"/>
+  <DynamicUI :uiSchema="metaData" :dataModel="dataModel" :uiMethods="uiMethods"/>
 </template>
 
 <script>
@@ -10,7 +10,33 @@ export default {
     DynamicUI
   },
   data() {
+    var dataModel = {
+        cardTitle: 'Card Title...',
+        headers: [
+          { text: 'First Name', value:'firstName', sortable: true },
+          { text: 'Last Name', value:'lastName', sortable: true },
+          { text: 'Address', value:'address', sortable: true }
+        ],
+        items: [
+          {firstName:'Big', lastName: 'Bork', address: '1234 Bork Street, Bob City, CA 99999'},
+
+        ]
+      };
+      var uiMethods = {
+        getTableData() {
+          debugger;
+          var xxx = this.items;
+          this.items = [
+            {firstName:'Bob', lastName: 'Smith', address: '1234 Bob Street, Bob City, CA 99999'},
+            {firstName:'Dave', lastName: 'Anderson', address: '9999 Dave Street, Some City, CA 99999'},
+            {firstName:'Xaviar', lastName: 'Gomez', address: '7777 Xav Street, Gomez City, CA 99999'}
+          ];
+        }
+      }
+
     return {
+      dataModel:dataModel,
+      uiMethods: uiMethods,
       metaData: {
         component: 'container',
         contents: [
@@ -21,7 +47,8 @@ export default {
             },
             contents: [{
               component: 'cardTitle',
-              contents: 'This is the title'
+//              contents: 'This is the title'
+              template: '<span>{{cardTitle}}</span>'
             },
             {
               component: 'cardBody',
@@ -99,55 +126,14 @@ export default {
           },
           {
             component: 'dataTable',
-            props: {
-              headers: [
-                { text: 'First Name', value:'firstName', sortable: true },
-                { text: 'Last Name', value:'lastName', sortable: true },
-                { text: 'Address', value:'address', sortable: true }
-              ],
-              items: [
-                {firstName:'Bob', lastName: 'Smith', address: '1234 Bob Street, Bob City, CA 99999'},
-                {firstName:'Dave', lastName: 'Anderson', address: '9999 Dave Street, Some City, CA 99999'},
-                {firstName:'Xaviar', lastName: 'Gomez', address: '7777 Xav Street, Gomez City, CA 99999'}
-              ]
+            dataModelProps: {
+              headers: "headers",
+              items: "items"
             }
           }
         ]
       }
     }
-
-/*
-            <v-btn elevation="2" color="blue darken-1" text @click.native="cancel">Cancel</v-btn>
-            <v-spacer></v-spacer>
-            <v-btn elevation="2" color="blue darken-1" text @click.native="save"><v-icon left dark>mdi-content-save</v-icon>Save</v-btn>
-
-*/
-  /*      form: {
-          id: 'theForm',
-          element: 'form',
-          fields: [
-            {
-              id: "textField1",
-              element: "text-field",
-              label: "Text Field 1"
-            },
-            {
-              id: "textField2",
-              element: "text-field",
-              label: "Text Field 2"
-            },
-            {
-              id: "textField3",
-              element: "text-field",
-              label: "Text Field 3"
-            }
-          ],
-          tabs: [
-            {
-              
-            }
-          ]
-        }*/
   },
     computed: {
     },
