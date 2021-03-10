@@ -141,11 +141,7 @@ export default {
         this.leftDrawer = false;
     },
     isVendor() {
-      if (this.isVendor) {
-        this.$router.push('/vendorcalendar');
-      } else {
-        this.$router.push('/home');
-      }
+      this.goHome();
     },
     pwdDialog (val) {
       if (val) {
@@ -158,11 +154,7 @@ export default {
   mounted() {
     if (!this.user._id) {
       this.$store.commit('reload_user');
-      if (this.isVendor) {
-        this.$router.push('/vendorcalendar');
-      } else {
-        this.$router.push('/home');
-      }
+      this.goHome();
     }
   },
   computed: {
@@ -191,6 +183,18 @@ export default {
     }
   },
   methods: {
+    goHome() {
+      if (this.isVendor) {
+        if (this.$router.currentRoute.name != 'vendorCalendar') {
+          this.$router.push('/vendorcalendar');
+        }
+      } else {
+        if (this.$router.currentRoute.name != 'home') {
+          this.$router.push('/home');
+        }
+      }
+      this.leftDrawer = false;
+    },
     goBack() {
       this.$store.commit('SET_RESULTNOTIFICATION', '');
       router.go(-1);
@@ -222,10 +226,6 @@ export default {
       setTimeout(() => {
         this.chgPwdObj = {}
       }, 300)
-    },
-    goHome() {
-      router.push({name:'home'})
-      this.leftDrawer = false;
     },
     logout() {
       this.$store.dispatch('logout')

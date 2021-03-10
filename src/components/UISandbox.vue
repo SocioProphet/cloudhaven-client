@@ -126,11 +126,7 @@ export default {
             }]
           },
           {
-            component: 'dataTable',
-            dataModelProps: {
-              headers: "headers",
-              items: "items"
-            }
+            component: 'dataTable'
           }
         ]
       }

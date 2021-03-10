@@ -19,7 +19,7 @@ const uiElementToVueCompMap = {
   textField: 'VTextField',
   icon: 'VIcon'
 }
-function makeComponent( h, metaData, methods, rootThis ) {
+function makeComponent( h, metaData, rootThis ) {
   var isArray = Array.isArray(metaData);
   if (isArray) {
     throw "Array is not allowed metaData";
@@ -37,27 +37,20 @@ function makeComponent( h, metaData, methods, rootThis ) {
     var keys = Object.keys(metaData.scopedSlots);
     var scopedSlots = {};
      keys.forEach((k) => {
-      var slotName = metaData.scopedSlots[k];
-      scopedSlots[k] = 
+      var slotMetaData = metaData.scopedSlots[k];
+      scopedSlots[k] = (props) => makeComponent( h, slotMetaData, rootThis );
     })
     dataObj.scopedSlots = scopedSlots
   }*/
-  if (metaData.dataModelProps) {
-    if (!dataObj.props) dataObj.props = {};
-    Object.keys(metaData.dataModelProps).forEach((k)=>{
-      var modelProp = metaData.dataModelProps[k];
-      dataObj.props[k] = rootThis[modelProp];
-    })
-  }
   var vcomp = VueLib[vueComponent];
   var children = null;
   if (metaData.contents) {
     if (_.isString( metaData.contents)) {
       children = metaData.contents;
     } else if (Array.isArray( metaData.contents )) {
-      children = metaData.contents.map((el)=>{ return makeComponent( h, el, methods, rootThis ); })
+      children = metaData.contents.map((el)=>{ return makeComponent( h, el, rootThis ); })
     } else {
-      children = [makeComponent( h, metaData.contents, methods, rootThis )]
+      children = [makeComponent( h, metaData.contents, rootThis )]
     }
   } else if (metaData.template) {
     const compiledTemplate = Vue.compile(metaData.template);
@@ -65,14 +58,6 @@ function makeComponent( h, metaData, methods, rootThis ) {
   }
   var hhh = h( vcomp, dataObj, children);
   return hhh;
-}
-function prepMethods( pThis, methods ) {
-  var funcNames = Object.keys( methods );
-  var retMethods = {};
-  funcNames.forEach((f)=>{
-    retMethods[f] = methods[f].bind( pThis );
-  })
-  return retMethods;
 }
 
 const DynamicUI = Vue.component('DynamicUI', {
@@ -93,7 +78,7 @@ const DynamicUI = Vue.component('DynamicUI', {
       vuetify,
       methods: this.uiMethods,
       render(h) {
-        return makeComponent( h, outerThis.uiSchema, outerThis.uiMethods, this );
+        return makeComponent( h, outerThis.uiSchema, this );
       },
       mounted() {
         this.getTableData();
