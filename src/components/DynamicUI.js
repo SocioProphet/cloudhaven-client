@@ -20,6 +20,9 @@ const uiElementToVueCompMap = {
   textField: 'VTextField',
   icon: 'VIcon'
 }
+const vModelComponents = [
+  'VTextField'
+]
 function makeComponent( h, metaData, rootThis ) {
   var isArray = Array.isArray(metaData);
   if (isArray) {
@@ -38,6 +41,21 @@ function makeComponent( h, metaData, rootThis ) {
     }
     return o;
   },{});
+  var self = this;
+  if (metaData.vmodel) {
+    dataObj.props = dataObj.props || {};
+    dataObj.props.value = rootThis[metaData.vmodel];
+    dataObj.on = dataObj.on || {};
+    dataObj.on = (e) =>{
+      var x = e;
+      debugger;
+      rootThis[metaData.vmodel] = e;
+    }
+  }
+  if (vModelComponents[vueComponent]) {
+    dataObj.domProps = dataObj.domProps || {};
+    dataObj.domProps.value = self.value;
+  }
 /*  if (metaData.scopedSlots) {
     var keys = Object.keys(metaData.scopedSlots);
     var scopedSlots = {};
