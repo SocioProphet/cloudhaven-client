@@ -2,6 +2,7 @@ import Vue from 'vue';
 import * as VueLib from 'vuetify/lib';
 import _ from 'lodash'
 import vuetify from '@/plugins/vuetify'
+import Api from '@/services/Api'
 
 const uiElementToVueCompMap = {
   div: 'div',
@@ -29,7 +30,11 @@ function makeComponent( h, metaData, rootThis ) {
   var vueComponent = uiElementToVueCompMap[component];
   var dataObj = ['class', 'style', 'attrs', 'props', 'domProps', 'on', 'nativeOn', 'key', 'ref'].reduce((o,k)=>{
     if (k in metaData) {
-      o[k] = metaData[k];
+    o[k] = Object.keys(metaData[k]).reduce((obj, key)=>{
+        var val = metaData[k][key];
+        obj[key] = (_.isString(val) && val.indexOf('this.')==0)?rootThis[val.substring(5)]: val;
+        return obj;
+      },{})
     }
     return o;
   },{});
@@ -64,24 +69,53 @@ const DynamicUI = Vue.component('DynamicUI', {
   props: {
     uiSchema: { type: Object, required: true },
     dataModel: { type: Object, required: true },
-    uiMethods: { type: Object, required: true }
+    uiMethods: { type: Object, required: true },
+    appURL: { type: String, required: true }
   },
   vuetify,
   template: '<div id="dynamicUIDiv"></div>',
   mounted() {
     var outerThis = this;
+    var compiledMethods = Object.keys(this.uiMethods).reduce((o,m)=>{
+      var methodSpec = this.uiMethods[m];
+      var args = methodSpec.args || [];
+      args.push(methodSpec.body);
+      o[m] = Function.apply( null, args);
+      return o;
+    },{});
+    compiledMethods._appGet = (page, cbFuncName) => {
+      (async () => {
+        var response = await Api().get(`${this.appURL}/${page}`);
+        if (cbFuncName) {
+          (this[cbFuncName])(response.data);
+        }
+      })();
+    };
+    compiledMethods._appPost = (page, postData, cbFuncName) => {
+      (async () => {
+        var response = await Api().post(`${this.appURL}/${page}`, postData);
+        if (cbFuncName) {
+          (this[cbFuncName])(response.data);
+        }
+      })();
+    };
     new Vue({
       el: '#dynamicUIDiv',
       data() {
+        debugger;
         return outerThis.dataModel;
       },
       vuetify,
-      methods: this.uiMethods,
+      methods: compiledMethods,
       render(h) {
         return makeComponent( h, outerThis.uiSchema, this );
       },
       mounted() {
-        this.getTableData();
+        debugger;
+        if (this['initialize']) {
+          debugger;
+          (this['initialize'])();
+        }
       }
     })
 

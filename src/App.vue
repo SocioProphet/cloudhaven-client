@@ -167,6 +167,7 @@ export default {
 //      if (this.user.rolesMap['SYSADMIN']) {
         return [
         { route: 'MyApps', action: '', title: 'My Apps' },
+        { route: 'AppStore', action: '', title: 'App Store' },
         { route: 'UISandbox', action: '', title: 'UI Sandbox' },
         { route: 'vendors', action: '', title: 'Vendors' },
         { route: 'users', action: '', title: 'Users' }/*,

@@ -5,7 +5,7 @@
     </v-toolbar>
     <v-layout>
       <v-row no-gutters>
-          <v-card class="pa-2 ma-2" elevation="4" v-for="app in applications" :key="app.key" >
+          <v-card class="pa-2 ma-2" elevation="4" v-for="app in applications" :key="app.key" @click="launchApp(app)">
             <v-card-title>{{app.name}}</v-card-title>
             <v-card-text>
               <v-img width="150px" :src="app.logoSrc"></v-img>
@@ -29,6 +29,7 @@
 import { mapState } from 'vuex'
 import { EventBus } from '../event-bus.js';
 import Api from '@/services/Api'
+import router from '../router'
   export default {
     components: {
     },
@@ -76,10 +77,12 @@ import Api from '@/services/Api'
     },
 
     methods: {
+      launchApp(app) {
+        router.push({ name: 'VendorAppPane', params: { userId: this.user._id, app:app, page:'' } })
+      },
       loadMyApps() {
         (async () => {
             var response = await Api().get('/usersubscription/'+this.user._id);
-            var x = response.data;
             if (!response.data) return;
             if (response.data.errMsg) {
               this.$store.commit('SET_ERRMSG', response.data.errMsg);

@@ -121,10 +121,12 @@ import VendorAppsSublist from './VendorAppsSublist.vue'
       }
     },
 
-    mounted () {
+    created() {
       this.$store.commit('SET_RESULTNOTIFICATION', '');
       this.$store.commit('SET_CRUDAPISERVCE', 'vendors');
       this.$store.dispatch('loadRecords', 'vendors');
+    },
+    mounted () {
       EventBus.$on('vendors data refresh', () =>{
         this.$store.dispatch('loadRecords', 'vendors');
       })

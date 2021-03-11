@@ -10,6 +10,7 @@ import AuditLog from './components/AuditLog'
 import Alerts from './components/Alerts'
 import EventLog from './components/EventLog'
 import Vendors from './components/Vendors'
+import VendorAppPane from './components/VendorAppPane'
 import SchedulingCalendar from './components/SchedulingCalendar'
 import VendorCalendar from './components/VendorCalendar'
 
@@ -29,9 +30,19 @@ let router = new Router({
       component: UISandbox
     },
     {
+      path: '/appstore',
+      name: 'AppStore',
+      component: AppStore
+    },
+    {
       path: '/myapps',
       name: 'MyApps',
       component: MyApps
+    },
+    {
+      path: '/vendorapppane',
+      name: 'VendorAppPane',
+      component: VendorAppPane
     },
     {
       path: '/login',
@@ -88,7 +99,7 @@ router.beforeEach((to, from, next) => {
   if(to.matched.some(record => (record.name!='login'))) {
     if (store.getters.isLoggedIn) {
       if (to.matched[0].props.default && to.matched[0].props.default.apAuthReqd && (
-        store.state.user.rolesMap['AP']==null && store.state.user.rolesMap['SYSADMIN']==null)) {
+        store.state.user.rolesMap['SYSADMIN']==null)) {
           store.commit('SET_ERRMSG', 'Unauthorized access');
           next('/')
           return;

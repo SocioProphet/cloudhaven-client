@@ -1,5 +1,5 @@
 <template>
-  <DynamicUI :uiSchema="metaData" :dataModel="dataModel" :uiMethods="uiMethods"/>
+  <DynamicUI :uiSchema="uiSchema" :dataModel="dataModel" :uiMethods="uiMethods"/>
 </template>
 
 <script>
@@ -23,22 +23,21 @@ export default {
         ]
       };
       var uiMethods = {
-        getTableData() {
-          debugger;
-          var xxx = this.items;
+        initialize: {
+          args:[],
+          body: `
           this.items = [
             {firstName:'Bob', lastName: 'Smith', address: '1234 Bob Street, Bob City, CA 99999'},
             {firstName:'Dave', lastName: 'Anderson', address: '9999 Dave Street, Some City, CA 99999'},
             {firstName:'Xaviar', lastName: 'Gomez', address: '7777 Xav Street, Gomez City, CA 99999'}
-          ];
+          ];`
         }
       }
 
     return {
-      testMsg: 'Test Message',
       dataModel:dataModel,
       uiMethods: uiMethods,
-      metaData: {
+      uiSchema: {
         component: 'container',
         contents: [
           {
@@ -65,7 +64,7 @@ export default {
                       contents: [
                         {
                           component: 'col',
-                          props: {  cols:"12", md:"6", sm:"12"},
+                          props: {  cols:12, md:6, sm:12},
                           contents: [
                             {
                               component: 'textField',
@@ -85,7 +84,7 @@ export default {
                         },
                         {
                           component: 'col',
-                          props: { cols:"12", md:"6", sm:"12"},
+                          props: { cols:12, md:6, sm:12},
                           contents: [
                             {
                               component: 'textField',
@@ -126,7 +125,11 @@ export default {
             }]
           },
           {
-            component: 'dataTable'
+            component: 'dataTable',
+            attrs: {
+              headers: "this.headers",
+              items: "this.items"
+            }
           }
         ]
       }

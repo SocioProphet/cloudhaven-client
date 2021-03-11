@@ -156,7 +156,7 @@ import Api from '@/services/Api'
       }
     },
 
-    mounted () {
+    created () {
       this.$store.commit('SET_RESULTNOTIFICATION', '');
       this.$store.commit('SET_CRUDAPISERVCE', 'users');
       this.$store.dispatch('loadRecords', 'users');

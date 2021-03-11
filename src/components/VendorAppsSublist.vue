@@ -145,13 +145,14 @@
           this.$refs.appForm.$el.addEventListener('drop', function(e){
             this.editedItem.logo = e.dataTransfer.files[0];
             this.currentLogoURI = URL.createObjectURL( this.editedItem.logo );
-            this.logoUpdate = true;
+            this.logoUpdated = true;
           }.bind(this));
         }
       },
       removeLogo() {
         this.editedItem.logo = null;
         this.currentLogoURI = null;
+        this.logoUpdated = true;
       },
       determineDragAndDropCapable(){
         var div = document.createElement('div');
