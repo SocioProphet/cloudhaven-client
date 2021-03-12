@@ -170,7 +170,9 @@ export default {
         { route: 'AppStore', action: '', title: 'App Store' },
         { route: 'UISandbox', action: '', title: 'UI Sandbox' },
         { route: 'vendors', action: '', title: 'Vendors' },
-        { route: 'users', action: '', title: 'Users' }/*,
+        { route: 'users', action: '', title: 'Users' },
+        { route: 'ViewUserData', action: '', title: 'View User Data' }
+        /*,
         { route: 'auditLog', action: '', title: 'Audit Log'},
         { route: 'eventLog', action: '', title: 'Event Log'}*/
         ];

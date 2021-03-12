@@ -5,6 +5,7 @@ import AppStore from './components/AppStore.vue'
 import MyApps from './components/MyApps.vue'
 import UISandbox from './components/UISandbox.vue'
 import Users from './components/Users.vue'
+import ViewUserData from './components/ViewUserData.vue'
 import Login from './components/Login.vue'
 import AuditLog from './components/AuditLog'
 import Alerts from './components/Alerts'
@@ -53,6 +54,11 @@ let router = new Router({
       path: '/users',
       name: 'users',
       component: Users
+    },
+    {
+      path: '/viewuserdata',
+      name: 'ViewUserData',
+      component: ViewUserData
     },
     {
       path: '/vendorcalendar',
