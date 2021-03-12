@@ -27,16 +27,19 @@ export default {
     (async () => {
       var response = await Api().get(this.app.url);
       var uiConfig = response.data;
-      var dataObjs = {attrs: {
+      var dataObj = {attrs: {
         dataModel: uiConfig.dataModel,
         uiMethods: uiConfig.uiMethods,
         uiSchema: uiConfig.uiSchema,
         app: this.app
       }}
+/*      var c = new DynamicUI(dataObj);
+      c.$mount('#appDiv');*/
       new Vue({
         el: '#appDiv',
+        store: this.$store,
         render(h) {
-          return h( 'DynamicUI', dataObjs );
+          return h( 'DynamicUI', dataObj );
         },
       })
     })();

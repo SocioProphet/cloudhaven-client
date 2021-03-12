@@ -4,6 +4,7 @@ import _ from 'lodash'
 import vuetify from '@/plugins/vuetify'
 import Api from '@/services/Api'
 import deep from 'deep-get-set'
+import { mapState } from 'vuex'
 
 const uiElementToVueCompMap = {
   div: 'div',
@@ -21,9 +22,9 @@ const uiElementToVueCompMap = {
   textField: 'VTextField',
   icon: 'VIcon'
 }
-const vModelComponents = [
+/*const vModelComponents = [
   'VTextField'
-]
+]*/
 function makeComponent( h, metaData, rootThis ) {
   var isArray = Array.isArray(metaData);
   if (isArray) {
@@ -42,21 +43,24 @@ function makeComponent( h, metaData, rootThis ) {
     }
     return o;
   },{});
-  var self = this;
+//  var self = this;
   if (metaData.vmodel) {
     dataObj.props = dataObj.props || {};
     dataObj.props.value = deep( rootThis, metaData.vmodel );
+    if (metaData.tokenId) {
+      dataObj.domProps = dataObj.domProps || {};
+      dataObj.domProps.tokenValue = ''; //To be filled by getUserData
+      rootThis.modelToTokenMap[metaData.vmodel] = metaData.tokenId;
+    }
     dataObj.on = dataObj.on || {};
     dataObj.on.input = (e) =>{
-      var x = e;
-      debugger;
       deep( rootThis, metaData.vmodel, e );
     }
-  }
-  if (vModelComponents[vueComponent]) {
+}
+/*  if (vModelComponents[vueComponent]) {
     dataObj.domProps = dataObj.domProps || {};
     dataObj.domProps.value = self.value;
-  }
+  }*/
 /*  if (metaData.scopedSlots) {
     var keys = Object.keys(metaData.scopedSlots);
     var scopedSlots = {};
@@ -95,39 +99,67 @@ const DynamicUI = Vue.component('DynamicUI', {
   template: '<div id="dynamicUIDiv"></div>',
   mounted() {
     var outerThis = this;
-    var dataModel = this;
-    var compiledMethods = Object.keys(this.uiMethods).reduce((o,m)=>{
+    var methods = Object.keys(this.uiMethods).reduce((o,m)=>{
       var methodSpec = this.uiMethods[m];
       var args = methodSpec.args || [];
       args.push(methodSpec.body);
       o[m] = Function.apply( null, args);
       return o;
     },{});
-    compiledMethods._appGet = (page, cb) => {
+    methods._appGet = (page, cb) => {
       (async () => {
         var response = await Api().get(`${this.app.url}/${page}`);
         if (cb) {
-          (cb)(response.data);
+          (cb)(this.vThis, response.data);
         }
       })();
     };
-    compiledMethods._appPost = (page, postData, cb) => {
+    methods._appPost = (page, postData, cb) => {
       (async () => {
         var url = this.app.url+(page?('/'+page):'');
         var response = await Api().post(url, postData);
         if (cb) {
-          (cb)(response.data);
+          (cb)(this.vThis, response.data);
         }
       })();
     };
-    new Vue({
+    methods.getUserData = () => {
+      var vm = this.vThis;
+      (async () => {
+        var tokenIds = Object.keys(vm.modelToTokenMap).reduce((o,m)=>{
+          var tokenId = vm.modelToTokenMap[m];
+          o[tokenId] = tokenId
+          return o;
+        },{})
+        tokenIds = Object.keys(tokenIds);
+        if (tokenIds.length==0) return;
+        var response = await Api().post('/userdata/batchget', {userId: vm.user._id, tokenIds: tokenIds});
+        var userDataList = response.data;
+        var tokenToModelMap = Object.keys(vm.modelToTokenMap).reduce((o,m)=>{
+          o[vm.modelToTokenMap[m]] = m;
+          return o;
+        },{})
+        userDataList.forEach(ud=>{
+          var model = tokenToModelMap[ud.name];
+          if (model && ud.content) {
+            deep( vm, model, ud.content );
+          }
+        })
+      })();
+    }
+    this.vThis = new Vue({
       el: '#dynamicUIDiv',
       data() {
         return outerThis.dataModel;
       },
+      store: this.$store,
       vuetify,
-      methods: compiledMethods,
-      render(h) {
+      methods: methods,
+      computed: {
+        ...mapState(['user'])
+      },
+        render(h) {
+        this.modelToTokenMap = {};
         return makeComponent( h, outerThis.uiSchema, this );
       },
       mounted() {
