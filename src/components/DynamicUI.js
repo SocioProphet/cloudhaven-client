@@ -94,8 +94,8 @@ const DynamicUI = Vue.component('DynamicUI', {
   vuetify,
   template: '<div id="dynamicUIDiv"></div>',
   mounted() {
-    debugger;
     var outerThis = this;
+    var dataModel = this;
     var compiledMethods = Object.keys(this.uiMethods).reduce((o,m)=>{
       var methodSpec = this.uiMethods[m];
       var args = methodSpec.args || [];
@@ -123,7 +123,6 @@ const DynamicUI = Vue.component('DynamicUI', {
     new Vue({
       el: '#dynamicUIDiv',
       data() {
-        debugger;
         return outerThis.dataModel;
       },
       vuetify,
@@ -132,9 +131,7 @@ const DynamicUI = Vue.component('DynamicUI', {
         return makeComponent( h, outerThis.uiSchema, this );
       },
       mounted() {
-        debugger;
         if (this['initialize']) {
-          debugger;
           (this['initialize'])();
         }
       }

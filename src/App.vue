@@ -75,9 +75,9 @@
         <v-icon color="yellow accent-2">mdi-menu</v-icon>
       </v-btn-->
     </v-app-bar>
-    <v-content>
+    <v-main>
       <router-view/>
-    </v-content>
+    </v-main>
     <v-footer :fixed="fixed" app :style="{background: 'linear-gradient(to bottom, #00528d 0%, #0071C2 100%)'}">
       <span class="white--text">&copy; CloudHaven @ 2020-2021 &nbsp;&nbsp;(v0.01)</span>
     </v-footer>
