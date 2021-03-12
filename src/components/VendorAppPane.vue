@@ -34,22 +34,6 @@ export default {
       this.uiMethods= uiConfig.uiMethods;
       this.uiSchema= uiConfig.uiSchema
       this.component = 'DynamicUI';
-      /*
-      var dataObj = {attrs: {
-        dataModel: uiConfig.dataModel,
-        uiMethods: uiConfig.uiMethods,
-        uiSchema: uiConfig.uiSchema,
-        app: this.app
-      }}*/
-//      var c = new DynamicUI(dataObj);
-//      c.$mount('#appDiv');
-/*      new Vue({
-        el: '#appDiv',
-        store: this.$store,
-        render(h) {
-          return h( 'DynamicUI', dataObj );
-        },
-      })*/
     })();
   }
 }
