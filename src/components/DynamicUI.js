@@ -1,8 +1,9 @@
-import Vue from 'vue';
-import * as VueLib from 'vuetify/lib';
+import Vue from 'vue'
+import * as VueLib from 'vuetify/lib'
 import _ from 'lodash'
 import vuetify from '@/plugins/vuetify'
 import Api from '@/services/Api'
+import deep from 'deep-get-set'
 
 const uiElementToVueCompMap = {
   div: 'div',
@@ -35,7 +36,7 @@ function makeComponent( h, metaData, rootThis ) {
     if (k in metaData) {
     o[k] = Object.keys(metaData[k]).reduce((obj, key)=>{
         var val = metaData[k][key];
-        obj[key] = (_.isString(val) && val.indexOf('this.')==0)?rootThis[val.substring(5)]: val;
+        obj[key] = (_.isString(val) && val.indexOf('this.')==0)?deep(rootThis, val.substring(5)): val;
         return obj;
       },{})
     }
@@ -44,12 +45,12 @@ function makeComponent( h, metaData, rootThis ) {
   var self = this;
   if (metaData.vmodel) {
     dataObj.props = dataObj.props || {};
-    dataObj.props.value = rootThis[metaData.vmodel];
+    dataObj.props.value = deep( rootThis, metaData.vmodel );
     dataObj.on = dataObj.on || {};
-    dataObj.on = (e) =>{
+    dataObj.on.input = (e) =>{
       var x = e;
       debugger;
-      rootThis[metaData.vmodel] = e;
+      deep( rootThis, metaData.vmodel, e );
     }
   }
   if (vModelComponents[vueComponent]) {
@@ -88,11 +89,12 @@ const DynamicUI = Vue.component('DynamicUI', {
     uiSchema: { type: Object, required: true },
     dataModel: { type: Object, required: true },
     uiMethods: { type: Object, required: true },
-    appURL: { type: String, required: true }
+    app: { type: Object, required: true }
   },
   vuetify,
   template: '<div id="dynamicUIDiv"></div>',
   mounted() {
+    debugger;
     var outerThis = this;
     var compiledMethods = Object.keys(this.uiMethods).reduce((o,m)=>{
       var methodSpec = this.uiMethods[m];
@@ -101,19 +103,20 @@ const DynamicUI = Vue.component('DynamicUI', {
       o[m] = Function.apply( null, args);
       return o;
     },{});
-    compiledMethods._appGet = (page, cbFuncName) => {
+    compiledMethods._appGet = (page, cb) => {
       (async () => {
-        var response = await Api().get(`${this.appURL}/${page}`);
-        if (cbFuncName) {
-          (this[cbFuncName])(response.data);
+        var response = await Api().get(`${this.app.url}/${page}`);
+        if (cb) {
+          (cb)(response.data);
         }
       })();
     };
-    compiledMethods._appPost = (page, postData, cbFuncName) => {
+    compiledMethods._appPost = (page, postData, cb) => {
       (async () => {
-        var response = await Api().post(`${this.appURL}/${page}`, postData);
-        if (cbFuncName) {
-          (this[cbFuncName])(response.data);
+        var url = this.app.url+(page?('/'+page):'');
+        var response = await Api().post(url, postData);
+        if (cb) {
+          (cb)(response.data);
         }
       })();
     };

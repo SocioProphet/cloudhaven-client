@@ -23,13 +23,15 @@ export default {
   mounted() {
     var userId = this.$route.params.userId;
     this.app = this.$route.params.app;
+    if (!this.app) return;
     (async () => {
-      var response = await Api().get(app.url);
+      var response = await Api().get(this.app.url);
       var uiConfig = response.data;
       var dataObjs = {attrs: {
         dataModel: uiConfig.dataModel,
         uiMethods: uiConfig.uiMethods,
-        uiSchema: uiConfig.uiSchema
+        uiSchema: uiConfig.uiSchema,
+        app: this.app
       }}
       new Vue({
         el: '#appDiv',
