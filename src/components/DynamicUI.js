@@ -4,7 +4,6 @@ import _ from 'lodash'
 import vuetify from '@/plugins/vuetify'
 import Api from '@/services/Api'
 import deep from 'deep-get-set'
-import { mapState } from 'vuex'
 
 const uiElementToVueCompMap = {
   div: 'div',
@@ -22,9 +21,6 @@ const uiElementToVueCompMap = {
   textField: 'VTextField',
   icon: 'VIcon'
 }
-/*const vModelComponents = [
-  'VTextField'
-]*/
 function makeComponent( h, metaData, rootThis ) {
   var isArray = Array.isArray(metaData);
   if (isArray) {
@@ -43,7 +39,6 @@ function makeComponent( h, metaData, rootThis ) {
     }
     return o;
   },{});
-//  var self = this;
   if (metaData.vmodel) {
     dataObj.props = dataObj.props || {};
     dataObj.props.value = deep( rootThis, metaData.vmodel );
@@ -57,10 +52,6 @@ function makeComponent( h, metaData, rootThis ) {
       deep( rootThis, metaData.vmodel, e );
     }
 }
-/*  if (vModelComponents[vueComponent]) {
-    dataObj.domProps = dataObj.domProps || {};
-    dataObj.domProps.value = self.value;
-  }*/
 /*  if (metaData.scopedSlots) {
     var keys = Object.keys(metaData.scopedSlots);
     var scopedSlots = {};
@@ -96,7 +87,7 @@ const DynamicUI = Vue.component('DynamicUI', {
     app: { type: Object, required: true }
   },
   vuetify,
-  template: '<div id="dynamicUIDiv"></div>',
+  template: '<div id="dynamicUIDiv"><H1>Dynamic UI Debug</H1></div>',
   mounted() {
     var outerThis = this;
     var methods = Object.keys(this.uiMethods).reduce((o,m)=>{
@@ -115,24 +106,45 @@ const DynamicUI = Vue.component('DynamicUI', {
       })();
     };
     methods._appPost = (page, postData, cb) => {
+      var vm = this.vThis;
+      if (!vm.user) return;
+      var updates = [];
+      var savedUserData = Object.keys(vm.modelToTokenMap).reduce((o, m)=>{
+        var token = vm.modelToTokenMap[m];
+        var content = deep(vm, m);
+        updates.push({name: token, content: content})
+        o[m] = content;
+        deep(vm, m, null);
+        return o;
+      },{});
       (async () => {
+        var response = await Api().post("/userdata/batchupsert", {userId: vm.user._id, updates: updates});
+        var result = response.data;
         var url = this.app.url+(page?('/'+page):'');
         var response = await Api().post(url, postData);
+        Object.keys(savedUserData).forEach(m=>{
+          deep( vm, m, savedUserData[m])
+        });
         if (cb) {
-          (cb)(this.vThis, response.data);
+          vm.$nextTick(() =>{
+            setTimeout(() => {
+              (cb)(this.vThis, response.data);
+            }, 100)
+          })
         }
       })();
     };
     methods.getUserData = () => {
       var vm = this.vThis;
+      if (!vm.user) return;
+      var tokenIds = Object.keys(vm.modelToTokenMap).reduce((o,m)=>{
+        var tokenId = vm.modelToTokenMap[m];
+        o[tokenId] = tokenId
+        return o;
+      },{})
+      tokenIds = Object.keys(tokenIds);
+      if (tokenIds.length==0) return;
       (async () => {
-        var tokenIds = Object.keys(vm.modelToTokenMap).reduce((o,m)=>{
-          var tokenId = vm.modelToTokenMap[m];
-          o[tokenId] = tokenId
-          return o;
-        },{})
-        tokenIds = Object.keys(tokenIds);
-        if (tokenIds.length==0) return;
         var response = await Api().post('/userdata/batchget', {userId: vm.user._id, tokenIds: tokenIds});
         var userDataList = response.data;
         var tokenToModelMap = Object.keys(vm.modelToTokenMap).reduce((o,m)=>{
@@ -155,10 +167,7 @@ const DynamicUI = Vue.component('DynamicUI', {
       store: this.$store,
       vuetify,
       methods: methods,
-      computed: {
-        ...mapState(['user'])
-      },
-        render(h) {
+      render(h) {
         this.modelToTokenMap = {};
         return makeComponent( h, outerThis.uiSchema, this );
       },
