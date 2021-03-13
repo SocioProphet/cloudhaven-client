@@ -87,8 +87,9 @@ const DynamicUI = Vue.component('DynamicUI', {
     app: { type: Object, required: true }
   },
   vuetify,
-  template: '<div id="dynamicUIDiv"><H1>Dynamic UI Debug</H1></div>',
+  template: '<div id="dynamicUIDiv"></div>',
   mounted() {
+    debugger;
     var outerThis = this;
     var methods = Object.keys(this.uiMethods).reduce((o,m)=>{
       var methodSpec = this.uiMethods[m];
@@ -97,15 +98,16 @@ const DynamicUI = Vue.component('DynamicUI', {
       o[m] = Function.apply( null, args);
       return o;
     },{});
-    methods._appGet = (page, cb) => {
+    var app = {url:this.app.url, vendorId: this.app.vendorId, _id: this.app._id};
+    methods._appGet = (postId, cb) => {
       (async () => {
-        var response = await Api().get(`${this.app.url}/${page}`);
+        var response = await Api().post('/vendorapplication/apppost', {app:app, httpMethod: 'GET', postId:postId});
         if (cb) {
           (cb)(this.vThis, response.data);
         }
       })();
     };
-    methods._appPost = (page, postData, cb) => {
+    methods._appPost = (postId, postData, cb) => {
       var vm = this.vThis;
       if (!vm.user) return;
       var updates = [];
@@ -120,8 +122,8 @@ const DynamicUI = Vue.component('DynamicUI', {
       (async () => {
         var response = await Api().post("/userdata/batchupsert", {userId: vm.user._id, updates: updates});
         var result = response.data;
-        var url = this.app.url+(page?('/'+page):'');
-        var response = await Api().post(url, postData);
+        debugger;
+        var response = await Api().post('/vendorapplication/apppost', {app:app, httpMethod: 'POST', postId:postId, postData:postData});
         Object.keys(savedUserData).forEach(m=>{
           deep( vm, m, savedUserData[m])
         });
