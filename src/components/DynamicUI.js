@@ -89,7 +89,6 @@ const DynamicUI = Vue.component('DynamicUI', {
   vuetify,
   template: '<div id="dynamicUIDiv"></div>',
   mounted() {
-    debugger;
     var outerThis = this;
     var methods = Object.keys(this.uiMethods).reduce((o,m)=>{
       var methodSpec = this.uiMethods[m];
@@ -109,7 +108,7 @@ const DynamicUI = Vue.component('DynamicUI', {
     };
     methods._appPost = (postId, postData, cb) => {
       var vm = this.vThis;
-      if (!vm.user) return;
+      if (!vm.$store.state.user) return;
       var updates = [];
       var savedUserData = Object.keys(vm.modelToTokenMap).reduce((o, m)=>{
         var token = vm.modelToTokenMap[m];
@@ -120,9 +119,8 @@ const DynamicUI = Vue.component('DynamicUI', {
         return o;
       },{});
       (async () => {
-        var response = await Api().post("/userdata/batchupsert", {userId: vm.user._id, updates: updates});
+        var response = await Api().post("/userdata/batchupsert", {userId: vm.$store.state.user._id, updates: updates});
         var result = response.data;
-        debugger;
         var response = await Api().post('/vendorapplication/apppost', {app:app, httpMethod: 'POST', postId:postId, postData:postData});
         Object.keys(savedUserData).forEach(m=>{
           deep( vm, m, savedUserData[m])
@@ -138,7 +136,7 @@ const DynamicUI = Vue.component('DynamicUI', {
     };
     methods.getUserData = () => {
       var vm = this.vThis;
-      if (!vm.user) return;
+      if (!vm.$store.state.user) return;
       var tokenIds = Object.keys(vm.modelToTokenMap).reduce((o,m)=>{
         var tokenId = vm.modelToTokenMap[m];
         o[tokenId] = tokenId
@@ -147,7 +145,7 @@ const DynamicUI = Vue.component('DynamicUI', {
       tokenIds = Object.keys(tokenIds);
       if (tokenIds.length==0) return;
       (async () => {
-        var response = await Api().post('/userdata/batchget', {userId: vm.user._id, tokenIds: tokenIds});
+        var response = await Api().post('/userdata/batchget', {userId: vm.$store.state.user._id, tokenIds: tokenIds});
         var userDataList = response.data;
         var tokenToModelMap = Object.keys(vm.modelToTokenMap).reduce((o,m)=>{
           o[vm.modelToTokenMap[m]] = m;

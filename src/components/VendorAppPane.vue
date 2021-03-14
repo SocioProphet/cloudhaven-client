@@ -26,12 +26,10 @@ export default {
   mounted() {
     var userId = this.$route.params.userId;
     this.app = this.$route.params.app;
-    var app = {url:this.app.url, vendorId: this.app.vendorId, _id: this.app._id};
     if (!this.app) return;
+    var app = {url:this.app.url, vendorId: this.app.vendorId, _id: this.app._id};
     (async () => {
-      debugger;
       var response = await Api().post('/vendorapplication/apppost', {app:app, httpMethod: 'GET', postId:'initUIConfig'});
-      debugger;
       var uiConfig = response.data;
       this.dataModel= uiConfig.dataModel;
       this.uiMethods= uiConfig.uiMethods;
