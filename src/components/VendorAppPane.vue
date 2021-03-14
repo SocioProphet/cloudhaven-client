@@ -1,6 +1,6 @@
 <template>
 <div id="appDiv">
-  <component :is="component" :dataModel="dataModel" :uiMethods="uiMethods" :uiSchema="uiSchema" :app="app"></component>
+  <component :is="component" :requiredUserData="requiredUserData" :dataModel="dataModel" :uiMethods="uiMethods" :uiSchema="uiSchema" :app="app"></component>
 </div>
 </template>
 
@@ -18,6 +18,7 @@ export default {
     return {
       component: 'VSheet',
       app: null,
+      requiredUserData: {},
       dataModel:{},
       uiMethods: {},
       uiSchema: {}
@@ -31,6 +32,7 @@ export default {
     (async () => {
       var response = await Api().post('/vendorapplication/apppost', {app:app, httpMethod: 'GET', postId:'initUIConfig'});
       var uiConfig = response.data;
+      this.requiredUserData = uiConfig.requiredUserData;
       this.dataModel= uiConfig.dataModel;
       this.uiMethods= uiConfig.uiMethods;
       this.uiSchema= uiConfig.uiSchema

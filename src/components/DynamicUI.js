@@ -81,6 +81,7 @@ function makeComponent( h, metaData, rootThis ) {
 
 const DynamicUI = Vue.component('DynamicUI', {
   props: {
+    requiredUserData:  { type: Array, required: false },
     uiSchema: { type: Object, required: true },
     dataModel: { type: Object, required: true },
     uiMethods: { type: Object, required: true },
@@ -142,23 +143,31 @@ const DynamicUI = Vue.component('DynamicUI', {
         o[tokenId] = tokenId
         return o;
       },{})
+
       tokenIds = Object.keys(tokenIds);
       if (tokenIds.length==0) return;
       (async () => {
         var response = await Api().post('/userdata/batchget', {userId: vm.$store.state.user._id, tokenIds: tokenIds});
         var userDataList = response.data;
         var tokenToModelMap = Object.keys(vm.modelToTokenMap).reduce((o,m)=>{
-          o[vm.modelToTokenMap[m]] = m;
+          var models = o[vm.modelToTokenMap[m]] || (o[vm.modelToTokenMap[m]]=[])
+          models.push(m);
           return o;
         },{})
         userDataList.forEach(ud=>{
-          var model = tokenToModelMap[ud.name];
-          if (model && ud.content) {
-            deep( vm, model, ud.content );
-          }
+          var models = tokenToModelMap[ud.name];
+          models.forEach((model)=>{
+            if (model && ud.content) {
+              deep( vm, model, ud.content );
+            }
+          });
         })
       })();
     }
+    outerThis.dataModel.ch_userData = outerThis.requiredUserData?outerThis.requiredUserData.reduce((o,f)=>{
+      o[f] = '';
+      return o;
+    },{}):{}
     this.vThis = new Vue({
       el: '#dynamicUIDiv',
       data() {
@@ -168,7 +177,10 @@ const DynamicUI = Vue.component('DynamicUI', {
       vuetify,
       methods: methods,
       render(h) {
-        this.modelToTokenMap = {};
+        this.modelToTokenMap = Object.keys(outerThis.dataModel.ch_userData).reduce((o,p)=>{
+          o['ch_userData.'+p] = p;
+          return o;
+        },{});
         return makeComponent( h, outerThis.uiSchema, this );
       },
       mounted() {
