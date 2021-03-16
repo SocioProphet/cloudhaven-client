@@ -4,22 +4,29 @@ import _ from 'lodash'
 import vuetify from '@/plugins/vuetify'
 import Api from '@/services/Api'
 import deep from 'deep-get-set'
+import CommentsManager from './CommentsManager.vue'
 
 const uiElementToVueCompMap = {
-  div: 'div',
-  row: 'VRow',
-  col: 'VCol',
-  button: 'VBtn',
-  spacer: 'VSpacer',
-  card: 'VCard',
-  cardTitle: 'VCardTitle',
-  cardBody: 'VCardText',
-  cardActions: 'VCardActions',
-  container: 'VContainer',
-  dataTable: 'VDataTable',
-  form: 'VForm',
-  textField: 'VTextField',
-  icon: 'VIcon'
+  div: VueLib['div'],
+  row: VueLib['VRow'],
+  col: VueLib['VCol'],
+  conversation: CommentsManager,
+  button: VueLib['VBtn'],
+  spacer: VueLib['VSpacer'],
+  card: VueLib['VCard'],
+  cardTitle: VueLib['VCardTitle'],
+  cardBody: VueLib['VCardText'],
+  cardActions: VueLib['VCardActions'],
+  container: VueLib['VContainer'],
+  dataTable: VueLib['VDataTable'],
+  form: VueLib['VForm'],
+  icon: VueLib['VIcon'],
+  tab: VueLib['VTab'],
+  tabs: VueLib['VTabs'],
+  tabItems: VueLib['VTabsItems'],
+  tabItem: VueLib['VTabItem'],
+  tabsSlider: VueLib['VTabsSlider'],
+  textField: VueLib['VTextField']
 }
 function makeComponent( h, metaData, rootThis ) {
   var isArray = Array.isArray(metaData);
@@ -28,6 +35,9 @@ function makeComponent( h, metaData, rootThis ) {
     return;
   }
   var component = metaData.component;
+  if (component == 'conversation') {
+    debugger;
+  }
   var vueComponent = uiElementToVueCompMap[component];
   var dataObj = ['class', 'style', 'attrs', 'props', 'domProps', 'on', 'nativeOn', 'key', 'ref'].reduce((o,k)=>{
     if (k in metaData) {
@@ -61,7 +71,6 @@ function makeComponent( h, metaData, rootThis ) {
     })
     dataObj.scopedSlots = scopedSlots
   }*/
-  var vcomp = VueLib[vueComponent];
   var children = null;
   if (metaData.contents) {
     if (_.isString( metaData.contents)) {
@@ -75,7 +84,7 @@ function makeComponent( h, metaData, rootThis ) {
     const compiledTemplate = Vue.compile(metaData.template);
     children = [compiledTemplate.render.call(rootThis, h)]
   }
-  var hhh = h( vcomp, dataObj, children);
+  var hhh = h( vueComponent, dataObj, children);
   return hhh;
 }
 
