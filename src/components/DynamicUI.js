@@ -7,7 +7,7 @@ import deep from 'deep-get-set'
 import CommentsManager from './CommentsManager.vue'
 
 const uiElementToVueCompMap = {
-  div: VueLib['div'],
+  div: 'div',
   row: VueLib['VRow'],
   col: VueLib['VCol'],
   conversation: CommentsManager,
@@ -23,7 +23,7 @@ const uiElementToVueCompMap = {
   icon: VueLib['VIcon'],
   tab: VueLib['VTab'],
   tabs: VueLib['VTabs'],
-  tabItems: VueLib['VTabsItems'],
+  tabsItems: VueLib['VTabsItems'],
   tabItem: VueLib['VTabItem'],
   tabsSlider: VueLib['VTabsSlider'],
   textField: VueLib['VTextField']
@@ -35,7 +35,7 @@ function makeComponent( h, metaData, rootThis ) {
     return;
   }
   var component = metaData.component;
-  if (component == 'conversation') {
+  if (component == 'tabItem') {
     debugger;
   }
   var vueComponent = uiElementToVueCompMap[component];
@@ -49,6 +49,15 @@ function makeComponent( h, metaData, rootThis ) {
     }
     return o;
   },{});
+  if (component == 'tabs') {
+    dataObj.on = dataObj.on || {};
+    dataObj.on.change = (n) => {
+      debugger;
+      deep( rootThis, metaData.vmodel, n)
+      var x = rootThis.tab;
+      var y = x;
+    }
+  }
   if (metaData.vmodel) {
     dataObj.props = dataObj.props || {};
     dataObj.props.value = deep( rootThis, metaData.vmodel );
