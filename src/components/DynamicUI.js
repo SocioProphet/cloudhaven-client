@@ -5,9 +5,9 @@ import vuetify from '@/plugins/vuetify'
 import Api from '@/services/Api'
 import deep from 'deep-get-set'
 import CommentsManager from './CommentsManager.vue'
+import CHTable from './CHTable.vue'
 
 const uiElementToVueCompMap = {
-  div: 'div',
   row: VueLib['VRow'],
   col: VueLib['VCol'],
   conversation: CommentsManager,
@@ -18,7 +18,8 @@ const uiElementToVueCompMap = {
   cardBody: VueLib['VCardText'],
   cardActions: VueLib['VCardActions'],
   container: VueLib['VContainer'],
-  dataTable: VueLib['VDataTable'],
+  dataTable: CHTable, 
+  staticTable: VueLib['VDataTable'],
   form: VueLib['VForm'],
   icon: VueLib['VIcon'],
   tab: VueLib['VTab'],
@@ -35,10 +36,7 @@ function makeComponent( h, metaData, rootThis ) {
     return;
   }
   var component = metaData.component;
-  if (component == 'tabItem') {
-    debugger;
-  }
-  var vueComponent = uiElementToVueCompMap[component];
+  var vueComponent = uiElementToVueCompMap[component] || component;
   var dataObj = ['class', 'style', 'attrs', 'props', 'domProps', 'on', 'nativeOn', 'key', 'ref'].reduce((o,k)=>{
     if (k in metaData) {
     o[k] = Object.keys(metaData[k]).reduce((obj, key)=>{
@@ -52,7 +50,6 @@ function makeComponent( h, metaData, rootThis ) {
   if (component == 'tabs') {
     dataObj.on = dataObj.on || {};
     dataObj.on.change = (n) => {
-      debugger;
       deep( rootThis, metaData.vmodel, n)
       var x = rootThis.tab;
       var y = x;
@@ -99,18 +96,16 @@ function makeComponent( h, metaData, rootThis ) {
 
 const DynamicUI = Vue.component('DynamicUI', {
   props: {
-    requiredUserData:  { type: Array, required: false },
-    uiSchema: { type: Object, required: true },
-    dataModel: { type: Object, required: true },
-    uiMethods: { type: Object, required: true },
+    uiConfig: { type: Object, required: true },
+    //{ requiredUserData, uiSchema, dataModel, uiMethods }
     app: { type: Object, required: true }
   },
   vuetify,
   template: '<div id="dynamicUIDiv"></div>',
   mounted() {
     var outerThis = this;
-    var methods = Object.keys(this.uiMethods).reduce((o,m)=>{
-      var methodSpec = this.uiMethods[m];
+    var methods = Object.keys(this.uiConfig.uiMethods).reduce((o,m)=>{
+      var methodSpec = this.uiConfig.uiMethods[m];
       var args = methodSpec.args || [];
       args.push(methodSpec.body);
       o[m] = Function.apply( null, args);
@@ -182,24 +177,24 @@ const DynamicUI = Vue.component('DynamicUI', {
         })
       })();
     }
-    outerThis.dataModel.ch_userData = outerThis.requiredUserData?outerThis.requiredUserData.reduce((o,f)=>{
+    outerThis.uiConfig.dataModel.ch_userData = outerThis.uiConfig.requiredUserData?outerThis.uiConfig.requiredUserData.reduce((o,f)=>{
       o[f] = '';
       return o;
     },{}):{}
     this.vThis = new Vue({
       el: '#dynamicUIDiv',
       data() {
-        return outerThis.dataModel;
+        return Object.assign({dummy:''},outerThis.uiConfig.dataModel);
       },
       store: this.$store,
       vuetify,
       methods: methods,
       render(h) {
-        this.modelToTokenMap = Object.keys(outerThis.dataModel.ch_userData).reduce((o,p)=>{
+        this.modelToTokenMap = Object.keys(outerThis.uiConfig.dataModel.ch_userData).reduce((o,p)=>{
           o['ch_userData.'+p] = p;
           return o;
         },{});
-        return makeComponent( h, outerThis.uiSchema, this );
+        return makeComponent( h, outerThis.uiConfig.uiSchema, this );
       },
       mounted() {
         if (this['initialize']) {

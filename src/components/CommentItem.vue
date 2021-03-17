@@ -38,7 +38,6 @@ import Api from '@/services/Api'
       commentAction() {
         if (this.editMode) {
           (async () => {
-            debugger;
             var response = await Api().post('/conversation/updatecomment', 
               { contentId:this.comment._id, content: this.comment.content });
               console.log(response.data);

@@ -59,14 +59,11 @@ import Api from '@/services/Api'
       },
       methods: {
         addComment() {
-          debugger;
         (async () => {
           var response = null;
-          debugger;
           if (!this.conversation._id && this.conversation.comments.length==0) {
             response = await Api().post('/conversation/create',
               { userId: this.$store.state.user._id, topic: this.topic, content: this.newComment });
-              debugger;
             this.conversation = response.data.conversation;
           } else {
             response = await Api().post('/conversation/addcomment',
@@ -77,7 +74,6 @@ import Api from '@/services/Api'
               var comment = Object.assign({},response.data.content);
               comment.owner = Object.assign({}, this.$store.state.user);
               this.conversation.comments.push(comment);
-              debugger;
           }
           this.newComment = '';
         })();
@@ -86,7 +82,6 @@ import Api from '@/services/Api'
           var curComment = this.conversation.comments.find(c=>(c._id==comment._id))
           if (curComment) {
             curComment.content = comment.content;
-            debugger;
           }
         },
         deleteComment(comment) {
