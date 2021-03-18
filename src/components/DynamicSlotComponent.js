@@ -62,7 +62,7 @@ function makeComponent( h, metaData, rootThis ) {
     dataObj.on.input = (e) =>{
       deep( rootThis, metaData.vmodel, e );
     }
-}
+  }
 /*  if (metaData.scopedSlots) {
     var keys = Object.keys(metaData.scopedSlots);
     var scopedSlots = {};

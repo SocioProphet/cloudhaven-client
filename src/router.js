@@ -11,6 +11,7 @@ import AuditLog from './components/AuditLog'
 import Alerts from './components/Alerts'
 import EventLog from './components/EventLog'
 import Vendors from './components/Vendors'
+import AppPageReset from './components/AppPageReset'
 import VendorAppPane from './components/VendorAppPane'
 import SchedulingCalendar from './components/SchedulingCalendar'
 import VendorCalendar from './components/VendorCalendar'
@@ -39,6 +40,11 @@ let router = new Router({
       path: '/myapps',
       name: 'MyApps',
       component: MyApps
+    },
+    {
+      path: '/apppagereset',
+      name: 'AppPageReset',
+      component: AppPageReset
     },
     {
       path: '/vendorapppane',

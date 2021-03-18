@@ -6,6 +6,7 @@ import Api from '@/services/Api'
 import deep from 'deep-get-set'
 import CommentsManager from './CommentsManager.vue'
 import CHTable from './CHTable.vue'
+import router from '../router'
 
 const uiElementToVueCompMap = {
   row: VueLib['VRow'],
@@ -20,6 +21,7 @@ const uiElementToVueCompMap = {
   container: VueLib['VContainer'],
   dataTable: CHTable, 
   staticTable: VueLib['VDataTable'],
+//  dataTable: VueLib['VDataTable'],
   form: VueLib['VForm'],
   icon: VueLib['VIcon'],
   tab: VueLib['VTab'],
@@ -67,15 +69,20 @@ function makeComponent( h, metaData, rootThis ) {
     dataObj.on.input = (e) =>{
       deep( rootThis, metaData.vmodel, e );
     }
-}
-/*  if (metaData.scopedSlots) {
+  }
+/*  if (scopedProps) {
+    debugger;
+    dataObj.props = dataObj.props || {};
+    dataObj.props.scopedProps = scopedProps;
+  }
+  if (metaData.scopedSlots) {
+    debugger;
+    dataObj.scopedSlots = {}
     var keys = Object.keys(metaData.scopedSlots);
-    var scopedSlots = {};
-     keys.forEach((k) => {
+    keys.forEach((k) => {
       var slotMetaData = metaData.scopedSlots[k];
-      scopedSlots[k] = (props) => makeComponent( h, slotMetaData, rootThis );
+      dataObj.scopedSlots[k] = (props) => makeComponent( h, slotMetaData, rootThis );
     })
-    dataObj.scopedSlots = scopedSlots
   }*/
   var children = null;
   if (metaData.contents) {
@@ -104,6 +111,7 @@ const DynamicUI = Vue.component('DynamicUI', {
   template: '<div id="dynamicUIDiv"></div>',
   mounted() {
     var outerThis = this;
+    debugger;
     var methods = Object.keys(this.uiConfig.uiMethods).reduce((o,m)=>{
       var methodSpec = this.uiConfig.uiMethods[m];
       var args = methodSpec.args || [];
@@ -142,7 +150,14 @@ const DynamicUI = Vue.component('DynamicUI', {
         if (cb) {
           vm.$nextTick(() =>{
             setTimeout(() => {
-              (cb)(this.vThis, response.data);
+              (cb)(vm, response.data);
+              debugger;
+              if (response.data.newPage) {
+                router.push({ name: 'AppPageReset', 
+                  params: {
+                    app:app,
+                    page:response.data.newPage } })
+              }
             }, 100)
           })
         }
@@ -176,12 +191,18 @@ const DynamicUI = Vue.component('DynamicUI', {
           });
         })
       })();
+      methods.test = () => {
+        alert('test here');
+      }
     }
     outerThis.uiConfig.dataModel.ch_userData = outerThis.uiConfig.requiredUserData?outerThis.uiConfig.requiredUserData.reduce((o,f)=>{
       o[f] = '';
       return o;
     },{}):{}
     this.vThis = new Vue({
+      props: {
+        app: outerThis.app
+      },
       el: '#dynamicUIDiv',
       data() {
         return Object.assign({dummy:''},outerThis.uiConfig.dataModel);

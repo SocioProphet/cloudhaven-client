@@ -21,12 +21,13 @@ export default {
     }
   },
   mounted() {
-    var userId = this.$route.params.userId;
     this.app = this.$route.params.app;
+    var page = this.$route.params.page || 'initUIConfig';
+    debugger;
     if (!this.app) return;
     var app = {url:this.app.url, vendorId: this.app.vendorId, _id: this.app._id};
     (async () => {
-      var response = await Api().post('/vendorapplication/apppost', {app:app, httpMethod: 'GET', postId:'initUIConfig'});
+      var response = await Api().post('/vendorapplication/apppost', {app:app, httpMethod: 'GET', postId:page});
       this.uiConfig = response.data;
       //{requiredUserData, dataModel, uiMethods, uiSchema}
       this.component = 'DynamicUI';
