@@ -71,12 +71,10 @@ function makeComponent( h, metaData, rootThis ) {
     }
   }
 /*  if (scopedProps) {
-    debugger;
     dataObj.props = dataObj.props || {};
     dataObj.props.scopedProps = scopedProps;
   }
   if (metaData.scopedSlots) {
-    debugger;
     dataObj.scopedSlots = {}
     var keys = Object.keys(metaData.scopedSlots);
     keys.forEach((k) => {
@@ -111,7 +109,6 @@ const DynamicUI = Vue.component('DynamicUI', {
   template: '<div id="dynamicUIDiv"></div>',
   mounted() {
     var outerThis = this;
-    debugger;
     var methods = Object.keys(this.uiConfig.uiMethods).reduce((o,m)=>{
       var methodSpec = this.uiConfig.uiMethods[m];
       var args = methodSpec.args || [];
@@ -151,7 +148,6 @@ const DynamicUI = Vue.component('DynamicUI', {
           vm.$nextTick(() =>{
             setTimeout(() => {
               (cb)(vm, response.data);
-              debugger;
               if (response.data.newPage) {
                 router.push({ name: 'AppPageReset', 
                   params: {

@@ -102,7 +102,6 @@ var CHTableRow = Vue.component('CHTableRow', {
   },
   methods: {
     clickEvent() {
-      debugger;
       this.$emit('rowevent', this.item)
     }
   },
@@ -124,9 +123,6 @@ export default {
   },
   methods: {
     rowEvent( data ) {
-      var x = data;
-      debugger;
-      var y = x;
     }
   },
   data() {
