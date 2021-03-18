@@ -4,39 +4,84 @@
     <v-toolbar flat color="white">
       <v-toolbar-title>View {{user.name}}'s Data</v-toolbar-title>
     </v-toolbar>
-    <v-data-table
-      :headers="headers"
-      :items="userDataList"
-      hide-default-footer disable-pagination
-      class="elevation-1"
-    >
-      <template v-slot:item="{ item }">
-       <tr> <!--  @click="editItem(item)" -->
-        <!--td>
-          <v-row class="justify-center align-center align-stretch">
-          <v-btn icon >
-          <v-icon
-            medium
-            @click.stop="editItem(item)"
+    <v-expansion-panels accordion v-model="panel" hover multiple>
+      <v-expansion-panel >
+        <v-expansion-panel-header>Discrete Data</v-expansion-panel-header>
+        <v-expansion-panel-content>
+          <v-data-table
+            :headers="headers"
+            :items="userDataList"
+            hide-default-footer disable-pagination
+            class="elevation-1"
           >
-            mdi-pencil
-          </v-icon>
-          </v-btn>
-          <v-btn icon >
-          <v-icon
-            medium
-            @click.stop="deleteItem(item)"
+            <template v-slot:item="{ item }">
+            <tr> <!--  @click="editItem(item)" -->
+              <!--td>
+                <v-row class="justify-center align-center align-stretch">
+                <v-btn icon >
+                <v-icon
+                  medium
+                  @click.stop="editItem(item)"
+                >
+                  mdi-pencil
+                </v-icon>
+                </v-btn>
+                <v-btn icon >
+                <v-icon
+                  medium
+                  @click.stop="deleteItem(item)"
+                >
+                  mdi-trash-can
+                </v-icon>
+                </v-btn>
+                </v-row>
+              </td-->
+              <td class="pt-3">{{ item.name }}</td>
+              <td class="pt-3">{{ item.content }}</td>
+            </tr>
+            </template>
+          </v-data-table>
+        </v-expansion-panel-content>
+      </v-expansion-panel>
+      <v-expansion-panel >
+        <v-expansion-panel-header>Bulk Data</v-expansion-panel-header>
+        <v-expansion-panel-content>
+          <v-data-table
+            :headers="bulkHeaders"
+            :items="bulkList"
+            hide-default-footer disable-pagination
+            class="elevation-1"
           >
-            mdi-trash-can
-          </v-icon>
-          </v-btn>
-          </v-row>
-        </td-->
-        <td class="pt-3">{{ item.name }}</td>
-        <td class="pt-3">{{ item.content }}</td>
-       </tr>
-      </template>
-    </v-data-table>
+            <template v-slot:item="{ item }">
+            <tr> <!--  @click="editItem(item)" -->
+              <!--td>
+                <v-row class="justify-center align-center align-stretch">
+                <v-btn icon >
+                <v-icon
+                  medium
+                  @click.stop="editItem(item)"
+                >
+                  mdi-pencil
+                </v-icon>
+                </v-btn>
+                <v-btn icon >
+                <v-icon
+                  medium
+                  @click.stop="deleteItem(item)"
+                >
+                  mdi-trash-can
+                </v-icon>
+                </v-btn>
+                </v-row>
+              </td-->
+              <td class="pt-3">{{ item.content }}</td>
+              <td class="pt-3">{{ item.created_at }}</td>
+            </tr>
+            </template>
+          </v-data-table>
+        </v-expansion-panel-content>
+      </v-expansion-panel>
+    </v-expansion-panels>
     </v-container>
   </div>
 </template>
@@ -47,12 +92,19 @@ import { EventBus } from '../event-bus.js';
 import Api from '@/services/Api'
   export default {
     data: () => ({
+      panel: [0],
       headers: [
 //        { text: 'Actions', value: 'name', sortable: false, align:'center' },
         { text: 'Data Id', sortable: true, align:'left', value: 'name' },
         { text: 'Value', align: 'left', sortable: true, value: 'content' }
       ],
-      userDataList: []
+      userDataList: [],
+      bulkHeaders: [
+//        { text: 'Actions', value: 'name', sortable: false, align:'center' },
+        { text: 'Value', align: 'left', sortable: true, value: 'content' },
+        { text: 'Create Datetime', sortable: true, align:'left', value: 'created_at' },
+      ],
+      bulkList: []
     }),
 
     computed: {
@@ -72,6 +124,11 @@ import Api from '@/services/Api'
         (async () => {
           var response = await Api().post('/userdata/batchget', {userId: this.user._id});
           this.userDataList = response.data;
+        })();
+        (async () => {
+          var response = await Api().get('/userdata/getbulkdata/'+this.user._id);
+          debugger;
+          this.bulkList = response.data;
         })();
       }
     }
