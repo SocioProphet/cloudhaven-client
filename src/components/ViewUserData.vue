@@ -127,7 +127,6 @@ import Api from '@/services/Api'
         })();
         (async () => {
           var response = await Api().get('/userdata/getbulkdata/'+this.user._id);
-          debugger;
           this.bulkList = response.data;
         })();
       }

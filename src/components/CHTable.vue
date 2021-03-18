@@ -6,7 +6,7 @@
   >
     <template  v-slot:item="{ item }">
       <!--component :is="'DynamicSlotComponent'" :uiSchema="uiSchema" :scopedProps="item"></component-->
-      <CHTableRow @rowevent="rowEvent" :item="item" :uiSchema="uiSchema"/>
+      <CHTableRow @rowclicked="rowClicked" :item="item" :uiSchema="uiSchema"/>
     </template>
   </v-data-table>
 </template>
@@ -102,7 +102,7 @@ var CHTableRow = Vue.component('CHTableRow', {
   },
   methods: {
     clickEvent() {
-      this.$emit('rowevent', this.item)
+      this.$emit('rowclicked', this.item)
     }
   },
 //  template: `<tr><td>[{{item.firstName}}]</td><td>[{{item.lastName}}]</td><td>[{{item.address}}]</td></tr>`
@@ -122,7 +122,8 @@ export default {
     items: Array
   },
   methods: {
-    rowEvent( data ) {
+    rowClicked( data ) {
+      this.$emit('rowclicked', data);
     }
   },
   data() {

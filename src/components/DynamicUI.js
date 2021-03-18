@@ -22,6 +22,7 @@ const uiElementToVueCompMap = {
   dataTable: CHTable, 
   staticTable: VueLib['VDataTable'],
 //  dataTable: VueLib['VDataTable'],
+  dialog: VueLib['VDialog'],
   form: VueLib['VForm'],
   icon: VueLib['VIcon'],
   tab: VueLib['VTab'],
@@ -41,9 +42,14 @@ function makeComponent( h, metaData, rootThis ) {
   var vueComponent = uiElementToVueCompMap[component] || component;
   var dataObj = ['class', 'style', 'attrs', 'props', 'domProps', 'on', 'nativeOn', 'key', 'ref'].reduce((o,k)=>{
     if (k in metaData) {
-    o[k] = Object.keys(metaData[k]).reduce((obj, key)=>{
+      o[k] = Object.keys(metaData[k]).reduce((obj, key)=>{
         var val = metaData[k][key];
-        obj[key] = (_.isString(val) && val.indexOf('this.')==0)?deep(rootThis, val.substring(5)): val;
+        if (key == "rules") {
+          debugger;
+          obj.rules = val.map(f=>rootThis.$options.methods[f]);
+        } else {
+          obj[key] = (_.isString(val) && val.indexOf('this.')==0)?deep(rootThis, val.substring(5)): val;
+        }
         return obj;
       },{})
     }
@@ -67,6 +73,7 @@ function makeComponent( h, metaData, rootThis ) {
     }
     dataObj.on = dataObj.on || {};
     dataObj.on.input = (e) =>{
+      debugger;
       deep( rootThis, metaData.vmodel, e );
     }
   }
@@ -82,6 +89,11 @@ function makeComponent( h, metaData, rootThis ) {
       dataObj.scopedSlots[k] = (props) => makeComponent( h, slotMetaData, rootThis );
     })
   }*/
+  if (metaData.defaultSlot) {
+    dataObj.scopedSlots = dataObj.scopedSlots || {};
+    dataObj.scopedSlots.default = () => makeComponent( h, metaData.defaultSlot, rootThis);
+
+  }
   var children = null;
   if (metaData.contents) {
     if (_.isString( metaData.contents)) {
@@ -211,6 +223,9 @@ const DynamicUI = Vue.component('DynamicUI', {
           o['ch_userData.'+p] = p;
           return o;
         },{});
+        debugger;
+        var opts = this.$options;
+        var t = this;
         return makeComponent( h, outerThis.uiConfig.uiSchema, this );
       },
       mounted() {
