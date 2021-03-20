@@ -32,83 +32,104 @@ const uiElementToVueCompMap = {
   tabsSlider: VueLib['VTabsSlider'],
   textField: VueLib['VTextField']
 }
+function makeFunction( methodSpec ) {
+  var args = methodSpec.args || [];
+  args.push(methodSpec.body);
+  return Function.apply( null, args);
+}
 function makeComponent( h, metaData, rootThis ) {
   var isArray = Array.isArray(metaData);
-  if (isArray) {
-    throw "Array is not allowed metaData";
-    return;
-  }
-  var component = metaData.component;
-  var vueComponent = uiElementToVueCompMap[component] || component;
-  var dataObj = ['class', 'style', 'attrs', 'props', 'domProps', 'on', 'nativeOn', 'key', 'ref'].reduce((o,k)=>{
-    if (k in metaData) {
-      o[k] = Object.keys(metaData[k]).reduce((obj, key)=>{
-        var val = metaData[k][key];
-        if (key == "rules") {
-          debugger;
-          obj.rules = val.map(f=>rootThis.$options.methods[f]);
+  var contents = [];
+  if (!isArray) {
+    contents = metaData.contents;
+    var component = metaData.component;
+    var vueComponent = uiElementToVueCompMap[component] || component;
+    var dataObj = ['class', 'style', 'attrs', 'props', 'domProps', 'nativeOn', 'key', 'ref'].reduce((o,k)=>{
+      if (k in metaData) {
+        if (metaData[k] instanceof Object) {
+          o[k] = Object.keys(metaData[k]).reduce((obj, key)=>{
+            var val = metaData[k][key];
+            if (key == "rules") {
+              obj.rules = val.map(f=>rootThis.$options.methods[f]);
+            } else {
+              obj[key] = (_.isString(val) && val.indexOf('this.')==0)?deep(rootThis, val.substring(5)): val;
+            }
+            return obj;
+          },{})
         } else {
-          obj[key] = (_.isString(val) && val.indexOf('this.')==0)?deep(rootThis, val.substring(5)): val;
+          o[k] = metaData[k];
         }
-        return obj;
-      },{})
-    }
-    return o;
-  },{});
-  if (component == 'tabs') {
-    dataObj.on = dataObj.on || {};
-    dataObj.on.change = (n) => {
-      deep( rootThis, metaData.vmodel, n)
-      var x = rootThis.tab;
-      var y = x;
-    }
-  }
-  if (metaData.vmodel) {
-    dataObj.props = dataObj.props || {};
-    dataObj.props.value = deep( rootThis, metaData.vmodel );
-    if (metaData.tokenId) {
-      dataObj.domProps = dataObj.domProps || {};
-      dataObj.domProps.tokenValue = ''; //To be filled by getUserData
-      rootThis.modelToTokenMap[metaData.vmodel] = metaData.tokenId;
-    }
-    dataObj.on = dataObj.on || {};
-    dataObj.on.input = (e) =>{
-      debugger;
-      deep( rootThis, metaData.vmodel, e );
-    }
-  }
-/*  if (scopedProps) {
-    dataObj.props = dataObj.props || {};
-    dataObj.props.scopedProps = scopedProps;
-  }
-  if (metaData.scopedSlots) {
-    dataObj.scopedSlots = {}
-    var keys = Object.keys(metaData.scopedSlots);
-    keys.forEach((k) => {
-      var slotMetaData = metaData.scopedSlots[k];
-      dataObj.scopedSlots[k] = (props) => makeComponent( h, slotMetaData, rootThis );
+      }
+      return o;
+    },{});
+    ["nativeOn", "on"].forEach(ot=>{
+      if (metaData[ot]) {
+        dataObj[ot] = dataObj[ot] || {};
+        Object.keys(metaData[ot]).forEach(ev=>{
+          var funcSpec = metaData[ot][ev];
+          if (_.isString(funcSpec)) {
+            dataObj[ot][ev] = funcSpec;
+          } else {
+            dataObj[ot][ev] = makeFunction( funcSpec );
+          }
+        })
+      }  
     })
-  }*/
-  if (metaData.defaultSlot) {
-    dataObj.scopedSlots = dataObj.scopedSlots || {};
-    dataObj.scopedSlots.default = () => makeComponent( h, metaData.defaultSlot, rootThis);
-
+    if (component == 'tabs') {
+      dataObj.on = dataObj.on || {};
+      dataObj.on.change = (n) => {
+        deep( rootThis, metaData.vmodel, n);
+      }
+    }
+    if (metaData.vmodel) {
+      dataObj.props = dataObj.props || {};
+      dataObj.props.value = deep( rootThis, metaData.vmodel );
+      if (metaData.tokenId) {
+        dataObj.domProps = dataObj.domProps || {};
+        dataObj.domProps.tokenValue = ''; //To be filled by getUserData
+        rootThis.modelToTokenMap[metaData.vmodel] = metaData.tokenId;
+      }
+      dataObj.on = dataObj.on || {};
+      dataObj.on.input = (e) =>{
+        deep( rootThis, metaData.vmodel, e );
+      }
+    }
+  /*  if (scopedProps) {
+      dataObj.props = dataObj.props || {};
+      dataObj.props.scopedProps = scopedProps;
+    }
+    if (metaData.scopedSlots) {
+      dataObj.scopedSlots = {}
+      var keys = Object.keys(metaData.scopedSlots);
+      keys.forEach((k) => {
+        var slotMetaData = metaData.scopedSlots[k];
+        dataObj.scopedSlots[k] = (props) => makeComponent( h, slotMetaData, rootThis );
+      })
+    }*/
+    if (metaData.defaultSlot) {
+      dataObj.scopedSlots = dataObj.scopedSlots || {};
+      dataObj.scopedSlots.default = () => makeComponent( h, metaData.defaultSlot, rootThis);
+    }  
+  } else {
+    contents = metaData;
   }
   var children = null;
-  if (metaData.contents) {
-    if (_.isString( metaData.contents)) {
-      children = metaData.contents;
-    } else if (Array.isArray( metaData.contents )) {
-      children = metaData.contents.map((el)=>{ return makeComponent( h, el, rootThis ); })
+  if (contents) {
+    if (_.isString( contents)) {
+      children = contents;
+    } else if (Array.isArray( contents )) {
+      children = contents.map((el)=>{ return makeComponent( h, el, rootThis ); })
     } else {
-      children = [makeComponent( h, metaData.contents, rootThis )]
+      children = [makeComponent( h, contents, rootThis )]
     }
   } else if (metaData.template) {
     const compiledTemplate = Vue.compile(metaData.template);
     children = [compiledTemplate.render.call(rootThis, h)]
   }
-  var hhh = h( vueComponent, dataObj, children);
-  return hhh;
+  if (isArray) {
+    return children;
+  }
+  return h( vueComponent, dataObj, children);
 }
 
 const DynamicUI = Vue.component('DynamicUI', {
@@ -122,10 +143,12 @@ const DynamicUI = Vue.component('DynamicUI', {
   mounted() {
     var outerThis = this;
     var methods = Object.keys(this.uiConfig.uiMethods).reduce((o,m)=>{
-      var methodSpec = this.uiConfig.uiMethods[m];
-      var args = methodSpec.args || [];
-      args.push(methodSpec.body);
-      o[m] = Function.apply( null, args);
+      o[m] = makeFunction(this.uiConfig.uiMethods[m]);
+      return o;
+    },{});
+    debugger;
+    var computed = Object.keys(this.uiConfig.computed).reduce((o,m)=>{
+      o[m] = makeFunction( this.uiConfig.computed[m] );
       return o;
     },{});
     var app = {url:this.app.url, vendorId: this.app.vendorId, _id: this.app._id};
@@ -218,14 +241,12 @@ const DynamicUI = Vue.component('DynamicUI', {
       store: this.$store,
       vuetify,
       methods: methods,
+      computed: computed,
       render(h) {
         this.modelToTokenMap = Object.keys(outerThis.uiConfig.dataModel.ch_userData).reduce((o,p)=>{
           o['ch_userData.'+p] = p;
           return o;
         },{});
-        debugger;
-        var opts = this.$options;
-        var t = this;
         return makeComponent( h, outerThis.uiConfig.uiSchema, this );
       },
       mounted() {

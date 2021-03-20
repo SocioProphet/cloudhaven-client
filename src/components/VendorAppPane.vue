@@ -8,6 +8,7 @@
 import DynamicUI from './DynamicUI.js'
 import Api from '@/services/Api'
 import { VSheet } from 'vuetify/lib'
+import { EventBus } from '../event-bus.js';
 
 export default {
   components: {
@@ -28,6 +29,9 @@ export default {
     (async () => {
       var response = await Api().post('/vendorapplication/apppost', {app:app, httpMethod: 'GET', postId:page});
       this.uiConfig = response.data;
+      if (this.uiConfig.appFrame) {
+        EventBus.$emit('set app frame', Object.assign(app, this.uiConfig.appFrame))
+      }
       //{requiredUserData, dataModel, uiMethods, uiSchema}
       this.component = 'DynamicUI';
     })();

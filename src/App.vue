@@ -42,13 +42,13 @@
         </v-list-item>
       </v-list>
     </v-navigation-drawer>
-    <v-app-bar :style="{background: 'linear-gradient(to bottom, #00528d 0%, #0071C2 100%)'}"
+    <v-app-bar :style="this.appDetails.appBarStyle"
       app
       clipped-left
       clipped-right
     >
     <!-- (user.rolesMap['SYSADMIN']) &&  -->
-      <v-app-bar-nav-icon v-if="$route.name!='login'" class="white--text text--accent-2" @click.stop="leftDrawer = !leftDrawer"></v-app-bar-nav-icon>
+      <v-app-bar-nav-icon v-if="$route.name!='login'" :class="appDetails.appBarTextClass" @click.stop="leftDrawer = !leftDrawer"></v-app-bar-nav-icon>
       <v-tooltip v-if="$route.name!='home' && $route.name!='login'" bottom color="#2572d2" light>
         <template v-slot:activator="{ on, attrs }">
           <v-btn icon :to="user.rolesMap['VENDOR']?'/vendorcalendar':'/home'" v-bind="attrs" v-on="on">
@@ -65,11 +65,11 @@
         </template>
         <span>Go back</span>
       </v-tooltip>
-      <v-toolbar-title v-text="title" class="white--text text--accent-2" @click="goHome" style="cursor:pointer"></v-toolbar-title>
+      <v-toolbar-title :class="appDetails.appBarTextClass" @click="goHome" style="cursor:pointer">CloudHaven{{titleAppSuffix}}</v-toolbar-title>
       <v-spacer></v-spacer>
       <v-alert class="mt-auto" dark elevation="12" transition="slide-y-reverse-transition" dismissible v-model="showGlobalAlert" :type="globalAlert.type||'success'">{{globalAlert.msg}}</v-alert>
       <v-spacer></v-spacer>
-      <span v-if="isLoggedIn" class="white--text">{{user.name}}&nbsp;&nbsp;&nbsp;&nbsp;<a class="black--text" @click="logout"><b>Logout</b></a></span>
+      <span v-if="isLoggedIn" :class="appDetails.nameTextClass">{{user.name}}&nbsp;&nbsp;&nbsp;&nbsp;<a :class="appDetails.appBarTextClass" @click="logout"><b>Logout</b></a></span>
       <!--v-spacer></v-spacer>
       <v-btn icon @click.stop="rightDrawer = !rightDrawer">
         <v-icon color="yellow accent-2">mdi-menu</v-icon>
@@ -89,6 +89,20 @@ import { mapState } from 'vuex'
 import { EventBus } from './event-bus.js';
 import Api from '@/services/Api'
 import router from './router'
+const CloudHavenAppDetails = {
+  name: 'CloudHaven',
+  appBarStyle: {background: 'linear-gradient(to bottom, #00528d 0%, #0071C2 100%)'},
+  appBarTextClass: "white--text text--accent-2",
+  nameTextClass: "yellow--text",
+  menuItems: [
+    { route: 'MyApps', action: '', title: 'My Apps' },
+    { route: 'AppStore', action: '', title: 'App Store' },
+    { route: 'UISandbox', action: '', title: 'UI Sandbox' },
+    { route: 'vendors', action: '', title: 'Vendors' },
+    { route: 'users', action: '', title: 'Users' },
+    { route: 'ViewUserData', action: '', title: 'View User Data' }
+  ]
+};
 export default {
   name: 'App',
   data () {
@@ -104,19 +118,32 @@ export default {
       miniVariant: false,
       right: true,
       rightDrawer: false,
-      title: 'CloudHaven',
       pwdDialog: false,
       pwdValid: true,
       chgPwdObj: {},
       confPwdErrMsg:'',
       rules:{
           required: value => !!value || 'Required.'
+      },
+      appDetails: {
+        appBarStyle: '',
+        appBarTextClass: '',
+        nameTextClass: '',
+        vendorId: '',
+        appId: '',
+        name: '',
+        menuItems: []
       }
     }
   },
   created() {
     EventBus.$on('errors:401', () => {
       this.$router.push('/login');
+    })
+    EventBus.$on('set app frame', (appDetails) => {
+      Object.keys(appDetails).forEach(p=>{
+        this.appDetails[p] = appDetails[p];
+      })
     })
     EventBus.$on('global success alert', (msg) => {
       this.globalAlert.type = 'success';
@@ -134,6 +161,9 @@ export default {
         }, 10000)
         this.errorDisplayed = msg;
       }
+    })
+    Object.keys(CloudHavenAppDetails).forEach(p=>{
+      this.appDetails[p] = CloudHavenAppDetails[p];
     })
   },
   watch:{
@@ -158,25 +188,31 @@ export default {
     }
   },
   computed: {
+    titleAppSuffix() {
+      return this.appDetails.name==CloudHavenAppDetails.name?'': ` ${this.appDetails.name}`
+    },
     isLoggedIn : function(){ return this.$store.getters.isLoggedIn},
     ...mapState([ 'user' ]),
     isVendor() {
       return this.user.rolesMap['VENDOR']!=null;
     },
+    appMenuItems() {
+      var menuItems = [{name: 'home', title: 'CloudHaven'}];
+      this.appDetails.menuItems.forEach(m=>{
+        menuItems.push({ name: 'VendorAppPane', params: { app:this.appDetails, page:m.page }, title: m.title })
+      })
+      return menuItems;
+
+    },
     menuItems() {
 //      if (this.user.rolesMap['SYSADMIN']) {
-        return [
-        { route: 'MyApps', action: '', title: 'My Apps' },
-        { route: 'AppStore', action: '', title: 'App Store' },
-        { route: 'UISandbox', action: '', title: 'UI Sandbox' },
-        { route: 'vendors', action: '', title: 'Vendors' },
-        { route: 'users', action: '', title: 'Users' },
-        { route: 'ViewUserData', action: '', title: 'View User Data' }
+        var menuItems = this.appDetails.name == CloudHavenAppDetails.name ?
+          CloudHavenAppDetails.menuItems : this.appMenuItems;
+        return menuItems;
         /*,
         { route: 'auditLog', action: '', title: 'Audit Log'},
-        { route: 'eventLog', action: '', title: 'Event Log'}*/
-        ];
-/*      } else if (this.isVendor) {
+        { route: 'eventLog', action: '', title: 'Event Log'}
+      } else if (this.isVendor) {
         return [
         { route: 'vendorcalendar', action: '', title: 'Vendor Calendar'},
         { route: null, action: this.chgPwd, title: 'Change Password'}
@@ -241,7 +277,7 @@ export default {
         if (item.route == this.$router.currentRoute.name) {
           EventBus.$emit(`${item.route} data refresh`);
         } else {
-          router.push({name:item.route});
+          router.push({name:item.route}); //, params: item.params
         }
       } else {
         (item.action)();
