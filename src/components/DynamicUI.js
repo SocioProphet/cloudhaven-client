@@ -19,9 +19,10 @@ const uiElementToVueCompMap = {
   cardBody: VueLib['VCardText'],
   cardActions: VueLib['VCardActions'],
   container: VueLib['VContainer'],
-  dataTable: CHTable, 
-  staticTable: VueLib['VDataTable'],
-//  dataTable: VueLib['VDataTable'],
+  divider: VueLib['VDivider'],
+//  dataTable: CHTable, 
+//  staticTable: VueLib['VDataTable'],
+  dataTable: VueLib['VDataTable'],
   dialog: VueLib['VDialog'],
   form: VueLib['VForm'],
   icon: VueLib['VIcon'],
@@ -30,14 +31,17 @@ const uiElementToVueCompMap = {
   tabsItems: VueLib['VTabsItems'],
   tabItem: VueLib['VTabItem'],
   tabsSlider: VueLib['VTabsSlider'],
-  textField: VueLib['VTextField']
+  textField: VueLib['VTextField'],
+  toolbar: VueLib['VToolbar'],
+  toolbarTitle: VueLib['VToolbarTitle'],
+  toolbarItems: VueLib['VToolbarItems']
 }
 function makeFunction( methodSpec ) {
   var args = methodSpec.args || [];
   args.push(methodSpec.body);
   return Function.apply( null, args);
 }
-function makeComponent( h, metaData, rootThis ) {
+function makeComponent( h, metaData, rootThis, scopedProps ) {
   var isArray = Array.isArray(metaData);
   var contents = [];
   if (!isArray) {
@@ -65,12 +69,29 @@ function makeComponent( h, metaData, rootThis ) {
     ["nativeOn", "on"].forEach(ot=>{
       if (metaData[ot]) {
         dataObj[ot] = dataObj[ot] || {};
+        var onObj = dataObj[ot];
         Object.keys(metaData[ot]).forEach(ev=>{
           var funcSpec = metaData[ot][ev];
           if (_.isString(funcSpec)) {
-            dataObj[ot][ev] = funcSpec;
+            onObj[ev] = (event) => {
+              (Function.apply( null, ['props', `${funcSpec.funcSpec}(props);`]))(scopedProps)
+            }
           } else {
-            dataObj[ot][ev] = makeFunction( funcSpec );
+            var func = null;
+            if (funcSpec.method) {
+               func = Function.apply( null, ['props', `${funcSpec.method}(props);`]);
+            } else { //body
+              func = Function.apply( null, [funcSpec.body]);
+            }
+            onObj[ev] = (event) => {
+              (func)(scopedProps[funcSpec.scopedProp]);
+              if (funcSpec.modifier == "stop") {
+                event.stopPropagation();
+              } else if (funcSpec.modifier == "prevent") {
+                event.preventDefault();
+              }
+            }
+
           }
         })
       }  
@@ -97,30 +118,38 @@ function makeComponent( h, metaData, rootThis ) {
   /*  if (scopedProps) {
       dataObj.props = dataObj.props || {};
       dataObj.props.scopedProps = scopedProps;
-    }
+    }*/
     if (metaData.scopedSlots) {
       dataObj.scopedSlots = {}
       var keys = Object.keys(metaData.scopedSlots);
-      keys.forEach((k) => {
-        var slotMetaData = metaData.scopedSlots[k];
-        dataObj.scopedSlots[k] = (props) => makeComponent( h, slotMetaData, rootThis );
+      keys.forEach((slot) => {
+        var slotMetaData = metaData.scopedSlots[slot];
+        dataObj.scopedSlots[slot] = (scopedProps) => {
+          debugger;
+          return makeComponent( h, slotMetaData, rootThis, scopedProps );
+        }
       })
-    }*/
+    }
     if (metaData.defaultSlot) {
       dataObj.scopedSlots = dataObj.scopedSlots || {};
-      dataObj.scopedSlots.default = () => makeComponent( h, metaData.defaultSlot, rootThis);
+      dataObj.scopedSlots.default = () => {
+        debugger;
+        return makeComponent( h, metaData.defaultSlot, rootThis, scopedProps);
+      }
     }  
   } else {
     contents = metaData;
   }
   var children = null;
-  if (contents) {
+  if (!isArray && metaData.contentsAsScopedProp) {
+    children = deep(scopedProps, metaData.contentsAsScopedProp);
+  } else if (contents) {
     if (_.isString( contents)) {
       children = contents;
     } else if (Array.isArray( contents )) {
-      children = contents.map((el)=>{ return makeComponent( h, el, rootThis ); })
+      children = contents.map((el)=>{ return makeComponent( h, el, rootThis, scopedProps ); })
     } else {
-      children = [makeComponent( h, contents, rootThis )]
+      children = [makeComponent( h, contents, rootThis, scopedProps )]
     }
   } else if (metaData.template) {
     const compiledTemplate = Vue.compile(metaData.template);
@@ -146,7 +175,6 @@ const DynamicUI = Vue.component('DynamicUI', {
       o[m] = makeFunction(this.uiConfig.uiMethods[m]);
       return o;
     },{});
-    debugger;
     var computed = Object.keys(this.uiConfig.computed).reduce((o,m)=>{
       o[m] = makeFunction( this.uiConfig.computed[m] );
       return o;

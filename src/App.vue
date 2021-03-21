@@ -199,7 +199,7 @@ export default {
     appMenuItems() {
       var menuItems = [{name: 'home', title: 'CloudHaven'}];
       this.appDetails.menuItems.forEach(m=>{
-        menuItems.push({ name: 'VendorAppPane', params: { app:this.appDetails, page:m.page }, title: m.title })
+        menuItems.push({ name: 'AppPageReset', params: { app:this.appDetails, page:m.page }, title: m.title })
       })
       return menuItems;
 
@@ -276,9 +276,11 @@ export default {
       if (item.route) {
         if (item.route == this.$router.currentRoute.name) {
           EventBus.$emit(`${item.route} data refresh`);
-        } else {
+        } else if (item.route) {
           router.push({name:item.route}); //, params: item.params
         }
+      } else if (item.name) {
+        router.push({name:item.name, params:item.params})
       } else {
         (item.action)();
       }
