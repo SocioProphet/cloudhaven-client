@@ -78,7 +78,7 @@ import router from '../router'
 
     methods: {
       launchApp(app) {
-        router.push({ name: 'VendorAppPane', params: { app:app, page:'' } })
+        router.push({ name: 'VendorAppPane', params: { app:app, page:'apppages/cptcodes' } })
       },
       loadMyApps() {
         (async () => {

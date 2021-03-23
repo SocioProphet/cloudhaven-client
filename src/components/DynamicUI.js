@@ -5,8 +5,9 @@ import vuetify from '@/plugins/vuetify'
 import Api from '@/services/Api'
 import deep from 'deep-get-set'
 import CommentsManager from './CommentsManager.vue'
-import CHTable from './CHTable.vue'
+//import CHTable from './CHTable.vue'
 import router from '../router'
+import { EventBus } from '../event-bus.js';
 
 const uiElementToVueCompMap = {
   row: VueLib['VRow'],
@@ -54,7 +55,7 @@ function makeComponent( h, metaData, rootThis, scopedProps ) {
           o[k] = Object.keys(metaData[k]).reduce((obj, key)=>{
             var val = metaData[k][key];
             if (key == "rules") {
-              obj.rules = val.map(f=>rootThis.$options.methods[f]);
+              obj.rules = val.map(f=>rootThis[f]);
             } else {
               obj[key] = (_.isString(val) && val.indexOf('this.')==0)?deep(rootThis, val.substring(5)): val;
             }
@@ -74,17 +75,20 @@ function makeComponent( h, metaData, rootThis, scopedProps ) {
           var funcSpec = metaData[ot][ev];
           if (_.isString(funcSpec)) {
             onObj[ev] = (event) => {
-              (Function.apply( null, ['props', `${funcSpec.funcSpec}(props);`]))(scopedProps)
+//              (Function.apply( rootThis, ['props', `this.${funcSpec.funcSpec}(props);`]))(scopedProps)
+              (rootThis[funcSpec])(scopedProps)
             }
           } else {
             var func = null;
             if (funcSpec.method) {
-               func = Function.apply( null, ['props', `${funcSpec.method}(props);`]);
+//               func = Function.apply( rootThis, ['props', `this.${funcSpec.method}(props);`]);
+              func = rootThis[funcSpec.method];
             } else { //body
-              func = Function.apply( null, [funcSpec.body]);
+              func = Function.apply( rootThis, [funcSpec.body]); //FIXME?
             }
             onObj[ev] = (event) => {
-              (func)(scopedProps[funcSpec.scopedProp]);
+              debugger;
+              (func).call(rootThis, scopedProps?(funcSpec.scopedProp?scopedProps[funcSpec.scopedProp]:scopedProps):null);
               if (funcSpec.modifier == "stop") {
                 event.stopPropagation();
               } else if (funcSpec.modifier == "prevent") {
@@ -125,15 +129,14 @@ function makeComponent( h, metaData, rootThis, scopedProps ) {
       keys.forEach((slot) => {
         var slotMetaData = metaData.scopedSlots[slot];
         dataObj.scopedSlots[slot] = (scopedProps) => {
-          debugger;
           return makeComponent( h, slotMetaData, rootThis, scopedProps );
         }
       })
     }
     if (metaData.defaultSlot) {
+      debugger;
       dataObj.scopedSlots = dataObj.scopedSlots || {};
       dataObj.scopedSlots.default = () => {
-        debugger;
         return makeComponent( h, metaData.defaultSlot, rootThis, scopedProps);
       }
     }  
@@ -170,12 +173,14 @@ const DynamicUI = Vue.component('DynamicUI', {
   vuetify,
   template: '<div id="dynamicUIDiv"></div>',
   mounted() {
-    var outerThis = this;
+    var ctx = {vThis:null};
     var methods = Object.keys(this.uiConfig.uiMethods).reduce((o,m)=>{
+      console.log('Method: '+m);
       o[m] = makeFunction(this.uiConfig.uiMethods[m]);
       return o;
     },{});
     var computed = Object.keys(this.uiConfig.computed).reduce((o,m)=>{
+      console.log('Computed: '+m);
       o[m] = makeFunction( this.uiConfig.computed[m] );
       return o;
     },{});
@@ -184,7 +189,7 @@ const DynamicUI = Vue.component('DynamicUI', {
       (async () => {
         var response = await Api().post('/vendorapplication/apppost', {app:app, httpMethod: 'GET', postId:postId});
         if (cb) {
-          (cb)(this.vThis, response.data);
+          (cb).call(ctx.vThis, response.data);
         }
       })();
     };
@@ -210,7 +215,7 @@ const DynamicUI = Vue.component('DynamicUI', {
         if (cb) {
           vm.$nextTick(() =>{
             setTimeout(() => {
-              (cb)(vm, response.data);
+              (cb).call(ctx.vThis, response.data);
               if (response.data.newPage) {
                 router.push({ name: 'AppPageReset', 
                   params: {
@@ -222,6 +227,12 @@ const DynamicUI = Vue.component('DynamicUI', {
         }
       })();
     };
+    methods._showNotification = ( msg ) => {
+      EventBus.$emit('global success alert', msg);
+    }
+    methods._showError = ( msg ) => {
+      EventBus.$emit('global error alert', msg);
+    }
     methods.getUserData = () => {
       var vm = this.vThis;
       if (!vm.$store.state.user) return;
@@ -254,28 +265,34 @@ const DynamicUI = Vue.component('DynamicUI', {
         alert('test here');
       }
     }
-    outerThis.uiConfig.dataModel.ch_userData = outerThis.uiConfig.requiredUserData?outerThis.uiConfig.requiredUserData.reduce((o,f)=>{
+//    outerThis.uiConfig.dataModel.ch_userData = outerThis.uiConfig.requiredUserData?outerThis.uiConfig.requiredUserData.reduce((o,f)=>{
+    this.uiConfig.dataModel.ch_userData = this.uiConfig.requiredUserData?this.uiConfig.requiredUserData.reduce((o,f)=>{
       o[f] = '';
       return o;
     },{}):{}
+    var dataModel = this.uiConfig.dataModel;
+    var uiSchema = this.uiConfig.uiSchema;
     this.vThis = new Vue({
       props: {
-        app: outerThis.app
+        app: app
       },
       el: '#dynamicUIDiv',
       data() {
-        return Object.assign({dummy:''},outerThis.uiConfig.dataModel);
+        return Object.assign({dummy:''},dataModel);
       },
       store: this.$store,
       vuetify,
       methods: methods,
       computed: computed,
       render(h) {
-        this.modelToTokenMap = Object.keys(outerThis.uiConfig.dataModel.ch_userData).reduce((o,p)=>{
+        this.modelToTokenMap = Object.keys(dataModel.ch_userData).reduce((o,p)=>{
           o['ch_userData.'+p] = p;
           return o;
         },{});
-        return makeComponent( h, outerThis.uiConfig.uiSchema, this );
+        return makeComponent( h, uiSchema, ctx.vThis );
+      },
+      beforeCreate() {
+        ctx.vThis = this;
       },
       mounted() {
         if (this['initialize']) {

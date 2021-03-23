@@ -146,21 +146,10 @@ export default {
       })
     })
     EventBus.$on('global success alert', (msg) => {
-      this.globalAlert.type = 'success';
-      this.globalAlert.msg = msg;
-      this.showGlobalAlert = true;
+      this.showAlert( msg, false);
     })
     EventBus.$on('global error alert', (msg) => {
-      this.globalAlert.type = 'error';
-      this.globalAlert.msg = msg;
-      this.showGlobalAlert = true;
-      if (!this.errorDisplayed != msg) {
-        setTimeout(() => {
-          this.showGlobalAlert = false;
-          this.errorDisplayed = ''
-        }, 10000)
-        this.errorDisplayed = msg;
-      }
+      this.showAlert(msg, true);
     })
     Object.keys(CloudHavenAppDetails).forEach(p=>{
       this.appDetails[p] = CloudHavenAppDetails[p];
@@ -222,6 +211,18 @@ export default {
     }
   },
   methods: {
+    showAlert( msg, isError) {
+      this.globalAlert.type = isError?'error':'success';
+      this.globalAlert.msg = msg;
+      this.showGlobalAlert = true;
+      if (!this.errorDisplayed != msg) {
+        setTimeout(() => {
+          this.showGlobalAlert = false;
+          this.errorDisplayed = ''
+        }, 10000)
+        this.errorDisplayed = msg;
+      }
+    },
     goHome() {
       if (this.isVendor) {
         if (this.$router.currentRoute.name != 'vendorCalendar') {

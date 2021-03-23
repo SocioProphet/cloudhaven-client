@@ -69,7 +69,7 @@ export default new Vuex.Store({
         try {
           (async () => {
             const response =  await state.apiMap[model].readAll();
-            var records = response.data.data.records;
+            var records = response.data;
             commit('SET_DBOBJECTS', {model:model, records:records});
             resolve(records);
           })();
@@ -92,9 +92,9 @@ export default new Vuex.Store({
               commit('SET_RESULTNOTIFICATION', {msg:response.errMsg, type:'error'});
               resolve(null);
             } else {
-              commit('ADD_DBOBJECT', {model:payload.model, dbObject:response.data.data.record});
+              commit('ADD_DBOBJECT', {model:payload.model, dbObject:response.data});
               commit('SET_RESULTNOTIFICATION', {msg:payload.label+' added.', type:'success'});
-              resolve(response.data.data.record);
+              resolve(response.data);
             }
           } catch(e) {
             commit('SET_ERRMSG', e+'');
@@ -113,11 +113,11 @@ export default new Vuex.Store({
             } else if (response.errMsg) {
               commit('SET_RESULTNOTIFICATION', {msg:response.errMsg, type:'error'});
             } else {
-              payload.dbObject = response.data.data.record;
+              payload.dbObject = response.data;
               commit('UPDATE_DBOBJECT', payload );
               commit('SET_ERRMSG', '');
             }
-            resolve(response.data.data.record);
+            resolve(response.data);
           } catch(e) {
             commit('SET_ERRMSG', e+'');
           }
@@ -139,7 +139,7 @@ export default new Vuex.Store({
             } else {
               commit('UPDATE_DBOBJECT', payload );
               commit('SET_RESULTNOTIFICATION', {msg:payload.label+' updated.', type:'success'});
-              resolve(response.data.data.record);
+              resolve(response.data);
             }
           } catch(e) {
             commit('SET_ERRMSG', e+'');
