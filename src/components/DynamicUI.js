@@ -25,6 +25,10 @@ const uiElementToVueCompMap = {
 //  staticTable: VueLib['VDataTable'],
   dataTable: VueLib['VDataTable'],
   dialog: VueLib['VDialog'],
+  expansionPanel: VueLib['VExpansionPanel'],
+  expansionPanelHeader: VueLib['VExpansionPanelHeader'],
+  expansionPanelContent: VueLib['VExpansionPanelContent'],
+  expansionPanels: VueLib['VExpansionPanels'],
   form: VueLib['VForm'],
   icon: VueLib['VIcon'],
   select: VueLib['VSelect'],
@@ -49,12 +53,17 @@ function makeComponent( h, metaData, rootThis, scopedProps ) {
   var isArray = Array.isArray(metaData);
   var contents = [];
   if (!isArray) {
+    if (metaData.component == 'dynamicComponent') {
+      debugger;
+      var app = rootThis.$options.props.app;
+      return h( DynamicUI, {props:{uiConfig:metaData.config, app:app}})
+    }
     contents = metaData.contents;
     var component = metaData.component;
     var vueComponent = uiElementToVueCompMap[component] || component;
     var dataObj = ['class', 'style', 'attrs', 'props', 'domProps', 'nativeOn', 'key', 'ref'].reduce((o,k)=>{
       if (k in metaData) {
-        if (metaData[k] instanceof Object) {
+          if (metaData[k] instanceof Object) {
           o[k] = Object.keys(metaData[k]).reduce((obj, key)=>{
             var val = metaData[k][key];
             if (key == "rules") {
@@ -65,11 +74,16 @@ function makeComponent( h, metaData, rootThis, scopedProps ) {
             return obj;
           },{})
         } else {
-          o[k] = metaData[k];
+          var val = metaData[k];
+          o[k] = val.indexOf('this.')==0?deep(rootThis, val.substring(5)): val;
         }
       }
       return o;
     },{});
+    if (metaData.to) {
+      dataObj.on = dataObj.on || {};
+      dataObj.on.click = rootThis._gotoRoute(metaData.to);
+    }
     ["nativeOn", "on"].forEach(ot=>{
       if (metaData[ot]) {
         dataObj[ot] = dataObj[ot] || {};
@@ -175,16 +189,25 @@ const DynamicUI = Vue.component('DynamicUI', {
   template: '<div id="dynamicUIDiv"></div>',
   mounted() {
     var ctx = {vThis:null};
-    var methods = Object.keys(this.uiConfig.uiMethods).reduce((o,m)=>{
-      console.log('Method: '+m);
-      o[m] = makeFunction(this.uiConfig.uiMethods[m]);
+    var methods = {};
+    if (this.uiConfig.uiMethods) {
+      methods = Object.keys(this.uiConfig.uiMethods).reduce((o,m)=>{
+        try {
+          o[m] = makeFunction(this.uiConfig.uiMethods[m]);
+        } catch(e) {
+          console.log('Method '+m+' error: '+e);
+        }
+        return o;
+      },{});
+    }
+    var computed = this.uiConfig.computed?Object.keys(this.uiConfig.computed).reduce((o,m)=>{
+      try {
+        o[m] = makeFunction( this.uiConfig.computed[m] );
+      } catch (e) {
+        console.log('Computed '+m+' error: '+e);
+      }
       return o;
-    },{});
-    var computed = Object.keys(this.uiConfig.computed).reduce((o,m)=>{
-      console.log('Computed: '+m);
-      o[m] = makeFunction( this.uiConfig.computed[m] );
-      return o;
-    },{});
+    },{}):{};
     var app = {url:this.app.url, vendorId: this.app.vendorId, _id: this.app._id};
     methods._appGet = (postId, cb) => {
       (async () => {
@@ -195,7 +218,7 @@ const DynamicUI = Vue.component('DynamicUI', {
       })();
     };
     methods._appPost = (postId, postData, cb) => {
-      var vm = this.vThis;
+      var vm = ctx.vThis;
       if (!vm.$store.state.user) return;
       var updates = [];
       var savedUserData = Object.keys(vm.modelToTokenMap).reduce((o, m)=>{
@@ -230,6 +253,9 @@ const DynamicUI = Vue.component('DynamicUI', {
         }
       })();
     };
+    methods._eventBusOn = ( id, f) => {
+      EventBus.$on(id, f);
+    }
     methods._showNotification = ( msg ) => {
       EventBus.$emit('global success alert', msg);
     }
@@ -287,7 +313,7 @@ const DynamicUI = Vue.component('DynamicUI', {
       },
       el: '#dynamicUIDiv',
       data() {
-        return Object.assign({dummy:''},dataModel);
+        return Object.assign({},dataModel);
       },
       store: this.$store,
       vuetify,
