@@ -1,6 +1,6 @@
 import Vue from 'vue'
 import * as VueLib from 'vuetify/lib'
-import _ from 'lodash'
+import _, { method } from 'lodash'
 import vuetify from '@/plugins/vuetify'
 import Api from '@/services/Api'
 import deep from 'deep-get-set'
@@ -27,11 +27,14 @@ const uiElementToVueCompMap = {
   dialog: VueLib['VDialog'],
   form: VueLib['VForm'],
   icon: VueLib['VIcon'],
+  select: VueLib['VSelect'],
   tab: VueLib['VTab'],
   tabs: VueLib['VTabs'],
   tabsItems: VueLib['VTabsItems'],
   tabItem: VueLib['VTabItem'],
   tabsSlider: VueLib['VTabsSlider'],
+  checkbox: VueLib['VCheckbox'],
+  textarea: VueLib['VTextarea'],
   textField: VueLib['VTextField'],
   toolbar: VueLib['VToolbar'],
   toolbarTitle: VueLib['VToolbarTitle'],
@@ -87,11 +90,10 @@ function makeComponent( h, metaData, rootThis, scopedProps ) {
               func = Function.apply( rootThis, [funcSpec.body]); //FIXME?
             }
             onObj[ev] = (event) => {
-              debugger;
               (func).call(rootThis, scopedProps?(funcSpec.scopedProp?scopedProps[funcSpec.scopedProp]:scopedProps):null);
-              if (funcSpec.modifier == "stop") {
+              if (funcSpec.eventModifier == "stop") {
                 event.stopPropagation();
-              } else if (funcSpec.modifier == "prevent") {
+              } else if (funcSpec.eventModifier == "prevent") {
                 event.preventDefault();
               }
             }
@@ -134,7 +136,6 @@ function makeComponent( h, metaData, rootThis, scopedProps ) {
       })
     }
     if (metaData.defaultSlot) {
-      debugger;
       dataObj.scopedSlots = dataObj.scopedSlots || {};
       dataObj.scopedSlots.default = () => {
         return makeComponent( h, metaData.defaultSlot, rootThis, scopedProps);
@@ -206,8 +207,10 @@ const DynamicUI = Vue.component('DynamicUI', {
         return o;
       },{});
       (async () => {
-        var response = await Api().post("/userdata/batchupsert", {userId: vm.$store.state.user._id, updates: updates});
-        var result = response.data;
+        if (updates.length>0) {
+          var response = await Api().post("/userdata/batchupsert", {userId: vm.$store.state.user._id, updates: updates});
+          var result = response.data;
+        }
         var response = await Api().post('/vendorapplication/apppost', {app:app, httpMethod: 'POST', postId:postId, postData:postData});
         Object.keys(savedUserData).forEach(m=>{
           deep( vm, m, savedUserData[m])
@@ -232,6 +235,12 @@ const DynamicUI = Vue.component('DynamicUI', {
     }
     methods._showError = ( msg ) => {
       EventBus.$emit('global error alert', msg);
+    }
+    methods._gotoRoute = (routeObj) => {
+      router.push(routerObj);
+    }
+    methods._routerGoBack = () => {
+      router.go(-1);
     }
     methods.getUserData = () => {
       var vm = this.vThis;
