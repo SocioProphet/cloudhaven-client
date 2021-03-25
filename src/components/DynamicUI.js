@@ -54,7 +54,6 @@ function makeComponent( h, metaData, rootThis, scopedProps ) {
   var contents = [];
   if (!isArray) {
     if (metaData.component == 'dynamicComponent') {
-      debugger;
       var app = rootThis.$options.props.app;
       return h( DynamicUI, {props:{uiConfig:metaData.config, app:app}})
     }

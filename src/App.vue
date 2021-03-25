@@ -51,7 +51,7 @@
       <v-app-bar-nav-icon v-if="$route.name!='login'" :class="appDetails.appBarTextClass" @click.stop="leftDrawer = !leftDrawer"></v-app-bar-nav-icon>
       <v-tooltip v-if="$route.name!='home' && $route.name!='login'" bottom color="#2572d2" light>
         <template v-slot:activator="{ on, attrs }">
-          <v-btn icon :to="user.rolesMap['VENDOR']?'/vendorcalendar':'/home'" v-bind="attrs" v-on="on">
+          <v-btn icon @click="gotoCloudHaven" v-bind="attrs" v-on="on">
             <v-icon color="yellow accent-2">mdi-home</v-icon>
           </v-btn>
         </template>
@@ -185,19 +185,17 @@ export default {
     isVendor() {
       return this.user.rolesMap['VENDOR']!=null;
     },
-    appMenuItems() {
-      var menuItems = [{name: 'home', title: 'CloudHaven'}];
+    menuItems() {
+      debugger;
+//      if (this.user.rolesMap['SYSADMIN']) {
+      if (this.appDetails.name == CloudHavenAppDetails.name) {
+        return CloudHavenAppDetails.menuItems;
+      }
+      var menuItems = [];
       this.appDetails.menuItems.forEach(m=>{
         menuItems.push({ name: 'AppPageReset', params: { app:this.appDetails, page:m.page }, title: m.title })
       })
       return menuItems;
-
-    },
-    menuItems() {
-//      if (this.user.rolesMap['SYSADMIN']) {
-        var menuItems = this.appDetails.name == CloudHavenAppDetails.name ?
-          CloudHavenAppDetails.menuItems : this.appMenuItems;
-        return menuItems;
         /*,
         { route: 'auditLog', action: '', title: 'Audit Log'},
         { route: 'eventLog', action: '', title: 'Event Log'}
@@ -273,7 +271,13 @@ export default {
         this.$router.push('/login')
       })
     },
+    gotoCloudHaven() {
+      debugger;
+      this.appDetails = Object.assign({}, CloudHavenAppDetails);
+      router.push({name:"home"});
+    },
     gotoItem (item ) {
+      debugger;
       if (item.route) {
         if (item.route == this.$router.currentRoute.name) {
           EventBus.$emit(`${item.route} data refresh`);

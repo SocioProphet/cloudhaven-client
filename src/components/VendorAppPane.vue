@@ -25,12 +25,12 @@ export default {
     this.app = this.$route.params.app;
     var page = this.$route.params.page || 'home';
     if (!this.app) return;
-    var app = {url:this.app.url, vendorId: this.app.vendorId, _id: this.app._id};
+    var pApp = {url:this.app.url, vendorId: this.app.vendorId, _id: this.app._id};
     (async () => {
-      var response = await Api().post('/vendorapplication/apppost', {app:app, httpMethod: 'GET', postId:page});
+      var response = await Api().post('/vendorapplication/apppost', {app:pApp, httpMethod: 'GET', postId:page});
       this.uiConfig = response.data;
       if (this.uiConfig.appFrame) {
-        EventBus.$emit('set app frame', Object.assign(app, this.uiConfig.appFrame))
+        EventBus.$emit('set app frame', Object.assign(this.app, this.uiConfig.appFrame))
       }
       //{requiredUserData, dataModel, uiMethods, uiSchema}
       this.component = 'DynamicUI';
