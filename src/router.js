@@ -5,6 +5,7 @@ import AppStore from './components/AppStore.vue'
 import MyApps from './components/MyApps.vue'
 import UISandbox from './components/UISandbox.vue'
 import Users from './components/Users.vue'
+import UserProfile from './components/UserProfile.vue'
 import ViewUserData from './components/ViewUserData.vue'
 import Login from './components/Login.vue'
 import AuditLog from './components/AuditLog'
@@ -23,7 +24,7 @@ let router = new Router({
     {
       path: '/',
       name: 'home',
-      component: AppStore,
+      component: MyApps,
       alias: '/home'
     },
     {
@@ -45,6 +46,11 @@ let router = new Router({
       path: '/apppagereset',
       name: 'AppPageReset',
       component: AppPageReset
+    },
+    {
+      path: '/myprofile',
+      name: 'MyProfile',
+      component: UserProfile
     },
     {
       path: '/vendorapppane',

@@ -51,21 +51,19 @@
       <v-app-bar-nav-icon v-if="$route.name!='login'" :class="appDetails.appBarTextClass" @click.stop="leftDrawer = !leftDrawer"></v-app-bar-nav-icon>
       <v-tooltip v-if="$route.name!='home' && $route.name!='login'" bottom color="#2572d2" light>
         <template v-slot:activator="{ on, attrs }">
-          <v-btn icon @click="gotoCloudHaven" v-bind="attrs" v-on="on">
-            <v-icon color="yellow accent-2">mdi-home</v-icon>
-          </v-btn>
+          <div class="cloudHavenIcon mr-1" @click="gotoCloudHaven" v-bind="attrs" v-on="on"/>
         </template>
-        <span>Home</span>
+        <span>CloudHaven</span>
       </v-tooltip>
-      <v-tooltip v-if="$route.name!='home' && $route.name!='login'" bottom color="#2572d2" light>
+      <!--v-tooltip v-if="$route.name!='home' && $route.name!='login'" bottom color="#2572d2" light>
         <template v-slot:activator="{ on, attrs }">
           <v-btn v-bind="attrs" v-on="on" icon @click="goBack">
             <v-icon color="yellow accent-2">mdi-arrow-left</v-icon>
           </v-btn>
         </template>
         <span>Go back</span>
-      </v-tooltip>
-      <v-toolbar-title :class="appDetails.appBarTextClass" @click="goHome" style="cursor:pointer">CloudHaven{{titleAppSuffix}}</v-toolbar-title>
+      </v-tooltip-->
+      <v-toolbar-title :class="appDetails.appBarTextClass" @click="gotoCloudHaven" style="cursor:pointer">{{appTitle?appTitle:'CloudHaven'}}</v-toolbar-title>
       <v-spacer></v-spacer>
       <v-alert class="mt-auto" dark elevation="12" transition="slide-y-reverse-transition" dismissible v-model="showGlobalAlert" :type="globalAlert.type||'success'">{{globalAlert.msg}}</v-alert>
       <v-spacer></v-spacer>
@@ -78,7 +76,7 @@
     <v-main>
       <router-view/>
     </v-main>
-    <v-footer :fixed="fixed" app :style="{background: 'linear-gradient(to bottom, #00528d 0%, #0071C2 100%)'}">
+    <v-footer :fixed="fixed" app :style="{background: 'linear-gradient(to top, #FFFFFF -100%, #00528d 100%)'}">
       <span class="white--text">&copy; CloudHaven @ 2020-2021 &nbsp;&nbsp;(v0.01)</span>
     </v-footer>
   </v-app>
@@ -91,12 +89,13 @@ import Api from '@/services/Api'
 import router from './router'
 const CloudHavenAppDetails = {
   name: 'CloudHaven',
-  appBarStyle: {background: 'linear-gradient(to bottom, #00528d 0%, #0071C2 100%)'},
+  appBarStyle: {background: 'linear-gradient(to bottom, #FFFFFF -100%, #00528d 100%)'},
   appBarTextClass: "white--text text--accent-2",
   nameTextClass: "yellow--text",
   menuItems: [
     { route: 'MyApps', action: '', title: 'My Apps' },
     { route: 'AppStore', action: '', title: 'App Store' },
+    { route: 'MyProfile', action: '', title: 'My Profile'},
     { route: 'UISandbox', action: '', title: 'UI Sandbox' },
     { route: 'vendors', action: '', title: 'Vendors' },
     { route: 'users', action: '', title: 'Users' },
@@ -170,14 +169,14 @@ export default {
       }
     }
   },
+  beforeCreate() {
+    this.$store.commit('reload_user');
+  },
   mounted() {
-    if (!this.user._id) {
-      this.$store.commit('reload_user');
-      this.goHome();
-    }
+    this.goHome();
   },
   computed: {
-    titleAppSuffix() {
+    appTitle() {
       return this.appDetails.name==CloudHavenAppDetails.name?'': ` ${this.appDetails.name}`
     },
     isLoggedIn : function(){ return this.$store.getters.isLoggedIn},
@@ -186,7 +185,6 @@ export default {
       return this.user.rolesMap['VENDOR']!=null;
     },
     menuItems() {
-      debugger;
 //      if (this.user.rolesMap['SYSADMIN']) {
       if (this.appDetails.name == CloudHavenAppDetails.name) {
         return CloudHavenAppDetails.menuItems;
@@ -272,12 +270,10 @@ export default {
       })
     },
     gotoCloudHaven() {
-      debugger;
       this.appDetails = Object.assign({}, CloudHavenAppDetails);
       router.push({name:"home"});
     },
     gotoItem (item ) {
-      debugger;
       if (item.route) {
         if (item.route == this.$router.currentRoute.name) {
           EventBus.$emit(`${item.route} data refresh`);
@@ -293,3 +289,18 @@ export default {
   }
 }
 </script>
+<style>
+  .cloudHavenIcon {
+    width:30px;
+    height:30px;
+    background:
+      url(data:image/png;base64,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)
+      no-repeat
+      left center;
+    -webkit-background-size: contain;
+    -moz-background-size: contain;
+    -o-background-size: contain;
+    background-size: contain;
+    padding: 0
+  }
+</style>

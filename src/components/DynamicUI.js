@@ -31,6 +31,8 @@ const uiElementToVueCompMap = {
   expansionPanels: VueLib['VExpansionPanels'],
   form: VueLib['VForm'],
   icon: VueLib['VIcon'],
+  radio: VueLib['VRadio'],
+  radioGroup: VueLib['VRadioGroup'],
   select: VueLib['VSelect'],
   tab: VueLib['VTab'],
   tabs: VueLib['VTabs'],
@@ -90,9 +92,15 @@ function makeComponent( h, metaData, rootThis, scopedProps ) {
         Object.keys(metaData[ot]).forEach(ev=>{
           var funcSpec = metaData[ot][ev];
           if (_.isString(funcSpec)) {
-            onObj[ev] = (event) => {
-//              (Function.apply( rootThis, ['props', `this.${funcSpec.funcSpec}(props);`]))(scopedProps)
-              (rootThis[funcSpec])(scopedProps)
+            if (funcSpec.indexOf("page:")==0) {
+              onObj[ev] = () => {
+                router.push({ name: 'AppPageReset', params: { app:rootThis.$options.props.app, page:'apppages/'+funcSpec.substring(5) } });
+              }
+            } else {
+              onObj[ev] = (event) => {
+  //              (Function.apply( rootThis, ['props', `this.${funcSpec.funcSpec}(props);`]))(scopedProps)
+                (rootThis[funcSpec])(scopedProps)
+              }
             }
           } else {
             var func = null;
@@ -252,6 +260,9 @@ const DynamicUI = Vue.component('DynamicUI', {
         }
       })();
     };
+    methods._gotoAppPage = (page) => {
+      router.push({ name: 'AppPageReset', params: { app:app, page:page } });
+    }
     methods._eventBusOn = ( id, f) => {
       EventBus.$on(id, f);
     }

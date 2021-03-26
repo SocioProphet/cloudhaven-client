@@ -171,12 +171,13 @@ export default new Vuex.Store({
     auth_request(state){
       state.status = 'loading'
     },
-    reload_user(state) {
+    reload_user(state, cb) {
       var jsonUser = localStorage.getItem('ch_user');
       if (jsonUser) {
         state.user = JSON.parse(jsonUser);
       }
       state.currentRole = localStorage.getItem('cloudHavenCurrentRole')
+      if (cb) (cb)()
     },
     auth_success(state, payload){
       state.status = 'success';
