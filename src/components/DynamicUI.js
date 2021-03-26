@@ -225,6 +225,7 @@ const DynamicUI = Vue.component('DynamicUI', {
       })();
     };
     methods._appPost = (postId, postData, cb) => {
+      debugger;
       var vm = ctx.vThis;
       if (!vm.$store.state.user) return;
       var updates = [];
@@ -278,7 +279,18 @@ const DynamicUI = Vue.component('DynamicUI', {
     methods._routerGoBack = () => {
       router.go(-1);
     }
-    methods.getUserData = () => {
+    methods._lookupCloudHavenUser = (searchSpec, cb) => { //currently on email supported
+      (async () => {
+        var response = await Api().post('/userinfo/lookup', searchSpec);
+        if (response.data) {
+          ctx.vThis.cloudHavenUserId = response.data._id; //this.cloudHavenUserId = user._id;
+        }
+        if (cb) {
+          (cb).call(ctx.vThis, response.data);
+        }
+      })();
+    }
+    methods._getUserData = () => {
       var vm = this.vThis;
       if (!vm.$store.state.user) return;
       var tokenIds = Object.keys(vm.modelToTokenMap).reduce((o,m)=>{
@@ -323,7 +335,7 @@ const DynamicUI = Vue.component('DynamicUI', {
       },
       el: '#dynamicUIDiv',
       data() {
-        return Object.assign({},dataModel);
+        return Object.assign({cloudHavenUserId:''},dataModel);
       },
       store: this.$store,
       vuetify,

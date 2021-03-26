@@ -19,7 +19,9 @@
             <v-form ref="theForm" v-model="valid" lazy-validation>
             <v-text-field v-if="editedItem.vendor" readonly :value="editedItem.vendor.name" label="Vendor" ></v-text-field>
             <v-text-field v-model="editedItem.email" label="Email (username)" required :rules="[rules.required, rules.email]" ></v-text-field>
-            <v-text-field v-model="editedItem.name" label="Name"></v-text-field>
+            <v-text-field v-model="editedItem.firstName" label="First Name" :rules="[rules.required]"></v-text-field>
+            <v-text-field v-model="editedItem.middleName" label="Middle Name"></v-text-field>
+            <v-text-field v-model="editedItem.lastName" label="Last Name" :rules="[rules.required]"></v-text-field>
             <v-text-field v-if="!editedItem._id" type="password" v-model="editedItem.password" label="Password"></v-text-field>
             <v-select v-model="editedItem.language" :items="['English', 'Spanish']" label="Language" :rules="[rules.required]"></v-select>
             <v-select v-if="!isVendor" multiple :items="roleOptions" class="mb-0 pb-0" v-model="editedItem.roles" label="Roles"></v-select>
@@ -116,7 +118,9 @@ import Api from '@/services/Api'
       editedIndex: -1,
       editedItem: {
         email: '',
-        name: '',
+        firstName: '',
+        middleName: '',
+        lastName: '',
         password: '',
         language: 'English',
         roles:[]
@@ -190,7 +194,7 @@ import Api from '@/services/Api'
 
       deleteItem (item) {
         this.$store.commit('SET_RESULTNOTIFICATION', '')
-        confirm('Are you sure you want to delete '+item.name+'?') && this.$store.dispatch('deleteRecord', {model:'users', dbObject:item, label:`User ${this.editedItem.name}`});
+        confirm('Are you sure you want to delete '+item.name+'?') && this.$store.dispatch('deleteRecord', {model:'users', dbObject:item, label:`User ${this.editedItem.lastName}`});
       },
 
       cancel() {
@@ -199,7 +203,7 @@ import Api from '@/services/Api'
       },
       close () {
         setTimeout(() => {
-          this.editedItem = {email: '', name: '', password: '', language: 'English', roles:[] }
+          this.editedItem = {email: '', firstName: '', middleName:'', lastName:'', password: '', language: 'English', roles:[] }
           this.editedIndex = -1
         }, 300)
       },
@@ -229,10 +233,10 @@ import Api from '@/services/Api'
       save () {
         if (!this.$refs.theForm.validate()) return;
         ((this.editedIndex > -1)?
-          this.$store.dispatch('updateRecord', {model:'users', dbObject:this.editedItem, label:`User ${this.editedItem.name}`}):
-          this.$store.dispatch('createRecord', {model:'users', dbObject:this.editedItem, label:`User ${this.editedItem.name}`})).then((newRec)=> {
+          this.$store.dispatch('updateRecord', {model:'users', dbObject:this.editedItem, label:`User ${this.editedItem.lastName}`}):
+          this.$store.dispatch('createRecord', {model:'users', dbObject:this.editedItem, label:`User ${this.editedItem.lastName}`})).then((newRec)=> {
               if (newRec) {
-                this.$store.commit('SET_SUCCESS', `${this.editedItem.name} ${this.editedIndex > -1?'updated':'added'}.`);
+                this.$store.commit('SET_SUCCESS', `${this.editedItem.lastName} ${this.editedIndex > -1?'updated':'added'}.`);
                 this.dialog = false;
                 this.$store.dispatch('loadRecords', 'users')
               }
