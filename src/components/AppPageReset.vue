@@ -8,7 +8,8 @@ export default {
   beforeCreate() {
     var app = this.$route.params.app;
     var page = this.$route.params.page || 'home';
-    router.push({ name: 'VendorAppPane', params: { userId: this.$store.state.user._id, app:app, page:page } })
+    var appParams = this.$route.params.appParams
+    router.push({ name: 'VendorAppPane', params: { userId: this.$store.state.user._id, app:app, page:page, appParams:appParams } })
   }
 }
 </script>

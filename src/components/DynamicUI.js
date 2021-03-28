@@ -2,6 +2,7 @@ import Vue from 'vue'
 import * as VueLib from 'vuetify/lib'
 import _, { method } from 'lodash'
 import vuetify from '@/plugins/vuetify'
+import PdfApi from '@/services/PdfApi'
 import Api from '@/services/Api'
 import deep from 'deep-get-set'
 import CommentsManager from './CommentsManager.vue'
@@ -44,7 +45,8 @@ const uiElementToVueCompMap = {
   textField: VueLib['VTextField'],
   toolbar: VueLib['VToolbar'],
   toolbarTitle: VueLib['VToolbarTitle'],
-  toolbarItems: VueLib['VToolbarItems']
+  toolbarItems: VueLib['VToolbarItems'],
+  tooltip: VueLib['VTooltip']
 }
 function makeFunction( methodSpec ) {
   var args = methodSpec.args || [];
@@ -55,6 +57,9 @@ function makeComponent( h, metaData, rootThis, scopedProps ) {
   var isArray = Array.isArray(metaData);
   var contents = [];
   if (!isArray) {
+    if (metaData.component=='template') {
+      return Vue.compile(metaData.template).render.call(metaData.scopedProp?scopedProps[metaData.scopedProp]:rootThis, h);  
+    }
     if (metaData.component == 'dynamicComponent') {
       var app = rootThis.$options.props.app;
       return h( DynamicUI, {props:{uiConfig:metaData.config, app:app}})
@@ -62,7 +67,7 @@ function makeComponent( h, metaData, rootThis, scopedProps ) {
     contents = metaData.contents;
     var component = metaData.component;
     var vueComponent = uiElementToVueCompMap[component] || component;
-    var dataObj = ['class', 'style', 'attrs', 'props', 'domProps', 'nativeOn', 'key', 'ref'].reduce((o,k)=>{
+    var dataObj = ['class', 'style', 'attrs', 'props', 'domProps', 'key', 'ref'].reduce((o,k)=>{
       if (k in metaData) {
           if (metaData[k] instanceof Object) {
           o[k] = Object.keys(metaData[k]).reduce((obj, key)=>{
@@ -99,7 +104,7 @@ function makeComponent( h, metaData, rootThis, scopedProps ) {
             } else {
               onObj[ev] = (event) => {
   //              (Function.apply( rootThis, ['props', `this.${funcSpec.funcSpec}(props);`]))(scopedProps)
-                (rootThis[funcSpec])(scopedProps)
+                (rootThis[funcSpec])(event, scopedProps)
               }
             }
           } else {
@@ -111,7 +116,7 @@ function makeComponent( h, metaData, rootThis, scopedProps ) {
               func = Function.apply( rootThis, [funcSpec.body]); //FIXME?
             }
             onObj[ev] = (event) => {
-              (func).call(rootThis, scopedProps?(funcSpec.scopedProp?scopedProps[funcSpec.scopedProp]:scopedProps):null);
+              (func).call(rootThis, scopedProps?(funcSpec.scopedProp?deep(scopedProps,funcSpec.scopedProp):scopedProps):null);
               if (funcSpec.eventModifier == "stop") {
                 event.stopPropagation();
               } else if (funcSpec.eventModifier == "prevent") {
@@ -195,7 +200,7 @@ const DynamicUI = Vue.component('DynamicUI', {
   vuetify,
   template: '<div id="dynamicUIDiv"></div>',
   mounted() {
-    var ctx = {vThis:null};
+    var ctx = {vThis:null, route:this.$route};
     var methods = {};
     if (this.uiConfig.uiMethods) {
       methods = Object.keys(this.uiConfig.uiMethods).reduce((o,m)=>{
@@ -225,7 +230,6 @@ const DynamicUI = Vue.component('DynamicUI', {
       })();
     };
     methods._appPost = (postId, postData, cb) => {
-      debugger;
       var vm = ctx.vThis;
       if (!vm.$store.state.user) return;
       var updates = [];
@@ -261,8 +265,8 @@ const DynamicUI = Vue.component('DynamicUI', {
         }
       })();
     };
-    methods._gotoAppPage = (page) => {
-      router.push({ name: 'AppPageReset', params: { app:app, page:page } });
+    methods._gotoAppPage = (page, appParams) => {
+      router.push({ name: 'AppPageReset', params: { app:app, page:'apppages/'+page, appParams:appParams } });
     }
     methods._eventBusOn = ( id, f) => {
       EventBus.$on(id, f);
@@ -273,7 +277,7 @@ const DynamicUI = Vue.component('DynamicUI', {
     methods._showError = ( msg ) => {
       EventBus.$emit('global error alert', msg);
     }
-    methods._gotoRoute = (routeObj) => {
+    methods._gotoRoute = (routerObj) => {
       router.push(routerObj);
     }
     methods._routerGoBack = () => {
@@ -350,6 +354,7 @@ const DynamicUI = Vue.component('DynamicUI', {
       },
       beforeCreate() {
         ctx.vThis = this;
+        ctx.vThis._route = ctx.route;
       },
       mounted() {
         if (this['initialize']) {
