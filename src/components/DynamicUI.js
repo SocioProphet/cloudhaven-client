@@ -58,7 +58,8 @@ function makeComponent( h, metaData, rootThis, scopedProps ) {
   var contents = [];
   if (!isArray) {
     if (metaData.component=='template') {
-      return Vue.compile(metaData.template).render.call(metaData.scopedProp?scopedProps[metaData.scopedProp]:rootThis, h);  
+      debugger;
+      return Vue.compile(metaData.template).render.call( rootThis, h);  
     }
     if (metaData.component == 'dynamicComponent') {
       var app = rootThis.$options.props.app;
@@ -157,6 +158,7 @@ function makeComponent( h, metaData, rootThis, scopedProps ) {
       keys.forEach((slot) => {
         var slotMetaData = metaData.scopedSlots[slot];
         dataObj.scopedSlots[slot] = (scopedProps) => {
+          rootThis._scopedProps = Object.assign({}, scopedProps);
           return makeComponent( h, slotMetaData, rootThis, scopedProps );
         }
       })
@@ -339,7 +341,7 @@ const DynamicUI = Vue.component('DynamicUI', {
       },
       el: '#dynamicUIDiv',
       data() {
-        return Object.assign({cloudHavenUserId:''},dataModel);
+        return Object.assign({cloudHavenUserId:'', scopedProps:{}},dataModel);
       },
       store: this.$store,
       vuetify,
