@@ -145,7 +145,9 @@ export default {
   },
   created() {
     EventBus.$on('errors:401', () => {
-      this.$router.push('/login');
+      if (this.$router.currentRoute.name != 'login') {
+        this.$router.push('/login');
+      }
     })
   },
   watch:{
@@ -170,7 +172,6 @@ export default {
     var vm = this;
     EventBus.$on('set app frame', (appDetails) => {
       var a = Object.assign({}, appDetails);
-      debugger;
       vm.appDetails = a;
 /*      Object.keys(appDetails).forEach(p=>{
         this.appDetails[p] = appDetails[p];
@@ -232,7 +233,6 @@ export default {
       }
     },
     goHome() {
-      debugger;
       if (this.isVendor) {
         if (this.$router.currentRoute.name != 'vendorCalendar') {
           this.$router.push('/vendorcalendar');

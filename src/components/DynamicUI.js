@@ -244,11 +244,13 @@ const DynamicUI = Vue.component('DynamicUI', {
       if (!vm.$store.state.user) return;
       var updates = [];
       var savedUserData = Object.keys(vm.modelToTokenMap).reduce((o, m)=>{
-        var token = vm.modelToTokenMap[m];
-        var content = deep(vm, m);
-        updates.push({name: token, content: content})
-        o[m] = content;
-        deep(vm, m, null);
+        if (m.indexOf('ch_userData.')<0) {
+          var token = vm.modelToTokenMap[m];
+          var content = deep(vm, m);
+          updates.push({name: token, content: content})
+          o[m] = content;
+          deep(vm, m, null);
+        }
         return o;
       },{});
       (async () => {
@@ -263,13 +265,7 @@ const DynamicUI = Vue.component('DynamicUI', {
         if (cb) {
           vm.$nextTick(() =>{
             setTimeout(() => {
-              (cb).call(ctx.vThis, response.data);
-              if (response.data.newPage) {
-                router.push({ name: 'AppPageReset', 
-                  params: {
-                    app:app,
-                    page:response.data.newPage } })
-              }
+              (cb).call(vm, response.data);
             }, 100)
           })
         }
@@ -335,6 +331,7 @@ const DynamicUI = Vue.component('DynamicUI', {
       })();
     }
     methods._getUserDataForList = (pUserIds, list, fieldMap, cb) => {
+      debugger;
       var vm = this.vThis;
       fieldMap = fieldMap || {};
       var tokenIds = Object.keys(vm.modelToTokenMap).reduce((o,m)=>{
@@ -353,7 +350,7 @@ const DynamicUI = Vue.component('DynamicUI', {
           //user, name, content
           userDataList.forEach(d=>{
             var listField = fieldMap[d.name] || d.name;
-            e[listField] = d.content;
+            deep(e, listField, d.content);
           })
         })
         if (cb) (cb)();

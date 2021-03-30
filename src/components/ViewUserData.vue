@@ -123,7 +123,6 @@ import Api from '@/services/Api'
       loadUserData() {
         (async () => {
           var response = await Api().post('/userdata/batchget', {userIds: [this.user._id]});
-          debugger;
           var userDataMap = response.data || {};
           this.userDataList = userDataMap[this.user._id] || [];
         })();

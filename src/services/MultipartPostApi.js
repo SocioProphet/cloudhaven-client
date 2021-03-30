@@ -14,12 +14,18 @@ export default() => {
     instance.interceptors.response.use(response => {
         return response;
       }, error => {
-        if (error.response.status === 401) {
-          EventBus.$emit('errors:401')
-          return Promise.reject()
-        } else {
-          EventBus.$emit('error', error.response.data)
-          return Promise.reject()
+        if (error.response) {
+          if (error.response.status === 401) {
+              EventBus.$emit('errors:401')
+              return Promise.reject(error.response.status)
+            } else {
+              EventBus.$emit('error', error.response.data)
+              return Promise.reject(error.response.status)
+            }
+        } else if (error.message) {
+          console.log(error.message);
+          EventBus.$emit('error', error.message)
+          return Promise.reject(error.message)
         }
     })
     return instance;
