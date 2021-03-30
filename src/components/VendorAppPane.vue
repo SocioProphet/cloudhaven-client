@@ -24,6 +24,7 @@ export default {
   mounted() {
     this.app = this.$route.params.app;
     var page = this.$route.params.page || 'home';
+    debugger;
     if (!this.app) return;
     var pApp = {url:this.app.url, vendorId: this.app.vendorId, _id: this.app._id};
     (async () => {

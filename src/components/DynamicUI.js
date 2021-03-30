@@ -9,6 +9,7 @@ import CommentsManager from './CommentsManager.vue'
 //import CHTable from './CHTable.vue'
 import router from '../router'
 import { EventBus } from '../event-bus.js';
+import moment from 'moment'
 
 const uiElementToVueCompMap = {
   row: VueLib['VRow'],
@@ -58,7 +59,6 @@ function makeComponent( h, metaData, rootThis, scopedProps ) {
   var contents = [];
   if (!isArray) {
     if (metaData.component=='template') {
-      debugger;
       return Vue.compile(metaData.template).render.call( rootThis, h);  
     }
     if (metaData.component == 'dynamicComponent') {
@@ -223,6 +223,14 @@ const DynamicUI = Vue.component('DynamicUI', {
       return o;
     },{}):{};
     var app = {url:this.app.url, vendorId: this.app.vendorId, _id: this.app._id};
+    methods._pdfPost = (postId, cb) => {
+      (async () => {
+        var response = await PdfApi().post('/vendorapplication/apppost', {app:app, httpMethod: 'GET', postId:postId});
+        if (cb) {
+          (cb).call(ctx.vThis, response.data);
+        }
+      })();
+    };
     methods._appGet = (postId, cb) => {
       (async () => {
         var response = await Api().post('/vendorapplication/apppost', {app:app, httpMethod: 'GET', postId:postId});
@@ -308,8 +316,9 @@ const DynamicUI = Vue.component('DynamicUI', {
       tokenIds = Object.keys(tokenIds);
       if (tokenIds.length==0) return;
       (async () => {
-        var response = await Api().post('/userdata/batchget', {userId: vm.$store.state.user._id, tokenIds: tokenIds});
-        var userDataList = response.data;
+        var response = await Api().post('/userdata/batchget', {userIds: [vm.$store.state.user._id], tokenIds: tokenIds});
+        var userDataMap = response.data || {};
+        var userDataList = userDataMap[vm.$store.state.user._id] || [];
         var tokenToModelMap = Object.keys(vm.modelToTokenMap).reduce((o,m)=>{
           var models = o[vm.modelToTokenMap[m]] || (o[vm.modelToTokenMap[m]]=[])
           models.push(m);
@@ -324,10 +333,36 @@ const DynamicUI = Vue.component('DynamicUI', {
           });
         })
       })();
-      methods.test = () => {
-        alert('test here');
-      }
     }
+    methods._getUserDataForList = (pUserIds, list, fieldMap, cb) => {
+      var vm = this.vThis;
+      fieldMap = fieldMap || {};
+      var tokenIds = Object.keys(vm.modelToTokenMap).reduce((o,m)=>{
+        var tokenId = vm.modelToTokenMap[m];
+        o[tokenId] = tokenId
+        return o;
+      },{})
+
+      tokenIds = Object.keys(tokenIds);
+      if (tokenIds.length==0) return;
+      (async () => {
+        var response = await Api().post('/userdata/batchget', {userIds: pUserIds, tokenIds: tokenIds});
+        var userDataMap = response.data || {};
+        list.forEach(e=>{
+          var userDataList = userDataMap[e.cloudHavenUserId];
+          //user, name, content
+          userDataList.forEach(d=>{
+            var listField = fieldMap[d.name] || d.name;
+            e[listField] = d.content;
+          })
+        })
+        if (cb) (cb)();
+      })();
+    };
+    methods.test = () => {
+      alert('test here');
+    }
+
 //    outerThis.uiConfig.dataModel.ch_userData = outerThis.uiConfig.requiredUserData?outerThis.uiConfig.requiredUserData.reduce((o,f)=>{
     this.uiConfig.dataModel.ch_userData = this.uiConfig.requiredUserData?this.uiConfig.requiredUserData.reduce((o,f)=>{
       o[f] = '';
@@ -335,6 +370,7 @@ const DynamicUI = Vue.component('DynamicUI', {
     },{}):{}
     var dataModel = this.uiConfig.dataModel;
     var uiSchema = this.uiConfig.uiSchema;
+    var m = methods;
     this.vThis = new Vue({
       props: {
         app: app

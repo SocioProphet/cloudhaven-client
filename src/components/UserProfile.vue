@@ -83,8 +83,9 @@ import UserDataDictionary from './userdatadictionary.js'
       this.$store.commit('SET_RESULTNOTIFICATION', '');
       var u = this.user;
       (async () => {
-        var response = await Api().post('/userdata/batchget', {userId: this.user._id});
-        var userDataList = response.data;
+        var response = await Api().post('/userdata/batchget', {userIds: [this.user._id]});
+        var userDataMap = response.data || {};
+        var userDataList = userDataMap[this.user._id];
         if (userDataList) {
           userDataList.forEach(e=>{
             this.userData[e.name] = e.content;

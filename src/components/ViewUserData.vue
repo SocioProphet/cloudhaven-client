@@ -122,8 +122,10 @@ import Api from '@/services/Api'
     methods: {
       loadUserData() {
         (async () => {
-          var response = await Api().post('/userdata/batchget', {userId: this.user._id});
-          this.userDataList = response.data;
+          var response = await Api().post('/userdata/batchget', {userIds: [this.user._id]});
+          debugger;
+          var userDataMap = response.data || {};
+          this.userDataList = userDataMap[this.user._id] || [];
         })();
         (async () => {
           var response = await Api().get('/userdata/getbulkdata/'+this.user._id);

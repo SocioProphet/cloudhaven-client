@@ -60,6 +60,7 @@ Vue.filter('formattedSSN', function(value) {
 })
 
 Vue.use(require('vue-moment'))
+Vue.prototype.moment = moment;
 Vue.prototype.$safeRef = (obj) => obj?obj:{}
 new Vue({
   vuetify,

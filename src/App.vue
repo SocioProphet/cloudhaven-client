@@ -51,6 +51,14 @@
       <v-app-bar-nav-icon v-if="$route.name!='login'" :class="appDetails.appBarTextClass" @click.stop="leftDrawer = !leftDrawer"></v-app-bar-nav-icon>
       <v-tooltip v-if="$route.name!='home' && $route.name!='login'" bottom color="#2572d2" light>
         <template v-slot:activator="{ on, attrs }">
+          <v-btn icon @click="goHome" v-bind="attrs" v-on="on">
+            <v-icon color="yellow accent-2">mdi-home</v-icon>
+          </v-btn>
+        </template>
+        <span>Home</span>
+      </v-tooltip>
+      <v-tooltip v-if="$route.name!='home' && $route.name!='login'" bottom color="#2572d2" light>
+        <template v-slot:activator="{ on, attrs }">
           <div class="cloudHavenIcon mr-1" @click="gotoCloudHaven" v-bind="attrs" v-on="on"/>
         </template>
         <span>CloudHaven</span>
@@ -139,20 +147,6 @@ export default {
     EventBus.$on('errors:401', () => {
       this.$router.push('/login');
     })
-    EventBus.$on('set app frame', (appDetails) => {
-      Object.keys(appDetails).forEach(p=>{
-        this.appDetails[p] = appDetails[p];
-      })
-    })
-    EventBus.$on('global success alert', (msg) => {
-      this.showAlert( msg, false);
-    })
-    EventBus.$on('global error alert', (msg) => {
-      this.showAlert(msg, true);
-    })
-    Object.keys(CloudHavenAppDetails).forEach(p=>{
-      this.appDetails[p] = CloudHavenAppDetails[p];
-    })
   },
   watch:{
     $route () {
@@ -173,6 +167,24 @@ export default {
     this.$store.commit('reload_user');
   },
   mounted() {
+    var vm = this;
+    EventBus.$on('set app frame', (appDetails) => {
+      var a = Object.assign({}, appDetails);
+      debugger;
+      vm.appDetails = a;
+/*      Object.keys(appDetails).forEach(p=>{
+        this.appDetails[p] = appDetails[p];
+      })*/
+    })
+    EventBus.$on('global success alert', (msg) => {
+      vm.showAlert( msg, false);
+    })
+    EventBus.$on('global error alert', (msg) => {
+      vm.showAlert(msg, true);
+    })
+    Object.keys(CloudHavenAppDetails).forEach(p=>{
+      vm.appDetails[p] = CloudHavenAppDetails[p];
+    })
     this.goHome();
   },
   computed: {
@@ -220,13 +232,18 @@ export default {
       }
     },
     goHome() {
+      debugger;
       if (this.isVendor) {
         if (this.$router.currentRoute.name != 'vendorCalendar') {
           this.$router.push('/vendorcalendar');
         }
       } else {
-        if (this.$router.currentRoute.name != 'home') {
-          this.$router.push('/home');
+        if (this.appDetails.name == CloudHavenAppDetails.name) {
+          if (this.$router.currentRoute.name != 'home') {
+            this.$router.push('/home');
+          }
+        } else {
+          this.$router.push({ name: 'AppPageReset', params: { app:this.appDetails, page:this.appDetails.homePage } })
         }
       }
       this.leftDrawer = false;
