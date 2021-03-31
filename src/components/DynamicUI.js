@@ -7,6 +7,7 @@ import Api from '@/services/Api'
 import deep from 'deep-get-set'
 import CommentsManager from './CommentsManager.vue'
 //import CHTable from './CHTable.vue'
+import CHDateField from './CHDateField.vue'
 import router from '../router'
 import { EventBus } from '../event-bus.js';
 import moment from 'moment'
@@ -22,6 +23,7 @@ const uiElementToVueCompMap = {
   cardBody: VueLib['VCardText'],
   cardActions: VueLib['VCardActions'],
   container: VueLib['VContainer'],
+  dateField: CHDateField,
   divider: VueLib['VDivider'],
 //  dataTable: CHTable, 
 //  staticTable: VueLib['VDataTable'],
@@ -239,6 +241,22 @@ const DynamicUI = Vue.component('DynamicUI', {
         }
       })();
     };
+    methods._userSearch = (searchCriteria, cb) => {
+      var vm = ctx.vThis;
+      (async () => {
+        var response = await Api().post("/usersearch", searchCriteria);
+        debugger;
+        var result = response.data;
+        if (cb) {
+          vm.$nextTick(() =>{
+            setTimeout(() => {
+              (cb).call(vm, response.data);
+            }, 100)
+          })
+        }
+      })();
+
+    }
     methods._appPost = (postId, postData, cb) => {
       var vm = ctx.vThis;
       if (!vm.$store.state.user) return;

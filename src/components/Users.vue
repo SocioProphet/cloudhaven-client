@@ -22,6 +22,8 @@
             <v-text-field v-model="editedItem.firstName" label="First Name" :rules="[rules.required]"></v-text-field>
             <v-text-field v-model="editedItem.middleName" label="Middle Name"></v-text-field>
             <v-text-field v-model="editedItem.lastName" label="Last Name" :rules="[rules.required]"></v-text-field>
+            <component :is="'CHDateField'" :value="editedItem.dateOfBirth" @input="(value) => {editedItem.dateOfBirth = value}" :label="'Date of Birth'"></component>
+            <v-text-field v-model="editedItem.ssn" label="Social Security Number" :rules="[rules.ssn]"></v-text-field>
             <v-text-field v-if="!editedItem._id" type="password" v-model="editedItem.password" label="Password"></v-text-field>
             <v-select v-model="editedItem.language" :items="['English', 'Spanish']" label="Language" :rules="[rules.required]"></v-select>
             <v-select v-if="!isVendor" multiple :items="roleOptions" class="mb-0 pb-0" v-model="editedItem.roles" label="Roles"></v-select>
@@ -96,8 +98,12 @@
 <script>
 import { mapState } from 'vuex'
 import { EventBus } from '../event-bus.js';
+import CHDateField from './CHDateField'
 import Api from '@/services/Api'
   export default {
+    components: {
+      CHDateField
+    },
     data: () => ({
       dialog: false,
       pwdDialog: false,
@@ -106,7 +112,8 @@ import Api from '@/services/Api'
       confPwdErrMsg:'',
       rules: {
           required: value => !!value || 'Required.',
-          email: (v) => /^[^@]+@[^.]+\..+$/.test(v) || 'Please enter a valid email.'
+          email: (v) => /^[^@]+@[^.]+\..+$/.test(v) || 'Please enter a valid email.',
+          ssn: (v) => !v || /^\d{3}-?\d{2}-?\d{4}$/.test(v) || 'Please enter a valid SSN.',
       },
       headers: [
         { text: 'Actions', value: 'name', sortable: false, align:'center' },
@@ -121,6 +128,8 @@ import Api from '@/services/Api'
         firstName: '',
         middleName: '',
         lastName: '',
+        dateOfBirth: null,
+        ssn: '',
         password: '',
         language: 'English',
         roles:[]
