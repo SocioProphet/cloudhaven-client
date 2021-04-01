@@ -51,6 +51,8 @@ const uiElementToVueCompMap = {
   toolbarItems: VueLib['VToolbarItems'],
   tooltip: VueLib['VTooltip']
 }
+var coreUserFields = ["email", "firstName", "lastName", "dateOfBirth", "ssn", "language"];
+
 function makeFunction( methodSpec ) {
   var args = methodSpec.args || [];
   args.push(methodSpec.body);
@@ -65,7 +67,8 @@ function makeComponent( h, metaData, rootThis, scopedProps ) {
     }
     if (metaData.component == 'dynamicComponent') {
       var app = rootThis.$options.props.app;
-      return h( DynamicUI, {props:{uiConfig:metaData.config, app:app}})
+      var componentProps = rootThis.$options.props.props;
+      return h( DynamicUI, {props:{uiConfig:metaData.config, app:app, componentProps: componentProps}})
     }
     contents = metaData.contents;
     var component = metaData.component;
@@ -78,7 +81,22 @@ function makeComponent( h, metaData, rootThis, scopedProps ) {
             if (key == "rules") {
               obj.rules = val.map(f=>rootThis[f]);
             } else {
-              obj[key] = (_.isString(val) && val.indexOf('this.')==0)?deep(rootThis, val.substring(5)): val;
+              if (_.isString(val) && val.indexOf('this.')==0) {
+                obj[key] = deep(rootThis, val.substring(5));
+              } else if (val instanceof Object) {
+                var func = null;
+                if (val.method) {
+                  func = rootThis[val.method];
+                  obj[key] = (func)();
+                } else if (val.body) { //body
+                  func = Function.apply( rootThis, [val.body]);
+                  obj[key] = (func)();
+                } else {
+                  obj[key] = val;
+                }
+              } else {
+                obj[key] = val;
+              }
             }
             return obj;
           },{})
@@ -199,7 +217,8 @@ const DynamicUI = Vue.component('DynamicUI', {
   props: {
     uiConfig: { type: Object, required: true },
     //{ requiredUserData, uiSchema, dataModel, uiMethods }
-    app: { type: Object, required: true }
+    app: { type: Object, required: true },
+    componentProps: {type: Object}
   },
   vuetify,
   template: '<div id="dynamicUIDiv"></div>',
@@ -225,7 +244,7 @@ const DynamicUI = Vue.component('DynamicUI', {
       return o;
     },{}):{};
     var app = {url:this.app.url, vendorId: this.app.vendorId, _id: this.app._id};
-    methods._pdfPost = (postId, cb) => {
+    methods._pdfGet = (postId, cb) => {
       (async () => {
         var response = await PdfApi().post('/vendorapplication/apppost', {app:app, httpMethod: 'GET', postId:postId});
         if (cb) {
@@ -235,7 +254,17 @@ const DynamicUI = Vue.component('DynamicUI', {
     };
     methods._appGet = (postId, cb) => {
       (async () => {
+        debugger;
         var response = await Api().post('/vendorapplication/apppost', {app:app, httpMethod: 'GET', postId:postId});
+        debugger;
+        if (cb) {
+          (cb).call(ctx.vThis, response.data);
+        }
+      })();
+    };
+    methods._appDelete = (postId, cb) => {
+      (async () => {
+        var response = await Api().post('/vendorapplication/apppost', {app:app, httpMethod: 'DELETE', postId:postId});
         if (cb) {
           (cb).call(ctx.vThis, response.data);
         }
@@ -245,7 +274,6 @@ const DynamicUI = Vue.component('DynamicUI', {
       var vm = ctx.vThis;
       (async () => {
         var response = await Api().post("/usersearch", searchCriteria);
-        debugger;
         var result = response.data;
         if (cb) {
           vm.$nextTick(() =>{
@@ -261,19 +289,38 @@ const DynamicUI = Vue.component('DynamicUI', {
       var vm = ctx.vThis;
       if (!vm.$store.state.user) return;
       var updates = [];
+      var user = {};
       var savedUserData = Object.keys(vm.modelToTokenMap).reduce((o, m)=>{
         if (m.indexOf('ch_userData.')<0) {
           var token = vm.modelToTokenMap[m];
           var content = deep(vm, m);
-          updates.push({name: token, content: content})
-          o[m] = content;
+          var isCoreField = coreUserFields.find(f=>(f==token))
+          if (isCoreField) {
+            user[token] = content;
+          } else {
+            updates.push({name: token, content: content})
+            o[m] = content;  
+          }
           deep(vm, m, null);
         }
         return o;
       },{});
       (async () => {
+        var userId = postData.userIdField?postData.data[postData.userIdField]:null;
+        var response = null;
+        if (postData.userIdField) {
+          if (!userId) {
+            response = await Api().post("/users", user);
+            if (response.data) {
+              userId = response.data._id;
+            }
+          } else {
+            user._id = userId;
+            response = await Api().put('/users'+userId, )
+          }
+        }
         if (updates.length>0) {
-          var response = await Api().post("/userdata/batchupsert", {userId: vm.$store.state.user._id, updates: updates});
+          response = await Api().post("/userdata/batchupsert", {userId: userId, updates: updates});
           var result = response.data;
         }
         var response = await Api().post('/vendorapplication/apppost', {app:app, httpMethod: 'POST', postId:postId, postData:postData});
@@ -289,6 +336,7 @@ const DynamicUI = Vue.component('DynamicUI', {
         }
       })();
     };
+    methods._deep = deep;
     methods._gotoAppPage = (page, appParams) => {
       router.push({ name: 'AppPageReset', params: { app:app, page:'apppages/'+page, appParams:appParams } });
     }
@@ -318,26 +366,43 @@ const DynamicUI = Vue.component('DynamicUI', {
         }
       })();
     }
-    methods._getUserData = () => {
+    methods._getUserData = (userId) => {
+      debugger;
       var vm = this.vThis;
-      if (!vm.$store.state.user) return;
+      if (!userId) return;
       var tokenIds = Object.keys(vm.modelToTokenMap).reduce((o,m)=>{
         var tokenId = vm.modelToTokenMap[m];
-        o[tokenId] = tokenId
+        if (!coreUserFields.find(f=>(f==tokenId))) {
+          o[tokenId] = tokenId
+        }
         return o;
       },{})
 
       tokenIds = Object.keys(tokenIds);
       if (tokenIds.length==0) return;
       (async () => {
-        var response = await Api().post('/userdata/batchget', {userIds: [vm.$store.state.user._id], tokenIds: tokenIds});
+        var user = {};
+        var response = await Api().get('/userinfo/'+userId);
+        debugger;
+        if (response.data) {
+          user = response.data;
+          user.dateOfBirth = moment(user.dateOfBirth).toDate();
+        }
+        response = await Api().post('/userdata/batchget', {userIds: [userId], tokenIds: tokenIds});
         var userDataMap = response.data || {};
-        var userDataList = userDataMap[vm.$store.state.user._id] || [];
+        var userDataList = userDataMap[userId] || [];
         var tokenToModelMap = Object.keys(vm.modelToTokenMap).reduce((o,m)=>{
           var models = o[vm.modelToTokenMap[m]] || (o[vm.modelToTokenMap[m]]=[])
           models.push(m);
           return o;
         },{})
+        coreUserFields.forEach((f)=>{
+          debugger;
+          var models = tokenToModelMap[f];
+          models.forEach((m)=>{
+            deep( vm, m, user[f])
+          })
+        })
         userDataList.forEach(ud=>{
           var models = tokenToModelMap[ud.name];
           models.forEach((model)=>{
@@ -349,22 +414,28 @@ const DynamicUI = Vue.component('DynamicUI', {
       })();
     }
     methods._getUserDataForList = (pUserIds, list, fieldMap, cb) => {
-      debugger;
       var vm = this.vThis;
       fieldMap = fieldMap || {};
-      var tokenIds = Object.keys(vm.modelToTokenMap).reduce((o,m)=>{
-        var tokenId = vm.modelToTokenMap[m];
-        o[tokenId] = tokenId
-        return o;
-      },{})
-
-      tokenIds = Object.keys(tokenIds);
+      var tokenIds = Object.keys(fieldMap);
       if (tokenIds.length==0) return;
       (async () => {
-        var response = await Api().post('/userdata/batchget', {userIds: pUserIds, tokenIds: tokenIds});
+        var userMap = null;
+        var response = await Api().post("/userinfo/getusers", {userIds:pUserIds})
+        if (response.data) {
+          userMap = response.data.reduce((mp,u)=>{
+            mp[u._id] = u;
+            return mp;
+          },{});
+        }
+        response = await Api().post('/userdata/batchget', {userIds: pUserIds, tokenIds: tokenIds});
         var userDataMap = response.data || {};
         list.forEach(e=>{
-          var userDataList = userDataMap[e.cloudHavenUserId];
+          var userDataList = [];
+          var user = userMap[e.cloudHavenUserId];
+          if (user) {
+            userDataList = coreUserFields.map(f=>({name:f, content:user[f]}));
+          }
+          userDataList = userDataList.concat(userDataMap[e.cloudHavenUserId]);
           //user, name, content
           userDataList.forEach(d=>{
             var listField = fieldMap[d.name] || d.name;
@@ -385,14 +456,18 @@ const DynamicUI = Vue.component('DynamicUI', {
     },{}):{}
     var dataModel = this.uiConfig.dataModel;
     var uiSchema = this.uiConfig.uiSchema;
-    var m = methods;
+    var componentProps = this.componentProps;
     this.vThis = new Vue({
       props: {
         app: app
       },
       el: '#dynamicUIDiv',
       data() {
-        return Object.assign({cloudHavenUserId:'', scopedProps:{}},dataModel);
+        var dataObj = Object.assign({cloudHavenUserId:'', scopedProps:{}},dataModel);
+        if (this.componentProps) {
+          dataObj = Object.assign( componentProps, dataObj );
+        }
+        return dataObj;
       },
       store: this.$store,
       vuetify,
@@ -408,6 +483,7 @@ const DynamicUI = Vue.component('DynamicUI', {
       beforeCreate() {
         ctx.vThis = this;
         ctx.vThis._route = ctx.route;
+        ctx.vThis._moment = moment;
       },
       mounted() {
         if (this['initialize']) {

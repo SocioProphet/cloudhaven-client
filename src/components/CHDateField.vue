@@ -45,7 +45,6 @@ export default {
       var emitVal = moment(value, "L");
       if (emitVal.year()<1000) return;
       if (emitVal.isValid()) {
-        debugger;
         this.$emit('input', emitVal.toDate())
       }
     },
@@ -54,11 +53,6 @@ export default {
       this.curDate = v;
       return v;
     }
-  },
-  created() {
-    var a = this.$attrs;
-    debugger;
-    var x = '';
   }
 }
 
