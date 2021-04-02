@@ -1,7 +1,7 @@
 <template>
   <V-form>
     <v-card>
-      <v-card-title>Conversation</v-card-title>
+      <v-card-title>Conversation {{conversation.topic}}</v-card-title>
         <v-card-text>
           <comment v-for="comment in conversation.comments" 
           :key="comment._id"
@@ -71,7 +71,7 @@ import Api from '@/services/Api'
                 authorId: this.$store.state.user._id,
                 content: this.newComment
               });
-              var comment = Object.assign({},response.data.content);
+              var comment = Object.assign({},response.data);
               comment.owner = Object.assign({}, this.$store.state.user);
               this.conversation.comments.push(comment);
           }

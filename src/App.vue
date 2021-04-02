@@ -104,7 +104,6 @@ const CloudHavenAppDetails = {
     { route: 'MyApps', action: '', title: 'My Apps' },
     { route: 'AppStore', action: '', title: 'App Store' },
     { route: 'MyProfile', action: '', title: 'My Profile'},
-    { route: 'UISandbox', action: '', title: 'UI Sandbox' },
     { route: 'vendors', action: '', title: 'Vendors' },
     { route: 'users', action: '', title: 'Users' },
     { route: 'ViewUserData', action: '', title: 'View User Data' }
@@ -171,11 +170,7 @@ export default {
   mounted() {
     var vm = this;
     EventBus.$on('set app frame', (appDetails) => {
-      var a = Object.assign({}, appDetails);
-      vm.appDetails = a;
-/*      Object.keys(appDetails).forEach(p=>{
-        this.appDetails[p] = appDetails[p];
-      })*/
+       vm.appDetails = Object.assign({}, appDetails?appDetails:CloudHavenAppDetails)
     })
     EventBus.$on('global success alert', (msg) => {
       vm.showAlert( msg, false);
@@ -183,9 +178,7 @@ export default {
     EventBus.$on('global error alert', (msg) => {
       vm.showAlert(msg, true);
     })
-    Object.keys(CloudHavenAppDetails).forEach(p=>{
-      vm.appDetails[p] = CloudHavenAppDetails[p];
-    })
+    vm.appDetails = Object.assign({}, CloudHavenAppDetails);
     this.goHome();
   },
   computed: {
@@ -199,7 +192,7 @@ export default {
     },
     menuItems() {
 //      if (this.user.rolesMap['SYSADMIN']) {
-      if (this.appDetails.name == CloudHavenAppDetails.name) {
+      if (this.appDetails.name == CloudHavenAppDetails.name || !this.appDetails.menuItems) {
         return CloudHavenAppDetails.menuItems;
       }
       var menuItems = [];

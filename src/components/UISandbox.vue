@@ -1,5 +1,5 @@
 <template>
-  <DynamicUI :uiSchema="uiSchema" :dataModel="dataModel" :uiMethods="uiMethods"/>
+  <DynamicUI :uiConfig="uiConfig" :app="app"/>
 </template>
 
 <script>
@@ -20,12 +20,19 @@ export default {
         items: [
           {firstName:'Big', lastName: 'Bork', address: '1234 Bork Street, Bob City, CA 99999'},
 
-        ]
+        ],
+        formData: {
+          firstName: '',
+          lastName: '',
+          fieldA: '',
+          fieldB: ''
+        }
       };
       var uiMethods = {
         initialize: {
           args:[],
           body: `
+          this._getUserData(this.$store.state.user._id);
           this.items = [
             {firstName:'Bob', lastName: 'Smith', address: '1234 Bob Street, Bob City, CA 99999'},
             {firstName:'Dave', lastName: 'Anderson', address: '9999 Dave Street, Some City, CA 99999'},
@@ -35,118 +42,115 @@ export default {
       }
 
     return {
-      dataModel:dataModel,
-      uiMethods: uiMethods,
-      uiSchema: {
-        component: 'container',
-        contents: [
-          {
-            component: 'card',
-            props: {
-              elevation: 2
-            },
-            contents: [{
-              component: 'cardTitle',
-//              contents: 'This is the title'
-              template: '<span>{{cardTitle}}</span>'
-            },
+      uiConfig: {
+        dataModel:dataModel,
+        uiMethods: uiMethods,
+        uiSchema: {
+          component: 'container',
+          contents: [
             {
-              component: 'cardBody',
-              contents: [
-                {
-                  component: 'form',
-                  props: {
-                    'lazy-validation': true
-                  },
-                  contents: [
-                    {
-                      component: 'row',
-                      contents: [
-                        {
-                          component: 'col',
-                          props: {  cols:12, md:6, sm:12},
-                          contents: [
-                            {
-                              component: 'textField',
-                              props: {
-                                dense: true,
-                                outlined: false,
-                                label: 'Field 1'
-                              }},
-                              {
-                              component: 'textField',
-                              props: {
-                                dense: true,
-                                outlined: false,
-                                label: 'Field 2'
-                              }}
-                          ]
-                        },
-                        {
-                          component: 'col',
-                          props: { cols:12, md:6, sm:12},
-                          contents: [
-                            {
-                              component: 'textField',
-                              props: {
-                                dense: true,
-                                outlined: false,
-                                label: 'Field 3'
-                              }},
-                              {
-                              component: 'textField',
-                              props: {
-                                dense: true,
-                                outlined: false,
-                                label: 'Field 4'
-                              }}
-                          ]
-                        }
-                      ]
-                    }
-                  ]
-                }
-              ]
-            },
-            {
-              component: 'cardActions',
+              component: 'card',
+              props: {
+                elevation: 2
+              },
               contents: [{
-                component: 'button',
-                contents: 'Cancel'
+                component: 'cardTitle',
+  //              contents: 'This is the title'
+                template: '<span>{{cardTitle}}</span>'
               },
               {
-                component: 'spacer'
+                component: 'cardBody',
+                contents: [
+                  {
+                    component: 'form',
+                    props: {
+                      'lazy-validation': true
+                    },
+                    contents: [
+                      {
+                        component: 'row',
+                        contents: [
+                          {
+                            component: 'col',
+                            props: {  cols:12, md:6, sm:12},
+                            contents: [
+                              {
+                                component: 'textField',
+                                vmodel: "formData.firstName",
+                                tokenId: "firstName",
+                                props: {
+                                  dense: true,
+                                  outlined: false,
+                                  label: 'First Name'
+                                }},
+                                {
+                                component: 'textField',
+                                vmodel: "formData.lastName",
+                                tokenId: "lastName",
+                                props: {
+                                  dense: true,
+                                  outlined: false,
+                                  label: 'Last Name'
+                                }}
+                            ]
+                          },
+                          {
+                            component: 'col',
+                            props: { cols:12, md:6, sm:12},
+                            contents: [
+                              {
+                                component: 'textField',
+                                vmodel: "formData.fieldA",
+                                props: {
+                                  dense: true,
+                                  outlined: false,
+                                  label: 'Field A'
+                                }},
+                                {
+                                component: 'textField',
+                                vmodel: "formData.fieldB",
+                                props: {
+                                  dense: true,
+                                  outlined: false,
+                                  label: 'Field B'
+                                }}
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
               },
               {
-                component: 'button',
-                contents: 'Save'
+                component: 'cardActions',
+                contents: [{
+                  component: 'button',
+                  contents: 'Cancel'
+                },
+                {
+                  component: 'spacer'
+                },
+                {
+                  component: 'button',
+                  contents: 'Save'
+                }
+                ]
+              }]
+            },
+            {
+              component: 'dataTable',
+              attrs: {
+                headers: "this.headers",
+                items: "this.items"
               }
-              ]
-            }]
-          },
-          {
-            component: 'dataTable',
-            attrs: {
-              headers: "this.headers",
-              items: "this.items"
             }
-          }
-        ]
-      }
+          ]
+        }
+      },
+      app: {}
     }
-  },
-    computed: {
-    },
-    created() {
-    },
-    mounted() {
-    },
-    watch: {
-    },
-
-    methods: {
-    }
-    
+  }    
 }
 </script>
 <style>

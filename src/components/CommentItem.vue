@@ -1,7 +1,7 @@
 <template>
   <v-textarea 
     class="mx-2 "
-    :label="comment.owner.name+' - '+(comment.created_at?comment.created_at:comment.created_at)"
+    :label="comment.owner.name+' - '+(comment.created_at?$options.filters.datetime(comment.created_at):'')"
     rows="3"
     v-model="comment.content"
     :clearable="editMode"

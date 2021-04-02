@@ -9,7 +9,7 @@ import Vue from 'vue'
 import * as VueLib from 'vuetify/lib'
 import _ from 'lodash'
 import vuetify from '@/plugins/vuetify'
-import deep from 'deep-get-set'
+import { deepGet, deepSet } from '../_helpers/deep.js'
 
 const uiElementToVueCompMap = {
   row: VueLib['VRow'],
