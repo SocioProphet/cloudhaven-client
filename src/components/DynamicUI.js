@@ -78,10 +78,11 @@ function getModelValue( rootThis, val ) {
 }
 function propValsFromModel( rootThis, props ) {
   if (!props) return {};
-  return Object.keys(props).reduce((mp,p)=>{
+  var val = Object.keys(props).reduce((mp,p)=>{
     mp[p] = getModelValue( rootThis, props[p]);
     return mp;
   },{});
+  return val;
 }
 function makeComponent( h, metaData, ctx, scopedProps ) {
   var isArray = Array.isArray(metaData);
@@ -92,7 +93,6 @@ function makeComponent( h, metaData, ctx, scopedProps ) {
       return Vue.compile(metaData.template).render.call( rootThis, h);  
     }
     if (metaData.component == 'dynamicComponent') {
-      debugger;
       return h( ctx.components[metaData.name], {props:metaData.props?propValsFromModel( rootThis, metaData.props):{}});
     }
     contents = metaData.contents;
