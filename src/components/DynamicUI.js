@@ -53,9 +53,19 @@ const uiElementToVueCompMap = {
 }
 var coreUserFields = ["email", "firstName", "lastName", "dateOfBirth", "ssn", "language"];
 
-function makeFunction( methodSpec ) {
-  var args = methodSpec.args || [];
-  args.push(methodSpec.body);
+function makeFunction( funcSpec ) {
+  var getSetObj = null;
+  if (funcSpec.set) {
+    getSetObj = getSetObj || {};
+    getSetObj.set = makeFunction( funcSpec.set );
+  }
+  if (funcSpec.get) {
+    getSetObj = getSetObj || {};
+    getSetObj.get = makeFunction( funcSpec.get );
+  }
+  if (getSetObj) return getSetObj;
+  var args = funcSpec.args || [];
+  args.push(funcSpec.body);
   return Function.apply( null, args);
 }
 function getModelValue( rootThis, val ) {
@@ -476,6 +486,8 @@ function makeDynamicComponent( pCtx, cCfg ) {
     vuetify,
     methods: makeMethods( ctx, cCfg.uiMethods ),
     computed: makeComputed( cCfg.computed ),
+    filters: makeComputed( cCfg.filters ),
+    watch: makeComputed( cCfg.watch ),
     render(h) {
       ctx.rootThis.modelToTokenMap = Object.keys(cCfg.dataModel.ch_userData).reduce((o,p)=>{
         o['ch_userData.'+p] = p;
@@ -546,7 +558,9 @@ const DynamicUI = Vue.component('DynamicUI', {
       vuetify,
       methods: makeMethods( ctx, this.uiConfig.uiMethods ),
       computed: makeComputed( this.uiConfig.computed ),
-      render(h) {
+      filters: makeComputed( this.uiConfig.filters ),
+      watch: makeComputed( this.uiConfig.watch ),
+        render(h) {
         ctx.rootThis.modelToTokenMap = Object.keys(dataModel.ch_userData).reduce((o,p)=>{
           o['ch_userData.'+p] = p;
           return o;

@@ -26,7 +26,7 @@ Vue.directive('mask', VueMaskDirective );
 
 
 Vue.config.productionTip = false;
-Vue.filter('yesno', function (value) {
+/*Vue.filter('yesno', function (value) {
   return value ? 'Yes' : 'No';
 });
 Vue.filter('date', function(value){
@@ -57,7 +57,7 @@ Vue.filter('formattedSSN', function(value) {
   if (!value) return '';
   if (value.length!=9) return value;
   return `${value.substring(0,3)}-${value.substring(3,5)}-${value.substring(5)}`;
-})
+})*/
 
 Vue.use(require('vue-moment'))
 Vue.prototype.moment = moment;
