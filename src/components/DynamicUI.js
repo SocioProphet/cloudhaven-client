@@ -124,7 +124,7 @@ function makeComponent( h, metaData, ctx, scopedProps ) {
           },{})
         } else {
           var val = metaData[k];
-          o[k] = val.indexOf('this.')==0?deepGet(rootThis, val.substring(5)): val;
+          o[k] = getModelValue( rootThis, val, scopedProps);//val.indexOf('this.')==0?deepGet(rootThis, val.substring(5)): val;
         }
       }
       return o;
@@ -137,7 +137,13 @@ function makeComponent( h, metaData, ctx, scopedProps ) {
       if (metaData[ot]) {
         dataObj[ot] = dataObj[ot] || {};
         var onObj = dataObj[ot];
-        Object.keys(metaData[ot]).forEach(ev=>{
+        var onMeta = metaData[ot];
+        if (_.isString(onMeta)) {
+          debugger;
+          dataObj[ot] = getModelValue( rootThis, onMeta, scopedProps)
+          return;
+        }
+        Object.keys(onMeta).forEach(ev=>{
           var funcSpec = metaData[ot][ev];
           if (_.isString(funcSpec)) {
             if (funcSpec.indexOf("page:")==0) {
