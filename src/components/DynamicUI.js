@@ -68,9 +68,11 @@ function makeFunction( funcSpec ) {
   args.push(funcSpec.body);
   return Function.apply( null, args);
 }
-function getModelValue( rootThis, val ) {
+function getModelValue( rootThis, val, scopedProps ) {
   if (_.isString(val) && val.indexOf('this.')==0) {
     return deepGet(rootThis, val.substring(5));
+  } else if (_.isString(val) && val.indexOf('scopedProps.')==0) {
+    return deepGet(scopedProps, val.substring('scopedProps.'.length));
   } else if (val instanceof Object) {
     var func = null;
     if (val.method) {
@@ -116,7 +118,7 @@ function makeComponent( h, metaData, ctx, scopedProps ) {
             if (key == "rules") {
               obj.rules = val.map(f=>rootThis[f]);
             } else {
-              obj[key] = getModelValue( rootThis, val);
+              obj[key] = getModelValue( rootThis, val, scopedProps);
             }
             return obj;
           },{})
@@ -454,6 +456,19 @@ function makeMethods( ctx, uiMethods ) {
 
   return methods;
 }
+function makeFilters( ctx, filters ) {
+  return filters?Object.keys(filters).reduce((o,m)=>{
+    try {
+      var func = makeFunction( filters[m] );
+      o[m] = (val) => {
+        return func.call( ctx.rootThis, val);
+      }
+    } catch (e) {
+      console.log('Computed '+m+' error: '+e);
+    }
+    return o;
+  },{}):{};
+}
 function makeComputed( computed ) {
   return computed?Object.keys(computed).reduce((o,m)=>{
     try {
@@ -490,7 +505,7 @@ function makeDynamicComponent( pCtx, cCfg ) {
     vuetify,
     methods: makeMethods( ctx, cCfg.uiMethods ),
     computed: makeComputed( cCfg.computed ),
-    filters: makeComputed( cCfg.filters ),
+    filters: makeFilters( ctx, cCfg.filters ),
     watch: makeComputed( cCfg.watch ),
     render(h) {
       ctx.rootThis.modelToTokenMap = Object.keys(cCfg.dataModel.ch_userData).reduce((o,p)=>{
@@ -562,7 +577,7 @@ const DynamicUI = Vue.component('DynamicUI', {
       vuetify,
       methods: makeMethods( ctx, this.uiConfig.uiMethods ),
       computed: makeComputed( this.uiConfig.computed ),
-      filters: makeComputed( this.uiConfig.filters ),
+      filters: makeFilters( ctx, this.uiConfig.filters ),
       watch: makeComputed( this.uiConfig.watch ),
         render(h) {
         ctx.rootThis.modelToTokenMap = Object.keys(dataModel.ch_userData).reduce((o,p)=>{
