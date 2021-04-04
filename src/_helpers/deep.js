@@ -1,7 +1,7 @@
 export function deepGet( obj, path ) {
   if (!obj || !path) return null;
   return path.split(".").reduce((curObj,p)=>{
-    if (curObj == null) {
+    if (curObj == null || !(curObj instanceof Object)) {
       return null;
     }
     curObj = curObj[p];
@@ -13,7 +13,7 @@ export function deepSet( obj, path, val ) {
   var parts = path.split(".");
   var lastEl = parts.pop();
   var setObj = parts.reduce((curObj,p)=>{
-    if (curObj == null) return null;
+    if (curObj == null || !(curObj instanceof Object)) return null;
     curObj = curObj[p];
     return curObj;
   }, obj);

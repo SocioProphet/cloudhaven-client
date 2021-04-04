@@ -1,6 +1,7 @@
 
 <template>
   <v-text-field
+    :label="label"
     :value="dateToString(value)"
     @input="input"
     v-on="listeners"
@@ -14,7 +15,8 @@ import moment from 'moment'
 
 export default {
   props: {
-    value: Date
+    value: Date,
+    label: String
   },
   data() {
     return {

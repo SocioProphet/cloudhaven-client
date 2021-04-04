@@ -75,10 +75,10 @@ function getModelValue( rootThis, val ) {
     var func = null;
     if (val.method) {
       func = rootThis[val.method];
-      return (func)();
+      return func.call(rootThis);
     } else if (val.body) { //body
       func = Function.apply( rootThis, [val.body]);
-      return (func)();
+      return func.call(rootThis);
     } else {
       return val;
     }
@@ -178,17 +178,21 @@ function makeComponent( h, metaData, ctx, scopedProps ) {
     if (metaData.vmodel) {
       dataObj.props = dataObj.props || {};
       dataObj.props.value = deepGet( rootThis, metaData.vmodel );
-      if (metaData.tokenId) {
-        dataObj.domProps = dataObj.domProps || {};
-        dataObj.domProps.tokenValue = ''; //To be filled by getUserData
-        rootThis.modelToTokenMap[metaData.vmodel] = metaData.tokenId;
-      }
       dataObj.on = dataObj.on || {};
       dataObj.on.input = (e) =>{
         deepSet( rootThis, metaData.vmodel, e );
       }
     }
-  /*  if (scopedProps) {
+    if (metaData.userData) {
+      var userDataId = deepGet(metaData, 'userData.id') || metaData.userData || '';
+      if (userDataId) {
+        var modelField = metaData.vmodel || deepGet(metaData, 'userData.model') || userDataId;
+        dataObj.domProps = dataObj.domProps || {};
+        dataObj.domProps.tokenValue = ''; //To be filled by getUserData
+        rootThis.modelToTokenMap[modelField] = userDataId;
+      }
+    }
+/*  if (scopedProps) {
       dataObj.props = dataObj.props || {};
       dataObj.props.scopedProps = scopedProps;
     }*/
@@ -371,15 +375,15 @@ function makeMethods( ctx, uiMethods ) {
   methods._getUserData = (userId) => {
     var vm = ctx.rootThis;
     if (!userId) return;
-    var tokenIds = Object.keys(vm.modelToTokenMap).reduce((o,m)=>{
-      var tokenId = vm.modelToTokenMap[m];
-      if (!coreUserFields.find(f=>(f==tokenId))) {
-        o[tokenId] = tokenId
+    var userDataIds = Object.keys(vm.modelToTokenMap).reduce((o,m)=>{
+      var userDataId = vm.modelToTokenMap[m];
+      if (!coreUserFields.find(f=>(f==userDataId))) {
+        o[userDataId] = userDataId
       }
       return o;
     },{})
 
-    tokenIds = Object.keys(tokenIds);
+    userDataIds = Object.keys(userDataIds);
     (async () => {
       var user = {};
       var tokenToModelMap = Object.keys(vm.modelToTokenMap).reduce((o,m)=>{
@@ -394,8 +398,8 @@ function makeMethods( ctx, uiMethods ) {
         user.dateOfBirth = moment(user.dateOfBirth).toDate();
       }
       var userDataList = [];
-      if (tokenIds.length>0) {
-        response = await Api().post('/userdata/batchget', {userIds: [userId], tokenIds: tokenIds});
+      if (userDataIds.length>0) {
+        response = await Api().post('/userdata/batchget', {userIds: [userId], userDataIds: userDataIds});
         var userDataMap = response.data || {};
         userDataList = userDataMap[userId] || [];
       }
@@ -406,7 +410,7 @@ function makeMethods( ctx, uiMethods ) {
         })
       })
       userDataList.forEach(ud=>{
-        var models = tokenToModelMap[ud.name];
+        var models = tokenToModelMap[ud.name] || [];
         models.forEach((model)=>{
           if (model && ud.content) {
             deepSet( vm, model, ud.content );
@@ -418,8 +422,8 @@ function makeMethods( ctx, uiMethods ) {
   methods._getUserDataForList = (pUserIds, list, fieldMap, cb) => {
     var vm = ctx.rootThis;
     fieldMap = fieldMap || {};
-    var tokenIds = Object.keys(fieldMap);
-    if (tokenIds.length==0) return;
+    var userDataIds = Object.keys(fieldMap);
+    if (userDataIds.length==0) return;
     (async () => {
       var userMap = null;
       var response = await Api().post("/userinfo/getusers", {userIds:pUserIds})
@@ -429,7 +433,7 @@ function makeMethods( ctx, uiMethods ) {
           return mp;
         },{});
       }
-      response = await Api().post('/userdata/batchget', {userIds: pUserIds, tokenIds: tokenIds});
+      response = await Api().post('/userdata/batchget', {userIds: pUserIds, userDataIds: userDataIds});
       var userDataMap = response.data || {};
       list.forEach(e=>{
         var userDataList = [];
