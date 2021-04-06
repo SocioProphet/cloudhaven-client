@@ -68,11 +68,11 @@ function makeFunction( funcSpec ) {
   args.push(funcSpec.body);
   return Function.apply( null, args);
 }
-function getModelValue( rootThis, val, scopedProps ) {
+function getModelValue( rootThis, val /*, scopedProps*/ ) {
   if (_.isString(val) && val.indexOf('this.')==0) {
     return deepGet(rootThis, val.substring(5));
-  } else if (_.isString(val) && val.indexOf('scopedProps.')==0) {
-    return deepGet(scopedProps, val.substring('scopedProps.'.length));
+//  } else if (_.isString(val) && val.indexOf('scopedProps.')==0) {
+//    return deepGet(scopedProps, val.substring('scopedProps.'.length));
   } else if (val instanceof Object) {
     var func = null;
     if (val.method) {
@@ -96,7 +96,7 @@ function propValsFromModel( rootThis, props ) {
   },{});
   return val;
 }
-function makeComponent( h, metaData, ctx, scopedProps ) {
+function makeComponent( h, metaData, ctx /*, scopedProps*/ ) {
   var isArray = Array.isArray(metaData);
   var rootThis = ctx.rootThis;
   var contents = [];
@@ -118,13 +118,13 @@ function makeComponent( h, metaData, ctx, scopedProps ) {
             if (key == "rules") {
               obj.rules = val.map(f=>rootThis[f]);
             } else {
-              obj[key] = getModelValue( rootThis, val, scopedProps);
+              obj[key] = getModelValue( rootThis, val /*, scopedProps*/);
             }
             return obj;
           },{})
         } else {
           var val = metaData[k];
-          o[k] = getModelValue( rootThis, val, scopedProps);//val.indexOf('this.')==0?deepGet(rootThis, val.substring(5)): val;
+          o[k] = getModelValue( rootThis, val /*, scopedProps*/);//val.indexOf('this.')==0?deepGet(rootThis, val.substring(5)): val;
         }
       }
       return o;
@@ -139,8 +139,7 @@ function makeComponent( h, metaData, ctx, scopedProps ) {
         var onObj = dataObj[ot];
         var onMeta = metaData[ot];
         if (_.isString(onMeta)) {
-          debugger;
-          dataObj[ot] = getModelValue( rootThis, onMeta, scopedProps)
+          dataObj[ot] = getModelValue( rootThis, onMeta /*, scopedProps*/)
           return;
         }
         Object.keys(onMeta).forEach(ev=>{
@@ -153,7 +152,7 @@ function makeComponent( h, metaData, ctx, scopedProps ) {
             } else {
               onObj[ev] = (event) => {
   //              (Function.apply( rootThis, ['props', `this.${funcSpec.funcSpec}(props);`]))(scopedProps)
-                (rootThis[funcSpec])(event, scopedProps)
+                (rootThis[funcSpec])(event /*, scopedProps*/)
               }
             }
           } else {
@@ -165,7 +164,7 @@ function makeComponent( h, metaData, ctx, scopedProps ) {
               func = Function.apply( rootThis, [funcSpec.body]); //FIXME?
             }
             onObj[ev] = (event) => {
-              (func).call(rootThis, scopedProps?(funcSpec.scopedProp?deepGet(scopedProps,funcSpec.scopedProp):scopedProps):null);
+              (func).call(rootThis /*, scopedProps?(funcSpec.scopedProp?deepGet(scopedProps,funcSpec.scopedProp):scopedProps):null*/);
               if (funcSpec.eventModifier == "stop") {
                 event.stopPropagation();
               } else if (funcSpec.eventModifier == "prevent") {
@@ -208,17 +207,42 @@ function makeComponent( h, metaData, ctx, scopedProps ) {
       dataObj.scopedSlots = {}
       var keys = Object.keys(metaData.scopedSlots);
       keys.forEach((slot) => {
+        debugger;
         var slotMetaData = metaData.scopedSlots[slot];
         dataObj.scopedSlots[slot] = (scopedProps) => {
-          rootThis._scopedProps = Object.assign({}, scopedProps);
-          return makeComponent( h, slotMetaData, ctx, scopedProps );
+          rootThis[slotMetaData.scopedPropsAlias] = Object.assign({}, scopedProps);
+/*          console.log(JSON.stringify(scopedProps));
+          var scopedPropsKeys = Object.keys(scopedProps);
+          var savedVals = scopedPropsKeys.reduce((mp,k)=>{
+            if (rootThis[k] != undefined) {
+              mp[k] = rootThis[k];
+            } else {
+              mp[k] = "_undefined_";
+            }
+            Object.freeze( rootThis[k] );
+            rootThis[k] = scopedProps[k];
+            return mp;
+          },{});*/
+          var retComp = makeComponent( h, slotMetaData.contents, ctx /*, scopedProps*/ );
+/*          Object.keys(savedVals).forEach(k=>{
+            if (savedVals[k] === '_undefined_') {
+              Object.freeze( rootThis[k] );
+              delete rootThis[k];
+            } else {
+              Object.freeze( rootThis[k] );
+              rootThis[k] = savedVals[k];
+              Object.freeze( rootThis[k] );
+            }
+          })*/
+
+          return retComp;
         }
       })
     }
-    if (metaData.defaultSlot) {
+    if (metaData.defaultSlot) { //This probably is never called and doesn't work - use component contents instead
       dataObj.scopedSlots = dataObj.scopedSlots || {};
       dataObj.scopedSlots.default = () => {
-        return makeComponent( h, metaData.defaultSlot, ctx, scopedProps);
+        return makeComponent( h, metaData.defaultSlot, ctx);
       }
     }  
   } else {
@@ -231,9 +255,9 @@ function makeComponent( h, metaData, ctx, scopedProps ) {
     if (_.isString( contents)) {
       children = contents;
     } else if (Array.isArray( contents )) {
-      children = contents.map((el)=>{ return makeComponent( h, el, ctx, scopedProps ); })
+      children = contents.map((el)=>{ return makeComponent( h, el, ctx /*, scopedProps*/ ); })
     } else {
-      children = [makeComponent( h, contents, ctx, scopedProps )]
+      children = [makeComponent( h, contents, ctx /*, scopedProps*/ )]
     }
   } else if (metaData.template) {
     const compiledTemplate = Vue.compile(metaData.template);
@@ -445,11 +469,13 @@ function makeMethods( ctx, uiMethods ) {
       var userDataMap = response.data || {};
       list.forEach(e=>{
         var userDataList = [];
-        var user = userMap[e.cloudHavenUserId];
-        if (user) {
-          userDataList = coreUserFields.map(f=>({name:f, content:user[f]}));
+        if (e.cloudHavenUserId) {
+          var user = userMap[e.cloudHavenUserId];
+          if (user) {
+            userDataList = coreUserFields.map(f=>({name:f, content:user[f]}));
+          }
+          userDataList = userDataList.concat(userDataMap[e.cloudHavenUserId]);
         }
-        userDataList = userDataList.concat(userDataMap[e.cloudHavenUserId]);
         //user, name, content
         userDataList.forEach(d=>{
           var listField = fieldMap[d.name] || d.name;
@@ -504,7 +530,7 @@ function makeDynamicComponent( pCtx, cCfg ) {
   return Vue.component(cCfg.name, {
     props: makeProps( cCfg.props ),
     data() {
-      var dataObj = Object.assign({cloudHavenUserId:'', scopedProps:{}},cCfg.dataModel || {});
+      var dataObj = Object.assign({cloudHavenUserId:''/*, scopedProps:{}*/},cCfg.dataModel || {});
       dataObj.ctx = ctx || {};
       return dataObj;
     },
@@ -574,7 +600,7 @@ const DynamicUI = Vue.component('DynamicUI', {
       props: this.props || {},
       el: '#dynamicUIDiv',
       data() {
-        var dataObj = Object.assign({cloudHavenUserId:'', scopedProps:{}},dataModel || {});
+        var dataObj = Object.assign({cloudHavenUserId:'' /*, scopedProps:{}*/},dataModel || {});
         dataObj.ctx = ctx || {};
         dataObj.components = {};
         return dataObj;
