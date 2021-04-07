@@ -68,11 +68,21 @@ function makeFunction( funcSpec ) {
   args.push(funcSpec.body);
   return Function.apply( null, args);
 }
-function getModelValue( rootThis, val /*, scopedProps*/ ) {
-  if (_.isString(val) && val.indexOf('this.')==0) {
+function getModelValue( ctx, src /*, scopedProps*/ ) {
+  var val = deepGet(ctx.rootThis, src);
+  if (val != undefined) return val;
+  console.log("Function.apply: "+src);
+  var func = Function.apply( ctx.rootThis, 'return ('+src+')')
+  return func.call(rootThis);
+/*  if (_.isString(val) && val.indexOf('this.')==0) {
     return deepGet(rootThis, val.substring(5));
-//  } else if (_.isString(val) && val.indexOf('scopedProps.')==0) {
-//    return deepGet(scopedProps, val.substring('scopedProps.'.length));
+  } else if (_.isString(val)) {
+    var valOrFunc = deepGet(rootThis, val);
+    if (valOrFunc instanceof Function) {
+      return (valOrFunc)();
+    } else {
+      return valOrFunc != undefined?valOrFunc:val;
+    }
   } else if (val instanceof Object) {
     var func = null;
     if (val.method) {
@@ -86,12 +96,12 @@ function getModelValue( rootThis, val /*, scopedProps*/ ) {
     }
   } else {
     return val;
-  }
+  }*/
 }
-function propValsFromModel( rootThis, props ) {
+function propValsFromModel( ctx, props ) {
   if (!props) return {};
   var val = Object.keys(props).reduce((mp,p)=>{
-    mp[p] = getModelValue( rootThis, props[p]);
+    mp[p] = getModelValue( ctx, props[p]);
     return mp;
   },{});
   return val;
@@ -105,26 +115,34 @@ function makeComponent( h, metaData, ctx /*, scopedProps*/ ) {
       return Vue.compile(metaData.template).render.call( rootThis, h);  
     }
     if (metaData.component == 'dynamicComponent') {
-      return h( ctx.components[metaData.name], {props:metaData.props?propValsFromModel( rootThis, metaData.props):{}});
+      return h( ctx.components[metaData.name], {props:metaData.props?propValsFromModel( ctx, metaData.props):{}});
     }
     contents = metaData.contents;
     var component = metaData.component;
     var vueComponent = uiElementToVueCompMap[component] || component;
     var dataObj = ['class', 'style', 'attrs', 'props', 'domProps', 'key', 'ref'].reduce((o,k)=>{
-      if (k in metaData) {
-          if (metaData[k] instanceof Object) {
-          o[k] = Object.keys(metaData[k]).reduce((obj, key)=>{
-            var val = metaData[k][key];
-            if (key == "rules") {
-              obj.rules = val.map(f=>rootThis[f]);
+      var kk = (k in metaData)?k:(metaData[':'+k]?(':'+k):null);
+      if (kk) {
+        if (metaData[kk] instanceof Object) {
+          o[k] = Object.keys(metaData[kk]).reduce((obj, key)=>{
+            var isLiteral = (key.indexOf(":")!=0);
+            var val = metaData[kk][key];
+            if (isLiteral) {
+              obj[key] = val;
             } else {
-              obj[key] = getModelValue( rootThis, val /*, scopedProps*/);
+              key = key.substring(1)
+              if (key == "rules") {
+                obj.rules = val.map(f=>rootThis[f]);
+              } else {
+                obj[key] = getModelValue( ctx, val /*, scopedProps*/);
+              }
             }
             return obj;
           },{})
         } else {
-          var val = metaData[k];
-          o[k] = getModelValue( rootThis, val /*, scopedProps*/);//val.indexOf('this.')==0?deepGet(rootThis, val.substring(5)): val;
+          var val = metaData[kk];
+          var isLiteral = kk.indexOf(":")!=0;
+          o[k] = isLiteral?val:getModelValue( ctx, val /*, scopedProps*/);//val.indexOf('this.')==0?deepGet(rootThis, val.substring(5)): val;
         }
       }
       return o;
@@ -139,7 +157,7 @@ function makeComponent( h, metaData, ctx /*, scopedProps*/ ) {
         var onObj = dataObj[ot];
         var onMeta = metaData[ot];
         if (_.isString(onMeta)) {
-          dataObj[ot] = getModelValue( rootThis, onMeta /*, scopedProps*/)
+          dataObj[ot] = getModelValue( ctx, onMeta /*, scopedProps*/)
           return;
         }
         Object.keys(onMeta).forEach(ev=>{
@@ -199,42 +217,19 @@ function makeComponent( h, metaData, ctx /*, scopedProps*/ ) {
         rootThis.modelToTokenMap[modelField] = userDataId;
       }
     }
-/*  if (scopedProps) {
-      dataObj.props = dataObj.props || {};
-      dataObj.props.scopedProps = scopedProps;
-    }*/
     if (metaData.scopedSlots) {
       dataObj.scopedSlots = {}
       var keys = Object.keys(metaData.scopedSlots);
       keys.forEach((slot) => {
-        debugger;
         var slotMetaData = metaData.scopedSlots[slot];
         dataObj.scopedSlots[slot] = (scopedProps) => {
-          rootThis[slotMetaData.scopedPropsAlias] = Object.assign({}, scopedProps);
-/*          console.log(JSON.stringify(scopedProps));
-          var scopedPropsKeys = Object.keys(scopedProps);
-          var savedVals = scopedPropsKeys.reduce((mp,k)=>{
-            if (rootThis[k] != undefined) {
-              mp[k] = rootThis[k];
-            } else {
-              mp[k] = "_undefined_";
-            }
-            Object.freeze( rootThis[k] );
-            rootThis[k] = scopedProps[k];
-            return mp;
-          },{});*/
+          rootThis[slotMetaData.scopedPropsAlias] = scopedProps;
+          debugger;
+          if (scopedProps.attrs && 'tabIndex' in scopedProps.attrs) {
+            var x = '';
+            debugger;
+          }
           var retComp = makeComponent( h, slotMetaData.contents, ctx /*, scopedProps*/ );
-/*          Object.keys(savedVals).forEach(k=>{
-            if (savedVals[k] === '_undefined_') {
-              Object.freeze( rootThis[k] );
-              delete rootThis[k];
-            } else {
-              Object.freeze( rootThis[k] );
-              rootThis[k] = savedVals[k];
-              Object.freeze( rootThis[k] );
-            }
-          })*/
-
           return retComp;
         }
       })
@@ -328,7 +323,7 @@ function makeMethods( ctx, uiMethods ) {
     var updates = [];
     var user = {};
     var savedUserData = Object.keys(vm.modelToTokenMap).reduce((o, m)=>{
-      if (m.indexOf('ch_userData.')<0) {
+      if (m.indexOf('_userData.')<0) {
         var token = vm.modelToTokenMap[m];
         var content = deepGet(vm, m);
         var isCoreField = coreUserFields.find(f=>(f==token))
@@ -452,7 +447,6 @@ function makeMethods( ctx, uiMethods ) {
     })();
   }
   methods._getUserDataForList = (pUserIds, list, fieldMap, cb) => {
-    var vm = ctx.rootThis;
     fieldMap = fieldMap || {};
     var userDataIds = Object.keys(fieldMap);
     if (userDataIds.length==0) return;
@@ -485,7 +479,6 @@ function makeMethods( ctx, uiMethods ) {
       if (cb) (cb)();
     })();
   };
-
   return methods;
 }
 function makeFilters( ctx, filters ) {
@@ -523,7 +516,7 @@ function makeProps( propsCfg) {
 }
 function makeDynamicComponent( pCtx, cCfg ) {
   var ctx = {rootThis:null, route:pCtx.route, app:pCtx.app};
-  cCfg.dataModel.ch_userData = cCfg.requiredUserData?cCfg.requiredUserData.reduce((o,f)=>{
+  cCfg.dataModel._userData = cCfg.requiredUserData?cCfg.requiredUserData.reduce((o,f)=>{
     o[f] = '';
     return o;
   },{}):{}
@@ -540,8 +533,8 @@ function makeDynamicComponent( pCtx, cCfg ) {
     filters: makeFilters( ctx, cCfg.filters ),
     watch: makeComputed( cCfg.watch ),
     render(h) {
-      ctx.rootThis.modelToTokenMap = Object.keys(cCfg.dataModel.ch_userData).reduce((o,p)=>{
-        o['ch_userData.'+p] = p;
+      ctx.rootThis.modelToTokenMap = Object.keys(cCfg.dataModel._userData).reduce((o,p)=>{
+        o['_userData.'+p] = p;
         return o;
       },{});
       return makeComponent( h, cCfg.uiSchema, ctx );
@@ -551,7 +544,7 @@ function makeDynamicComponent( pCtx, cCfg ) {
       ctx.rootThis._route = ctx.route;
       ctx.rootThis._moment = moment;
       ctx.rootThis.modelToTokenMap = {};
-      if (this['beforeCreate']) {
+    if (this['beforeCreate']) {
         (this['beforeCreate'])();
       }
       if (cCfg.components) {
@@ -588,8 +581,8 @@ const DynamicUI = Vue.component('DynamicUI', {
   mounted() {
     var ctx = {rootThis:null, route:this.$route, app: {url:this.app.url, vendorId: this.app.vendorId, _id: this.app._id}};
 
-//    outerThis.uiConfig.dataModel.ch_userData = outerThis.uiConfig.requiredUserData?outerThis.uiConfig.requiredUserData.reduce((o,f)=>{
-    this.uiConfig.dataModel.ch_userData = this.uiConfig.requiredUserData?this.uiConfig.requiredUserData.reduce((o,f)=>{
+//    outerThis.uiConfig.dataModel._userData = outerThis.uiConfig.requiredUserData?outerThis.uiConfig.requiredUserData.reduce((o,f)=>{
+    this.uiConfig.dataModel._userData = this.uiConfig.requiredUserData?this.uiConfig.requiredUserData.reduce((o,f)=>{
       o[f] = '';
       return o;
     },{}):{}
@@ -612,8 +605,8 @@ const DynamicUI = Vue.component('DynamicUI', {
       filters: makeFilters( ctx, this.uiConfig.filters ),
       watch: makeComputed( this.uiConfig.watch ),
         render(h) {
-        ctx.rootThis.modelToTokenMap = Object.keys(dataModel.ch_userData).reduce((o,p)=>{
-          o['ch_userData.'+p] = p;
+        ctx.rootThis.modelToTokenMap = Object.keys(dataModel._userData).reduce((o,p)=>{
+          o['_userData.'+p] = p;
           return o;
         },{});
         return makeComponent( h, uiSchema, ctx );
@@ -623,7 +616,7 @@ const DynamicUI = Vue.component('DynamicUI', {
         ctx.rootThis._route = ctx.route;
         ctx.rootThis._moment = moment;
         ctx.rootThis.modelToTokenMap = {};
-        if (this['beforeCreate']) {
+          if (this['beforeCreate']) {
           (this['beforeCreate'])();
         }
         if (components) {

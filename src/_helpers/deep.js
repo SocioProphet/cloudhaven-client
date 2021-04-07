@@ -1,10 +1,10 @@
 export function deepGet( obj, path ) {
-  if (!obj || !path) return null;
+  if (!obj || !path) return undefined;
   return path.split(".").reduce((curObj,p)=>{
     if (curObj == null || !(curObj instanceof Object)) {
-      return null;
+      return undefined;
     }
-    curObj = curObj[p];
+    curObj = (p in curObj)?curObj[p]:undefined;
     return curObj;
   }, obj);
 }
@@ -17,5 +17,5 @@ export function deepSet( obj, path, val ) {
     curObj = curObj[p];
     return curObj;
   }, obj);
-  if (setObj) setObj[lastEl] = val;
+  if (setObj instanceof Object) setObj[lastEl] = val;
 }
