@@ -111,6 +111,9 @@ function makeComponent( h, metaData, ctx /*, scopedProps*/ ) {
   var rootThis = ctx.rootThis;
   var contents = [];
   if (!isArray) {
+    if (metaData.omit && getModelValue( ctx, metaData.omit)) {
+      return null;
+    }
     if (metaData.component=='template') {
       return Vue.compile(metaData.template).render.call( rootThis, h);
     }
@@ -264,7 +267,7 @@ function makeComponent( h, metaData, ctx /*, scopedProps*/ ) {
         var result = makeComponent( h, el, ctx );
         if (Array.isArray(result)) {
           children = children.concat(result);
-        } else {
+        } else if (result) {
           children.push(result);
         }
       })
@@ -272,10 +275,10 @@ function makeComponent( h, metaData, ctx /*, scopedProps*/ ) {
       var result = makeComponent( h, contents, ctx );
       if (Array.isArray(result)) {
         children = children.concat(result);
-      } else {
+      } else if (result) {
         children.push(result);
       }
-  }
+    }
   } else if (metaData.template) {
     const compiledTemplate = Vue.compile(metaData.template);
     children = [compiledTemplate.render.call(rootThis, h)]
