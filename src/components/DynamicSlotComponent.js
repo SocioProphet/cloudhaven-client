@@ -96,7 +96,7 @@ function makeComponent( h, metaData, rootThis ) {
   return hhh;
 }
 const DynamicSlotComponent = Vue.component('DynamicSlotComponent', {
-  props: [ 'uiSchema', 'scopedProps', 'ch_userData' ],
+  props: [ 'uiSchema', 'scopedProps', '_userData' ],
   data() {
     return {}
   },

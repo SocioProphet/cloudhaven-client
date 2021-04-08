@@ -112,10 +112,24 @@ function makeComponent( h, metaData, ctx /*, scopedProps*/ ) {
   var contents = [];
   if (!isArray) {
     if (metaData.component=='template') {
-      return Vue.compile(metaData.template).render.call( rootThis, h);  
+      return Vue.compile(metaData.template).render.call( rootThis, h);
     }
     if (metaData.component == 'dynamicComponent') {
       return h( ctx.components[metaData.name], {props:metaData.props?propValsFromModel( ctx, metaData.props):{}});
+    }
+    if (metaData.component == "loop") {
+      var index = 0;
+      return rootThis[metaData.dataList].map((e)=>{
+        ctx.rootThis[metaData.itemAlias] = e;
+        var contentMeta = Object.assign({}, metaData.content);
+        contentMeta.attrs = contentMeta.attrs || {};
+        if (metaData.indexIsKey) {
+          contentMeta.attrs.key = index++;
+        } else if (metaData.key) {
+          contentMeta.attrs.key = e[metaData.key];
+        }
+        return makeComponent(h, contentMeta, ctx );
+      });
     }
     contents = metaData.contents;
     var component = metaData.component;
@@ -224,11 +238,6 @@ function makeComponent( h, metaData, ctx /*, scopedProps*/ ) {
         var slotMetaData = metaData.scopedSlots[slot];
         dataObj.scopedSlots[slot] = (scopedProps) => {
           rootThis[slotMetaData.scopedPropsAlias] = scopedProps;
-          debugger;
-          if (scopedProps.attrs && 'tabIndex' in scopedProps.attrs) {
-            var x = '';
-            debugger;
-          }
           var retComp = makeComponent( h, slotMetaData.contents, ctx /*, scopedProps*/ );
           return retComp;
         }
@@ -243,17 +252,30 @@ function makeComponent( h, metaData, ctx /*, scopedProps*/ ) {
   } else {
     contents = metaData;
   }
-  var children = null;
-  if (!isArray && metaData.contentsAsScopedProp) {
+  var children = [];
+  /*if (!isArray && metaData.contentsAsScopedProp) {
     children = deepGet(scopedProps, metaData.contentsAsScopedProp);
-  } else if (contents) {
+  } else*/
+  if (contents) {
     if (_.isString( contents)) {
       children = contents;
     } else if (Array.isArray( contents )) {
-      children = contents.map((el)=>{ return makeComponent( h, el, ctx /*, scopedProps*/ ); })
+      contents.forEach((el)=>{
+        var result = makeComponent( h, el, ctx );
+        if (Array.isArray(result)) {
+          children = children.concat(result);
+        } else {
+          children.push(result);
+        }
+      })
     } else {
-      children = [makeComponent( h, contents, ctx /*, scopedProps*/ )]
-    }
+      var result = makeComponent( h, contents, ctx );
+      if (Array.isArray(result)) {
+        children = children.concat(result);
+      } else {
+        children.push(result);
+      }
+  }
   } else if (metaData.template) {
     const compiledTemplate = Vue.compile(metaData.template);
     children = [compiledTemplate.render.call(rootThis, h)]
@@ -323,7 +345,7 @@ function makeMethods( ctx, uiMethods ) {
     var updates = [];
     var user = {};
     var savedUserData = Object.keys(vm.modelToTokenMap).reduce((o, m)=>{
-      if (m.indexOf('_userData.')<0) {
+      if (m.indexOf('ch_userData.')<0) {
         var token = vm.modelToTokenMap[m];
         var content = deepGet(vm, m);
         var isCoreField = coreUserFields.find(f=>(f==token))
@@ -516,7 +538,7 @@ function makeProps( propsCfg) {
 }
 function makeDynamicComponent( pCtx, cCfg ) {
   var ctx = {rootThis:null, route:pCtx.route, app:pCtx.app};
-  cCfg.dataModel._userData = cCfg.requiredUserData?cCfg.requiredUserData.reduce((o,f)=>{
+  cCfg.dataModel.ch_userData = cCfg.requiredUserData?cCfg.requiredUserData.reduce((o,f)=>{
     o[f] = '';
     return o;
   },{}):{}
@@ -533,8 +555,8 @@ function makeDynamicComponent( pCtx, cCfg ) {
     filters: makeFilters( ctx, cCfg.filters ),
     watch: makeComputed( cCfg.watch ),
     render(h) {
-      ctx.rootThis.modelToTokenMap = Object.keys(cCfg.dataModel._userData).reduce((o,p)=>{
-        o['_userData.'+p] = p;
+      ctx.rootThis.modelToTokenMap = Object.keys(cCfg.dataModel.ch_userData).reduce((o,p)=>{
+        o['ch_userData.'+p] = p;
         return o;
       },{});
       return makeComponent( h, cCfg.uiSchema, ctx );
@@ -581,8 +603,8 @@ const DynamicUI = Vue.component('DynamicUI', {
   mounted() {
     var ctx = {rootThis:null, route:this.$route, app: {url:this.app.url, vendorId: this.app.vendorId, _id: this.app._id}};
 
-//    outerThis.uiConfig.dataModel._userData = outerThis.uiConfig.requiredUserData?outerThis.uiConfig.requiredUserData.reduce((o,f)=>{
-    this.uiConfig.dataModel._userData = this.uiConfig.requiredUserData?this.uiConfig.requiredUserData.reduce((o,f)=>{
+//    outerThis.uiConfig.dataModel.ch_userData = outerThis.uiConfig.requiredUserData?outerThis.uiConfig.requiredUserData.reduce((o,f)=>{
+    this.uiConfig.dataModel.ch_userData = this.uiConfig.requiredUserData?this.uiConfig.requiredUserData.reduce((o,f)=>{
       o[f] = '';
       return o;
     },{}):{}
@@ -605,8 +627,8 @@ const DynamicUI = Vue.component('DynamicUI', {
       filters: makeFilters( ctx, this.uiConfig.filters ),
       watch: makeComputed( this.uiConfig.watch ),
         render(h) {
-        ctx.rootThis.modelToTokenMap = Object.keys(dataModel._userData).reduce((o,p)=>{
-          o['_userData.'+p] = p;
+        ctx.rootThis.modelToTokenMap = Object.keys(dataModel.ch_userData).reduce((o,p)=>{
+          o['ch_userData.'+p] = p;
           return o;
         },{});
         return makeComponent( h, uiSchema, ctx );

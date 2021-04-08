@@ -14,10 +14,16 @@
 </template>
 <script>
 import Api from '@/services/Api'
+import moment from 'moment'
   export default {
     props: {
       conversation: { type: Object, required: true},
       comment: { type: Object, required: true}
+    },
+    filters: {
+      datetime(value) {
+        return value?moment(value).format('l LT'):'';
+      }
     },
     data() {
       return {
