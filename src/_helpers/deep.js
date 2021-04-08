@@ -1,21 +1,39 @@
 export function deepGet( obj, path ) {
   if (!obj || !path) return undefined;
-  return path.split(".").reduce((curObj,p)=>{
+  var curObj = obj;
+  var parts = path.split(".");
+  for (var i=0;i<parts.length;i++) {
+    var p = parts[i];
     if (curObj == null || !(curObj instanceof Object)) {
       return undefined;
     }
-    curObj = (p in curObj)?curObj[p]:undefined;
-    return curObj;
-  }, obj);
+    if (p in curObj) {
+      curObj = curObj[p];
+    } else {
+      return (parts.length>1 && i==(parts.length-1))?null:undefined;
+    }
+  };
+  return curObj;
 }
 export function deepSet( obj, path, val ) {
   if (!obj || !path) return null;
   var parts = path.split(".");
   var lastEl = parts.pop();
-  var setObj = parts.reduce((curObj,p)=>{
-    if (curObj == null || !(curObj instanceof Object)) return null;
-    curObj = curObj[p];
-    return curObj;
-  }, obj);
-  if (setObj instanceof Object) setObj[lastEl] = val;
+  var setObj = obj;
+  for (var i=0;i<parts.length;i++) {
+    if (setObj == null || !(setObj instanceof Object)) {
+      return undefined;
+    }
+    var p = parts[i];
+    if (p in setObj) {
+      setObj = setObj[p];
+    } else {
+      return undefined;
+    }
+  };
+  if (setObj instanceof Object) {
+    setObj[lastEl] = val;
+    return val;
+  }
+  return undefined;
 }

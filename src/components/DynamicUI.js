@@ -13,6 +13,7 @@ import { EventBus } from '../event-bus.js';
 import moment from 'moment'
 
 const uiElementToVueCompMap = {
+  autocomplete: VueLib['VAutocomplete'],
   row: VueLib['VRow'],
   col: VueLib['VCol'],
   conversation: CommentsManager,
@@ -68,12 +69,17 @@ function makeFunction( funcSpec ) {
   args.push(funcSpec.body);
   return Function.apply( null, args);
 }
-function getModelValue( ctx, src /*, scopedProps*/ ) {
-  var val = deepGet(ctx.rootThis, src);
-  if (val != undefined) return val;
-  console.log("Function.apply: "+src);
-  var func = Function.apply( ctx.rootThis, 'return ('+src+')')
-  return func.call(rootThis);
+function getModelValue( ctx, src ) {
+  try {
+    var val = deepGet(ctx.rootThis, src);
+    if (val !== undefined) return val;
+    console.log("Function.apply: "+src);
+    var script = 'return ('+src+')';
+    var func = Function.apply( ctx.rootThis, [script]);
+    return func.call(ctx.rootThis);
+  } catch(e) {
+    console.log('getModelValue error for '+src+' ('+e+')');
+  }
 /*  if (_.isString(val) && val.indexOf('this.')==0) {
     return deepGet(rootThis, val.substring(5));
   } else if (_.isString(val)) {
@@ -101,17 +107,22 @@ function getModelValue( ctx, src /*, scopedProps*/ ) {
 function propValsFromModel( ctx, props ) {
   if (!props) return {};
   var val = Object.keys(props).reduce((mp,p)=>{
-    mp[p] = getModelValue( ctx, props[p]);
+    if (p.indexOf(':')==0) {
+      mp[p.substring(1)] = getModelValue( ctx, props[p])
+    } else {
+      mp[p] = props[p];
+    }
     return mp;
   },{});
   return val;
 }
-function makeComponent( h, metaData, ctx /*, scopedProps*/ ) {
+function makeComponent( h, metaData, ctx ) {
   var isArray = Array.isArray(metaData);
   var rootThis = ctx.rootThis;
   var contents = [];
   if (!isArray) {
-    if (metaData.omit && getModelValue( ctx, metaData.omit)) {
+    if ((metaData.omit && getModelValue( ctx, metaData.omit)) ||
+        (metaData.show && !getModelValue( ctx, metaData.show))) {
       return null;
     }
     if (metaData.component=='template') {
@@ -122,7 +133,8 @@ function makeComponent( h, metaData, ctx /*, scopedProps*/ ) {
     }
     if (metaData.component == "loop") {
       var index = 0;
-      return rootThis[metaData.dataList].map((e)=>{
+      var dataList = getModelValue( ctx, metaData.dataList) || [];
+      return dataList.map((e)=>{
         ctx.rootThis[metaData.itemAlias] = e;
         var contentMeta = Object.assign({}, metaData.content);
         contentMeta.attrs = contentMeta.attrs || {};
@@ -151,7 +163,7 @@ function makeComponent( h, metaData, ctx /*, scopedProps*/ ) {
               if (key == "rules") {
                 obj.rules = val.map(f=>rootThis[f]);
               } else {
-                obj[key] = getModelValue( ctx, val /*, scopedProps*/);
+                obj[key] = getModelValue( ctx, val);
               }
             }
             return obj;
@@ -159,7 +171,7 @@ function makeComponent( h, metaData, ctx /*, scopedProps*/ ) {
         } else {
           var val = metaData[kk];
           var isLiteral = kk.indexOf(":")!=0;
-          o[k] = isLiteral?val:getModelValue( ctx, val /*, scopedProps*/);//val.indexOf('this.')==0?deepGet(rootThis, val.substring(5)): val;
+          o[k] = isLiteral?val:getModelValue( ctx, val );
         }
       }
       return o;
@@ -174,7 +186,7 @@ function makeComponent( h, metaData, ctx /*, scopedProps*/ ) {
         var onObj = dataObj[ot];
         var onMeta = metaData[ot];
         if (_.isString(onMeta)) {
-          dataObj[ot] = getModelValue( ctx, onMeta /*, scopedProps*/)
+          dataObj[ot] = getModelValue( ctx, onMeta )
           return;
         }
         Object.keys(onMeta).forEach(ev=>{
@@ -186,20 +198,18 @@ function makeComponent( h, metaData, ctx /*, scopedProps*/ ) {
               }
             } else {
               onObj[ev] = (event) => {
-  //              (Function.apply( rootThis, ['props', `this.${funcSpec.funcSpec}(props);`]))(scopedProps)
-                (rootThis[funcSpec])(event /*, scopedProps*/)
+                (rootThis[funcSpec])(event )
               }
             }
           } else {
             var func = null;
             if (funcSpec.method) {
-//               func = Function.apply( rootThis, ['props', `this.${funcSpec.method}(props);`]);
               func = rootThis[funcSpec.method];
             } else { //body
               func = Function.apply( rootThis, [funcSpec.body]); //FIXME?
             }
             onObj[ev] = (event) => {
-              (func).call(rootThis /*, scopedProps?(funcSpec.scopedProp?deepGet(scopedProps,funcSpec.scopedProp):scopedProps):null*/);
+              (func).call(rootThis);
               if (funcSpec.eventModifier == "stop") {
                 event.stopPropagation();
               } else if (funcSpec.eventModifier == "prevent") {
@@ -241,7 +251,7 @@ function makeComponent( h, metaData, ctx /*, scopedProps*/ ) {
         var slotMetaData = metaData.scopedSlots[slot];
         dataObj.scopedSlots[slot] = (scopedProps) => {
           rootThis[slotMetaData.scopedPropsAlias] = scopedProps;
-          var retComp = makeComponent( h, slotMetaData.contents, ctx /*, scopedProps*/ );
+          var retComp = makeComponent( h, slotMetaData.contents, ctx );
           return retComp;
         }
       })
@@ -256,9 +266,6 @@ function makeComponent( h, metaData, ctx /*, scopedProps*/ ) {
     contents = metaData;
   }
   var children = [];
-  /*if (!isArray && metaData.contentsAsScopedProp) {
-    children = deepGet(scopedProps, metaData.contentsAsScopedProp);
-  } else*/
   if (contents) {
     if (_.isString( contents)) {
       children = contents;
@@ -396,7 +403,9 @@ function makeMethods( ctx, uiMethods ) {
   methods._deepGet = deepGet;
   methods._deepSet = deepSet;
   methods._gotoAppPage = (page, appParams) => {
-    router.push({ name: 'AppPageReset', params: { app:app, page:'apppages/'+page, appParams:appParams } });
+    setTimeout(() => {
+      router.push({ name: 'AppPageReset', params: { app:app, page:'apppages/'+page, appParams:appParams } });
+    }, 300)
   }
   methods._eventBusOn = ( id, f) => {
     EventBus.$on(id, f);
@@ -548,7 +557,7 @@ function makeDynamicComponent( pCtx, cCfg ) {
   return Vue.component(cCfg.name, {
     props: makeProps( cCfg.props ),
     data() {
-      var dataObj = Object.assign({cloudHavenUserId:''/*, scopedProps:{}*/},cCfg.dataModel || {});
+      var dataObj = Object.assign({cloudHavenUserId:''},cCfg.dataModel || {});
       dataObj.ctx = ctx || {};
       return dataObj;
     },
@@ -614,11 +623,11 @@ const DynamicUI = Vue.component('DynamicUI', {
     var dataModel = this.uiConfig.dataModel;
     var uiSchema = this.uiConfig.uiSchema;
     var components = this.uiConfig.components;
-    new Vue({
+    this.innerVueInstance = new Vue({
       props: this.props || {},
       el: '#dynamicUIDiv',
       data() {
-        var dataObj = Object.assign({cloudHavenUserId:'' /*, scopedProps:{}*/},dataModel || {});
+        var dataObj = Object.assign({cloudHavenUserId:''},dataModel || {});
         dataObj.ctx = ctx || {};
         dataObj.components = {};
         return dataObj;
@@ -657,10 +666,17 @@ const DynamicUI = Vue.component('DynamicUI', {
         if (this['mounted']) {
           (this['mounted'])();
         }
-      }
-    })
+      },
+      destroyed() {
+      },
+        })
 
-  }
+  },
+  beforeDestroy() {
+    this.innerVueInstance.$destroy();
+  },
+  destroyed() {
+  },
 });
 
 export default DynamicUI;
