@@ -59,7 +59,6 @@ function createJSExec() {
   return new Sval({ ecmaVer:9, sandbox:true })
 }
 function makeFunction( funcSpec ) {
-//  console.log(JSON.stringify(funcSpec));
   var getSetObj = null;
   if (funcSpec.set) {
     getSetObj = getSetObj || {};
@@ -75,7 +74,6 @@ function makeFunction( funcSpec ) {
   return Function.apply( null, args);
 }
 
-//Use Meriyah? https://www.npmjs.com/package/meriyah 
 //sval - https://github.com/Siubaak/sval
 /*
 npm install sval
@@ -97,7 +95,6 @@ console.log('result: '+interpreter.exports.result);
 
 */
 function getModelValue( ctx, src ) {
-  console.log(src);
   try {
     var val = deepGet(ctx.rootThis, src);
     if (val !== undefined) return val;
