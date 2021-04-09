@@ -11,6 +11,7 @@ import CHDateField from './CHDateField.vue'
 import router from '../router'
 import { EventBus } from '../event-bus.js';
 import moment from 'moment'
+import Sval from 'sval'
 
 const uiElementToVueCompMap = {
   autocomplete: VueLib['VAutocomplete'],
@@ -54,7 +55,11 @@ const uiElementToVueCompMap = {
 }
 var coreUserFields = ["email", "firstName", "lastName", "dateOfBirth", "ssn", "language"];
 
+function createJSExec() {
+  return new Sval({ ecmaVer:9, sandbox:true })
+}
 function makeFunction( funcSpec ) {
+//  console.log(JSON.stringify(funcSpec));
   var getSetObj = null;
   if (funcSpec.set) {
     getSetObj = getSetObj || {};
@@ -69,14 +74,39 @@ function makeFunction( funcSpec ) {
   args.push(funcSpec.body);
   return Function.apply( null, args);
 }
+
+//Use Meriyah? https://www.npmjs.com/package/meriyah 
+//sval - https://github.com/Siubaak/sval
+/*
+npm install sval
+const ctx = {
+  prop: 'property',
+  func: () => {console.log('from the function');}
+}
+const options = { ecmaVer:9, sandbox:true };
+
+const interpreter = new Sval(options)
+
+interpreter.import( ctx );
+interpreter.run(`
+  console.log(prop);
+  (func)();
+  exports.result = 'the result';`
+);
+console.log('result: '+interpreter.exports.result);
+
+*/
 function getModelValue( ctx, src ) {
+  console.log(src);
   try {
     var val = deepGet(ctx.rootThis, src);
     if (val !== undefined) return val;
     console.log("Function.apply: "+src);
     var script = 'return ('+src+')';
-    var func = Function.apply( ctx.rootThis, [script]);
-    return func.call(ctx.rootThis);
+/*    var func = Function.apply( ctx.rootThis, [script]);
+    return func.call(ctx.rootThis);*/
+    ctx.jsExec.run('exports.result = '+src);
+    return ctx.jsExec.exports.result;
   } catch(e) {
     console.log('getModelValue error for '+src+' ('+e+')');
   }
@@ -116,7 +146,7 @@ function propValsFromModel( ctx, props ) {
   },{});
   return val;
 }
-function makeComponent( h, metaData, ctx ) {
+function makeComponent( h, metaData, ctx, pScopedProps ) {
   var isArray = Array.isArray(metaData);
   var rootThis = ctx.rootThis;
   var contents = [];
@@ -126,7 +156,8 @@ function makeComponent( h, metaData, ctx ) {
       return null;
     }
     if (metaData.component=='template') {
-      return Vue.compile(metaData.template).render.call( rootThis, h);
+      var context = pScopedProps?_.assignIn({}, rootThis, pScopedProps):rootThis;
+      return Vue.compile(metaData.template).render.call( context, h);
     }
     if (metaData.component == 'dynamicComponent') {
       return h( ctx.components[metaData.name], {props:metaData.props?propValsFromModel( ctx, metaData.props):{}});
@@ -135,7 +166,7 @@ function makeComponent( h, metaData, ctx ) {
       var index = 0;
       var dataList = getModelValue( ctx, metaData.dataList) || [];
       return dataList.map((e)=>{
-        ctx.rootThis[metaData.itemAlias] = e;
+        ctx.jsExec.import(e)
         var contentMeta = Object.assign({}, metaData.content);
         contentMeta.attrs = contentMeta.attrs || {};
         if (metaData.indexIsKey) {
@@ -143,7 +174,7 @@ function makeComponent( h, metaData, ctx ) {
         } else if (metaData.key) {
           contentMeta.attrs.key = e[metaData.key];
         }
-        return makeComponent(h, contentMeta, ctx );
+        return makeComponent(h, contentMeta, ctx, pScopedProps );
       });
     }
     contents = metaData.contents;
@@ -202,21 +233,21 @@ function makeComponent( h, metaData, ctx ) {
               }
             }
           } else {
-            var func = null;
-            if (funcSpec.method) {
-              func = rootThis[funcSpec.method];
-            } else { //body
-              func = Function.apply( rootThis, [funcSpec.body]); //FIXME?
-            }
             onObj[ev] = (event) => {
-              (func).call(rootThis);
+              var func = null;
+              var context = null;
+              if (funcSpec.method) {
+                func = rootThis[funcSpec.method];
+                if (func) (func).call(rootThis);
+              } else { //body
+                ctx.jsExec.run(funcSpec.body);
+              }
               if (funcSpec.eventModifier == "stop") {
                 event.stopPropagation();
               } else if (funcSpec.eventModifier == "prevent") {
                 event.preventDefault();
               }
             }
-
           }
         })
       }  
@@ -250,8 +281,9 @@ function makeComponent( h, metaData, ctx ) {
       keys.forEach((slot) => {
         var slotMetaData = metaData.scopedSlots[slot];
         dataObj.scopedSlots[slot] = (scopedProps) => {
-          rootThis[slotMetaData.scopedPropsAlias] = scopedProps;
-          var retComp = makeComponent( h, slotMetaData.contents, ctx );
+          var newScopedProps = Object.assign({}, scopedProps, pScopedProps);
+          ctx.jsExec.import(newScopedProps)
+          var retComp = makeComponent( h, slotMetaData, ctx, newScopedProps );
           return retComp;
         }
       })
@@ -259,7 +291,7 @@ function makeComponent( h, metaData, ctx ) {
     if (metaData.defaultSlot) { //This probably is never called and doesn't work - use component contents instead
       dataObj.scopedSlots = dataObj.scopedSlots || {};
       dataObj.scopedSlots.default = () => {
-        return makeComponent( h, metaData.defaultSlot, ctx);
+        return makeComponent( h, metaData.defaultSlot, ctx, pScopedProps);
       }
     }  
   } else {
@@ -271,7 +303,7 @@ function makeComponent( h, metaData, ctx ) {
       children = contents;
     } else if (Array.isArray( contents )) {
       contents.forEach((el)=>{
-        var result = makeComponent( h, el, ctx );
+        var result = makeComponent( h, el, ctx, pScopedProps );
         if (Array.isArray(result)) {
           children = children.concat(result);
         } else if (result) {
@@ -279,7 +311,7 @@ function makeComponent( h, metaData, ctx ) {
         }
       })
     } else {
-      var result = makeComponent( h, contents, ctx );
+      var result = makeComponent( h, contents, ctx, pScopedProps );
       if (Array.isArray(result)) {
         children = children.concat(result);
       } else if (result) {
@@ -287,8 +319,8 @@ function makeComponent( h, metaData, ctx ) {
       }
     }
   } else if (metaData.template) {
-    const compiledTemplate = Vue.compile(metaData.template);
-    children = [compiledTemplate.render.call(rootThis, h)]
+    var context = pScopedProps?_.assignIn({},pScopedProps, rootThis):rootThis;
+  children = [Vue.compile(metaData.template).render.call( context, h)];
   }
   if (isArray) {
     return children;
@@ -531,7 +563,10 @@ function makeFilters( ctx, filters ) {
 function makeComputed( computed ) {
   return computed?Object.keys(computed).reduce((o,m)=>{
     try {
-      o[m] = makeFunction( computed[m] );
+      var func = makeFunction( computed[m] );
+      if (func) {
+        o[m] = func;
+      }
     } catch (e) {
       console.log('Computed '+m+' error: '+e);
     }
@@ -549,7 +584,7 @@ function makeProps( propsCfg) {
   },{}):{}
 }
 function makeDynamicComponent( pCtx, cCfg ) {
-  var ctx = {rootThis:null, route:pCtx.route, app:pCtx.app};
+  var ctx = {rootThis:null, route:pCtx.route, app:pCtx.app, jsExec: createJSExec()};
   cCfg.dataModel.ch_userData = cCfg.requiredUserData?cCfg.requiredUserData.reduce((o,f)=>{
     o[f] = '';
     return o;
@@ -586,6 +621,7 @@ function makeDynamicComponent( pCtx, cCfg ) {
       }
     },
     created() {
+    ctx.jsExec.import( this );
     if (this['created']) {
         (this['created'])();
       }
@@ -613,7 +649,8 @@ const DynamicUI = Vue.component('DynamicUI', {
   vuetify,
   template: '<div id="dynamicUIDiv"></div>',
   mounted() {
-    var ctx = {rootThis:null, route:this.$route, app: {url:this.app.url, vendorId: this.app.vendorId, _id: this.app._id}};
+    var ctx = {rootThis:null, route:this.$route, app: {url:this.app.url, vendorId: this.app.vendorId, _id: this.app._id},
+                jsExec: createJSExec() };
 
 //    outerThis.uiConfig.dataModel.ch_userData = outerThis.uiConfig.requiredUserData?outerThis.uiConfig.requiredUserData.reduce((o,f)=>{
     this.uiConfig.dataModel.ch_userData = this.uiConfig.requiredUserData?this.uiConfig.requiredUserData.reduce((o,f)=>{
@@ -658,6 +695,7 @@ const DynamicUI = Vue.component('DynamicUI', {
         }
       },
       created() {
+      ctx.jsExec.import( this );
       if (this['created']) {
           (this['created'])();
         }
