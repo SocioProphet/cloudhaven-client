@@ -98,7 +98,6 @@ function getModelValue( ctx, src ) {
   try {
     var val = deepGet(ctx.rootThis, src);
     if (val !== undefined) return val;
-    console.log("Function.apply: "+src);
     var script = 'return ('+src+')';
 /*    var func = Function.apply( ctx.rootThis, [script]);
     return func.call(ctx.rootThis);*/
@@ -254,6 +253,10 @@ function makeComponent( h, metaData, ctx, pScopedProps ) {
       dataObj.on.change = (n) => {
         deepSet( rootThis, metaData.vmodel, n);
       }
+    }
+    if (metaData[':value']) {
+      dataObj.props = dataObj.props || {};
+      dataObj.props.value = deepGet( rootThis, metaData[':value'] );
     }
     if (metaData.vmodel) {
       dataObj.props = dataObj.props || {};
