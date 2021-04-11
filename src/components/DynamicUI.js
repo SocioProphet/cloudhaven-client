@@ -71,7 +71,11 @@ function makeFunction( funcSpec ) {
   if (getSetObj) return getSetObj;
   var args = funcSpec.args || [];
   args.push(funcSpec.body);
-  return Function.apply( null, args);
+  var func = Function.apply( null, args);
+  if (_.isString(func)) {
+    throw func;
+  }
+  return func;
 }
 
 //sval - https://github.com/Siubaak/sval
@@ -98,37 +102,12 @@ function getModelValue( ctx, src ) {
   try {
     var val = deepGet(ctx.rootThis, src);
     if (val !== undefined) return val;
-    var script = 'return ('+src+')';
-/*    var func = Function.apply( ctx.rootThis, [script]);
-    return func.call(ctx.rootThis);*/
+    ctx.jsExec.import( ctx.rootThis );
     ctx.jsExec.run('exports.result = '+src);
     return ctx.jsExec.exports.result;
   } catch(e) {
     console.log('getModelValue error for '+src+' ('+e+')');
   }
-/*  if (_.isString(val) && val.indexOf('this.')==0) {
-    return deepGet(rootThis, val.substring(5));
-  } else if (_.isString(val)) {
-    var valOrFunc = deepGet(rootThis, val);
-    if (valOrFunc instanceof Function) {
-      return (valOrFunc)();
-    } else {
-      return valOrFunc != undefined?valOrFunc:val;
-    }
-  } else if (val instanceof Object) {
-    var func = null;
-    if (val.method) {
-      func = rootThis[val.method];
-      return func.call(rootThis);
-    } else if (val.body) { //body
-      func = Function.apply( rootThis, [val.body]);
-      return func.call(rootThis);
-    } else {
-      return val;
-    }
-  } else {
-    return val;
-  }*/
 }
 function propValsFromModel( ctx, props ) {
   if (!props) return {};
@@ -144,6 +123,9 @@ function propValsFromModel( ctx, props ) {
 }
 function makeComponent( h, metaData, ctx, pScopedProps ) {
   var isArray = Array.isArray(metaData);
+  if (metaData.debug) {
+    debugger;
+  }
   var rootThis = ctx.rootThis;
   var contents = [];
   if (!isArray) {
@@ -162,15 +144,18 @@ function makeComponent( h, metaData, ctx, pScopedProps ) {
       var index = 0;
       var dataList = getModelValue( ctx, metaData.dataList) || [];
       return dataList.map((e)=>{
-        ctx.jsExec.import(e)
-        var contentMeta = Object.assign({}, metaData.content);
+        var contentMeta = Object.assign({}, metaData.contents);
+        var loopItemProps = {}
+        loopItemProps[metaData.itemAlias || 'item'] = e;
+        ctx.jsExec.import(loopItemProps);
+        var newScopedProps = Object.assign( {}, pScopedProps||{}, loopItemProps)
         contentMeta.attrs = contentMeta.attrs || {};
         if (metaData.indexIsKey) {
           contentMeta.attrs.key = index++;
         } else if (metaData.key) {
           contentMeta.attrs.key = e[metaData.key];
         }
-        return makeComponent(h, contentMeta, ctx, pScopedProps );
+        return makeComponent(h, contentMeta, ctx, newScopedProps );
       });
     }
     contents = metaData.contents;
@@ -231,11 +216,12 @@ function makeComponent( h, metaData, ctx, pScopedProps ) {
           } else {
             onObj[ev] = (event) => {
               var func = null;
-              var context = null;
               if (funcSpec.method) {
                 func = rootThis[funcSpec.method];
                 if (func) (func).call(rootThis);
               } else { //body
+                ctx.jsExec.import( rootThis );
+                if (pScopedProps) ctx.jsExec.import( pScopedProps );
                 ctx.jsExec.run(funcSpec.body);
               }
               if (funcSpec.eventModifier == "stop") {
@@ -613,11 +599,11 @@ function makeDynamicComponent( pCtx, cCfg ) {
       ctx.rootThis._route = ctx.route;
       ctx.rootThis._moment = moment;
       ctx.rootThis.modelToTokenMap = {};
-    if (this['beforeCreate']) {
-        (this['beforeCreate'])();
-      }
       if (cCfg.components) {
         ctx.components = Object.assign({},makeDynamicComponents( ctx, cCfg.components ));
+      }
+      if (this['beforeCreate']) {
+        (this['beforeCreate'])();
       }
     },
     created() {
