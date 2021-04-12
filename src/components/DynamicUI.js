@@ -5,7 +5,6 @@ import vuetify from '@/plugins/vuetify'
 import PdfApi from '@/services/PdfApi'
 import Api from '@/services/Api'
 import CommentsManager from './CommentsManager.vue'
-//import CHTable from './CHTable.vue'
 import { deepGet, deepSet } from '../_helpers/deep.js'
 import CHDateField from './CHDateField.vue'
 import router from '../router'
@@ -27,8 +26,6 @@ const uiElementToVueCompMap = {
   container: VueLib['VContainer'],
   dateField: CHDateField,
   divider: VueLib['VDivider'],
-//  dataTable: CHTable, 
-//  staticTable: VueLib['VDataTable'],
   dataTable: VueLib['VDataTable'],
   dialog: VueLib['VDialog'],
   expansionPanel: VueLib['VExpansionPanel'],
@@ -122,6 +119,9 @@ function propValsFromModel( ctx, props ) {
   return val;
 }
 function makeComponent( h, metaData, ctx, pScopedProps ) {
+  if (_.isString(metaData)) {
+    return {text:metaData};
+  }
   var isArray = Array.isArray(metaData);
   if (metaData.debug) {
     debugger;
