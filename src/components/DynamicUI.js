@@ -353,13 +353,13 @@ function makeMethods( ctx, uiMethods ) {
     var vm = ctx.rootThis;
     (async () => {
       var response = await Api().post("/usersearch", searchCriteria);
-      var result = response.data;
+//      var result = response.data;
       if (cb) {
-        vm.$nextTick(() =>{
-          setTimeout(() => {
+//        vm.$nextTick(() =>{
+//          setTimeout(() => {
             (cb).call(vm, response.data);
-          }, 100)
-        })
+//          }, 100)
+//        })
       }
     })();
 
@@ -407,11 +407,11 @@ function makeMethods( ctx, uiMethods ) {
         deepSet( vm, m, savedUserData[m])
       });
       if (cb) {
-        vm.$nextTick(() =>{
-          setTimeout(() => {
+//        vm.$nextTick(() =>{
+//          setTimeout(() => {
             (cb).call(vm, response.data);
-          }, 100)
-        })
+//          }, 100)
+//        })
       }
     })();
   };
@@ -495,7 +495,7 @@ function makeMethods( ctx, uiMethods ) {
       })
     })();
   }
-  methods._getUserDataForList = (pUserIds, list, fieldMap, cb) => {
+  methods._getUserDataForList = (pUserIds, list, userIdField, fieldMap, cb) => {
     fieldMap = fieldMap || {};
     var userDataIds = Object.keys(fieldMap);
     if (userDataIds.length==0) return;
@@ -512,12 +512,13 @@ function makeMethods( ctx, uiMethods ) {
       var userDataMap = response.data || {};
       list.forEach(e=>{
         var userDataList = [];
-        if (e.cloudHavenUserId) {
-          var user = userMap[e.cloudHavenUserId];
+        var cloudHavenUserId = deepGet(e, userIdField);
+        if (cloudHavenUserId) {
+          var user = userMap[cloudHavenUserId];
           if (user) {
             userDataList = coreUserFields.map(f=>({name:f, content:user[f]}));
           }
-          userDataList = userDataList.concat(userDataMap[e.cloudHavenUserId]);
+          userDataList = userDataList.concat(userDataMap[cloudHavenUserId]||[]);
         }
         //user, name, content
         userDataList.forEach(d=>{
