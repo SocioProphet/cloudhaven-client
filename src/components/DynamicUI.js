@@ -5,12 +5,12 @@ import vuetify from '@/plugins/vuetify'
 import PdfApi from '@/services/PdfApi'
 import Api from '@/services/Api'
 import CommentsManager from './CommentsManager.vue'
+import prepScriptletScope from '../_helpers/scopeprep.js'
 import { deepGet, deepSet } from '../_helpers/deep.js'
 import CHDateField from './CHDateField.vue'
 import router from '../router'
 import { EventBus } from '../event-bus.js';
 import moment from 'moment'
-import Sval from 'sval'
 
 const uiElementToVueCompMap = {
   autocomplete: VueLib['VAutocomplete'],
@@ -52,9 +52,6 @@ const uiElementToVueCompMap = {
 }
 var coreUserFields = ["email", "firstName", "lastName", "dateOfBirth", "ssn", "language"];
 
-function createJSExec() {
-  return new Sval({ ecmaVer:9, sandbox:true })
-}
 function makeFunction( funcSpec ) {
   var getSetObj = null;
   if (funcSpec.set) {
@@ -75,42 +72,42 @@ function makeFunction( funcSpec ) {
   return func;
 }
 
-//sval - https://github.com/Siubaak/sval
-/*
-npm install sval
-const ctx = {
-  prop: 'property',
-  func: () => {console.log('from the function');}
-}
-const options = { ecmaVer:9, sandbox:true };
-
-const interpreter = new Sval(options)
-
-interpreter.import( ctx );
-interpreter.run(`
-  console.log(prop);
-  (func)();
-  exports.result = 'the result';`
-);
-console.log('result: '+interpreter.exports.result);
-
-*/
-function getModelValue( ctx, src ) {
+function getModelValue( rootThis, pScopedProps, src ) {
   try {
-    var val = deepGet(ctx.rootThis, src);
+    var val = deepGet(rootThis, src);
     if (val !== undefined) return val;
-    ctx.jsExec.import( ctx.rootThis );
-    ctx.jsExec.run('exports.result = '+src);
-    return ctx.jsExec.exports.result;
+    if (pScopedProps) {
+      val = deepGet( pScopedProps, src );
+      if (val !== undefined) return val;
+    }
+    var script = prepScriptletScope(rootThis, pScopedProps, src);
+    var func = Function.apply( null, ["rootThis", "scopedProps", 'return '+script]);
+    return (func)(rootThis, pScopedProps);
   } catch(e) {
     console.log('getModelValue error for '+src+' ('+e+')');
+  }
+}
+function setModelValue( rootThis, pScopedProps, src, val ) {
+  try {
+    var retVal = deepSet(rootThis, src, val);
+    if (retVal !== undefined) {
+      return retVal;
+    }
+    var script = 'debugger; '+ src + ' = val;' 
+    script = prepScriptletScope(rootThis, pScopedProps, script);
+    var func = Function.apply( null, ["rootThis", "scopedProps", "val", script]);
+
+    (func)(rootThis, pScopedProps, val);
+
+  } catch(e) {
+    console.log('setModelValue error for '+src+' ('+e+')');
   }
 }
 function propValsFromModel( ctx, props ) {
   if (!props) return {};
   var val = Object.keys(props).reduce((mp,p)=>{
     if (p.indexOf(':')==0) {
-      mp[p.substring(1)] = getModelValue( ctx, props[p])
+      mp[p.substring(1)] = getModelValue( ctx.rootThis, {}, props[p])
     } else {
       mp[p] = props[p];
     }
@@ -129,8 +126,8 @@ function makeComponent( h, metaData, ctx, pScopedProps ) {
   var rootThis = ctx.rootThis;
   var contents = [];
   if (!isArray) {
-    if ((metaData.omit && getModelValue( ctx, metaData.omit)) ||
-        (metaData.show && !getModelValue( ctx, metaData.show))) {
+    if ((metaData.omit && getModelValue( rootThis, pScopedProps, metaData.omit)) ||
+        (metaData.show && !getModelValue( rootThis, pScopedProps, metaData.show))) {
       return null;
     }
     if (metaData.component=='template') {
@@ -142,12 +139,11 @@ function makeComponent( h, metaData, ctx, pScopedProps ) {
     }
     if (metaData.component == "loop") {
       var index = 0;
-      var dataList = getModelValue( ctx, metaData.dataList) || [];
+      var dataList = getModelValue( rootThis, pScopedProps, metaData.dataList) || [];
       return dataList.map((e)=>{
         var contentMeta = Object.assign({}, metaData.contents);
         var loopItemProps = {}
         loopItemProps[metaData.itemAlias || 'item'] = e;
-        ctx.jsExec.import(loopItemProps);
         var newScopedProps = Object.assign( {}, pScopedProps||{}, loopItemProps)
         contentMeta.attrs = contentMeta.attrs || {};
         if (metaData.indexIsKey) {
@@ -175,7 +171,7 @@ function makeComponent( h, metaData, ctx, pScopedProps ) {
               if (key == "rules") {
                 obj.rules = val.map(f=>rootThis[f]);
               } else {
-                obj[key] = getModelValue( ctx, val);
+                obj[key] = getModelValue( rootThis, pScopedProps, val);
               }
             }
             return obj;
@@ -183,7 +179,7 @@ function makeComponent( h, metaData, ctx, pScopedProps ) {
         } else {
           var val = metaData[kk];
           var isLiteral = kk.indexOf(":")!=0;
-          o[k] = isLiteral?val:getModelValue( ctx, val );
+          o[k] = isLiteral?val:getModelValue( rootThis, pScopedProps, val );
         }
       }
       return o;
@@ -198,7 +194,7 @@ function makeComponent( h, metaData, ctx, pScopedProps ) {
         var onObj = dataObj[ot];
         var onMeta = metaData[ot];
         if (_.isString(onMeta)) {
-          dataObj[ot] = getModelValue( ctx, onMeta )
+          dataObj[ot] = getModelValue( rootThis, pScopedProps, onMeta )
           return;
         }
         Object.keys(onMeta).forEach(ev=>{
@@ -220,9 +216,11 @@ function makeComponent( h, metaData, ctx, pScopedProps ) {
                 func = rootThis[funcSpec.method];
                 if (func) (func).call(rootThis);
               } else { //body
-                ctx.jsExec.import( rootThis );
-                if (pScopedProps) ctx.jsExec.import( pScopedProps );
-                ctx.jsExec.run(funcSpec.body);
+                var script = prepScriptletScope(rootThis, pScopedProps, funcSpec.body);
+                var func = Function.apply( null, ["rootThis", "scopedProps", script]);
+                (()=>{
+                  (func)(rootThis, Object.assign({},pScopedProps));
+                })();
               }
               if (funcSpec.eventModifier == "stop") {
                 event.stopPropagation();
@@ -237,19 +235,19 @@ function makeComponent( h, metaData, ctx, pScopedProps ) {
     if (component == 'tabs') {
       dataObj.on = dataObj.on || {};
       dataObj.on.change = (n) => {
-        deepSet( rootThis, metaData.vmodel, n);
+        setModelValue( rootThis, pScopedProps, metaData.vmodel, n);
       }
     }
     if (metaData[':value']) {
       dataObj.props = dataObj.props || {};
-      dataObj.props.value = deepGet( rootThis, metaData[':value'] );
+      dataObj.props.value = getModelValue( rootThis, pScopedProps, metaData[':value'] );
     }
     if (metaData.vmodel) {
       dataObj.props = dataObj.props || {};
-      dataObj.props.value = deepGet( rootThis, metaData.vmodel );
+      dataObj.props.value = getModelValue( rootThis, pScopedProps, metaData.vmodel );
       dataObj.on = dataObj.on || {};
-      dataObj.on.input = (e) =>{
-        deepSet( rootThis, metaData.vmodel, e );
+      dataObj.on.input = (val) =>{
+        setModelValue( rootThis, pScopedProps, metaData.vmodel, val );
       }
     }
     if (metaData.userData) {
@@ -268,7 +266,6 @@ function makeComponent( h, metaData, ctx, pScopedProps ) {
         var slotMetaData = metaData.scopedSlots[slot];
         dataObj.scopedSlots[slot] = (scopedProps) => {
           var newScopedProps = Object.assign({}, scopedProps, pScopedProps);
-          ctx.jsExec.import(newScopedProps)
           var retComp = makeComponent( h, slotMetaData, ctx, newScopedProps );
           return retComp;
         }
@@ -570,7 +567,7 @@ function makeProps( propsCfg) {
   },{}):{}
 }
 function makeDynamicComponent( pCtx, cCfg ) {
-  var ctx = {rootThis:null, route:pCtx.route, app:pCtx.app, jsExec: createJSExec()};
+  var ctx = {rootThis:null, route:pCtx.route, app:pCtx.app};
   cCfg.dataModel.ch_userData = cCfg.requiredUserData?cCfg.requiredUserData.reduce((o,f)=>{
     o[f] = '';
     return o;
@@ -597,6 +594,7 @@ function makeDynamicComponent( pCtx, cCfg ) {
     beforeCreate() {
       ctx.rootThis = this;
       ctx.rootThis._route = ctx.route;
+      ctx.rootThis._appParams = deepGet(this.$route, "params.appParams")
       ctx.rootThis._moment = moment;
       ctx.rootThis.modelToTokenMap = {};
       if (cCfg.components) {
@@ -607,7 +605,6 @@ function makeDynamicComponent( pCtx, cCfg ) {
       }
     },
     created() {
-    ctx.jsExec.import( this );
     if (this['created']) {
         (this['created'])();
       }
@@ -635,8 +632,7 @@ const DynamicUI = Vue.component('DynamicUI', {
   vuetify,
   template: '<div id="dynamicUIDiv"></div>',
   mounted() {
-    var ctx = {rootThis:null, route:this.$route, app: {url:this.app.url, vendorId: this.app.vendorId, _id: this.app._id},
-                jsExec: createJSExec() };
+    var ctx = {rootThis:null, route:this.$route, app: {url:this.app.url, vendorId: this.app.vendorId, _id: this.app._id}};
 
 //    outerThis.uiConfig.dataModel.ch_userData = outerThis.uiConfig.requiredUserData?outerThis.uiConfig.requiredUserData.reduce((o,f)=>{
     this.uiConfig.dataModel.ch_userData = this.uiConfig.requiredUserData?this.uiConfig.requiredUserData.reduce((o,f)=>{
@@ -671,6 +667,7 @@ const DynamicUI = Vue.component('DynamicUI', {
       beforeCreate() {
         ctx.rootThis = this;
         ctx.rootThis._route = ctx.route;
+        ctx.rootThis._appParams = deepGet(this.$route, "params.appParams")
         ctx.rootThis._moment = moment;
         ctx.rootThis.modelToTokenMap = {};
           if (this['beforeCreate']) {
@@ -681,7 +678,6 @@ const DynamicUI = Vue.component('DynamicUI', {
         }
       },
       created() {
-      ctx.jsExec.import( this );
       if (this['created']) {
           (this['created'])();
         }

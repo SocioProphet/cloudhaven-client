@@ -14,7 +14,6 @@
     "lodash": "^4.17.21",
     "moment": "^2.29.1",
     "register-service-worker": "^1.7.1",
-    "sval": "^0.4.8",
     "v-mask": "^2.2.4",
     "vue": "^2.6.10",
     "vue-moment": "^4.1.0",
