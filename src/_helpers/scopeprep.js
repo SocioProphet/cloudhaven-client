@@ -168,9 +168,9 @@ export default function prepScriptletScope(rootThis, scopedProps, s) {
       if (forbiddenObjects.find(e => (e.toUpperCase() == sections[0].toUpperCase()))) {
         parts[i] = 'FORBIDDEN';
       } else if (parts[i].charAt(0) != '.') {
-        if (rootThis[parts[i]] != undefined) {
+        if (rootThis[parts[i]] !== undefined) {
           parts[i] = 'rootThis.' + parts[i];
-        } else if (scopedProps && scopedProps[parts[i]] != undefined) {
+        } else if (scopedProps && scopedProps[parts[i]] !== undefined) {
           parts[i] = 'scopedProps.' + parts[i];
         }
       }

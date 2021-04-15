@@ -23,6 +23,7 @@ const uiElementToVueCompMap = {
   cardTitle: VueLib['VCardTitle'],
   cardBody: VueLib['VCardText'],
   cardActions: VueLib['VCardActions'],
+  checkbox: VueLib['VCheckbox'],
   container: VueLib['VContainer'],
   dateField: CHDateField,
   divider: VueLib['VDivider'],
@@ -42,7 +43,6 @@ const uiElementToVueCompMap = {
   tabsItems: VueLib['VTabsItems'],
   tabItem: VueLib['VTabItem'],
   tabsSlider: VueLib['VTabsSlider'],
-  checkbox: VueLib['VCheckbox'],
   textarea: VueLib['VTextarea'],
   textField: VueLib['VTextField'],
   toolbar: VueLib['VToolbar'],
@@ -52,33 +52,44 @@ const uiElementToVueCompMap = {
 }
 var coreUserFields = ["email", "firstName", "lastName", "dateOfBirth", "ssn", "language"];
 
+function ensureDate( val ) {
+  if (!val) return null;
+  return _.isString(val)?moment(val).toDate():val;
+}
 function makeFunction( funcSpec ) {
-  var getSetObj = null;
-  if (funcSpec.set) {
-    getSetObj = getSetObj || {};
-    getSetObj.set = makeFunction( funcSpec.set );
+  try {
+    var getSetObj = null;
+    if (funcSpec.set) {
+      getSetObj = getSetObj || {};
+      getSetObj.set = makeFunction( funcSpec.set );
+    }
+    if (funcSpec.get) {
+      getSetObj = getSetObj || {};
+      getSetObj.get = makeFunction( funcSpec.get );
+    }
+    if (getSetObj) return getSetObj;
+    var args = funcSpec.args || [];
+    args.push(funcSpec.body);
+    var func = Function.apply( null, args);
+    if (_.isString(func)) {
+      throw func;
+    }
+    return func;
+  } catch (e) {
+    console.log(e);
   }
-  if (funcSpec.get) {
-    getSetObj = getSetObj || {};
-    getSetObj.get = makeFunction( funcSpec.get );
-  }
-  if (getSetObj) return getSetObj;
-  var args = funcSpec.args || [];
-  args.push(funcSpec.body);
-  var func = Function.apply( null, args);
-  if (_.isString(func)) {
-    throw func;
-  }
-  return func;
 }
 
 function getModelValue( rootThis, pScopedProps, src ) {
   try {
-    var val = deepGet(rootThis, src);
-    if (val !== undefined) return val;
-    if (pScopedProps) {
-      val = deepGet( pScopedProps, src );
-      if (val !== undefined) return val;
+    var isObjRef = /^[\w\$\s\.]+$/.test(src);
+    if (isObjRef) {
+      var val = null;
+      if (pScopedProps) {
+        val = deepGet(pScopedProps, src);
+        if (val !== undefined) return val;
+      }
+      return deepGet(rootThis, src) || null;
     }
     var script = prepScriptletScope(rootThis, pScopedProps, src);
     var func = Function.apply( null, ["rootThis", "scopedProps", 'return '+script]);
@@ -93,7 +104,7 @@ function setModelValue( rootThis, pScopedProps, src, val ) {
     if (retVal !== undefined) {
       return retVal;
     }
-    var script = 'debugger; '+ src + ' = val;' 
+    var script = src + ' = val;' 
     script = prepScriptletScope(rootThis, pScopedProps, script);
     var func = Function.apply( null, ["rootThis", "scopedProps", "val", script]);
 
@@ -170,6 +181,9 @@ function makeComponent( h, metaData, ctx, pScopedProps ) {
               key = key.substring(1)
               if (key == "rules") {
                 obj.rules = val.map(f=>rootThis[f]);
+              } else if (k == 'props' && key == "value") {
+                let tmp = getModelValue( rootThis, pScopedProps, val);
+                obj[key] = metaData.ensureDate?ensureDate(tmp):tmp;
               } else {
                 obj[key] = getModelValue( rootThis, pScopedProps, val);
               }
@@ -215,7 +229,7 @@ function makeComponent( h, metaData, ctx, pScopedProps ) {
               if (funcSpec.method) {
                 func = rootThis[funcSpec.method];
                 if (func) (func).call(rootThis);
-              } else { //body
+              } else {
                 var script = prepScriptletScope(rootThis, pScopedProps, funcSpec.body);
                 var func = Function.apply( null, ["rootThis", "scopedProps", script]);
                 (()=>{
@@ -240,11 +254,13 @@ function makeComponent( h, metaData, ctx, pScopedProps ) {
     }
     if (metaData[':value']) {
       dataObj.props = dataObj.props || {};
-      dataObj.props.value = getModelValue( rootThis, pScopedProps, metaData[':value'] );
+      let tmp = getModelValue( rootThis, pScopedProps, metaData[':value'] );
+      dataObj.props.value = metaData.ensureDate?ensureDate(tmp):tmp;
     }
     if (metaData.vmodel) {
       dataObj.props = dataObj.props || {};
-      dataObj.props.value = getModelValue( rootThis, pScopedProps, metaData.vmodel );
+      let tmp = getModelValue( rootThis, pScopedProps, metaData.vmodel );
+      dataObj.props.value = metaData.ensureDate?ensureDate(tmp):tmp;
       dataObj.on = dataObj.on || {};
       dataObj.on.input = (val) =>{
         setModelValue( rootThis, pScopedProps, metaData.vmodel, val );
@@ -355,11 +371,11 @@ function makeMethods( ctx, uiMethods ) {
       var response = await Api().post("/usersearch", searchCriteria);
 //      var result = response.data;
       if (cb) {
-//        vm.$nextTick(() =>{
-//          setTimeout(() => {
+        vm.$nextTick(() =>{
+          setTimeout(() => {
             (cb).call(vm, response.data);
-//          }, 100)
-//        })
+          }, 100)
+        })
       }
     })();
 
@@ -407,11 +423,11 @@ function makeMethods( ctx, uiMethods ) {
         deepSet( vm, m, savedUserData[m])
       });
       if (cb) {
-//        vm.$nextTick(() =>{
-//          setTimeout(() => {
+        vm.$nextTick(() =>{
+          setTimeout(() => {
             (cb).call(vm, response.data);
-//          }, 100)
-//        })
+          }, 100)
+        })
       }
     })();
   };
@@ -448,7 +464,7 @@ function makeMethods( ctx, uiMethods ) {
       }
     })();
   }
-  methods._getUserData = (userId) => {
+  methods._getUserData = (userId, cb) => {
     var vm = ctx.rootThis;
     if (!userId) return;
     var userDataIds = Object.keys(vm.modelToTokenMap).reduce((o,m)=>{
@@ -493,6 +509,9 @@ function makeMethods( ctx, uiMethods ) {
           }
         });
       })
+      if (cb) {
+        (cb)()
+      }
     })();
   }
   methods._getUserDataForList = (pUserIds, list, userIdField, fieldMap, cb) => {

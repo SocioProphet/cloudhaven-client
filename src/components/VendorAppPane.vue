@@ -1,6 +1,6 @@
 <template>
 <div id="appDiv">
-  <component :is="component" :uiConfig="uiConfig" :app="app" :props="props"></component>
+  <component :is="component" :uiConfig="uiConfig" :app="app"></component>
 </div>
 </template>
 
@@ -20,13 +20,11 @@ export default {
       component: 'VSheet',
       app: null,
       uiConfig:{},
-      props: {}
     }
   },
   mounted() {
     this.app = this.$route.params.app;
     var page = this.$route.params.page || 'home';
-    this.props = Object.assign({},deepGet( this.$route, 'params.appParams')||{});
     if (!this.app) return;
     var pApp = {url:this.app.url, vendorId: this.app.vendorId, _id: this.app._id};
     (async () => {
