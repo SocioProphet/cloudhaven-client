@@ -34,10 +34,12 @@ const uiElementToVueCompMap = {
   expansionPanelContent: VueLib['VExpansionPanelContent'],
   expansionPanels: VueLib['VExpansionPanels'],
   form: VueLib['VForm'],
+  hover: VueLib['VHover'],
   icon: VueLib['VIcon'],
   radio: VueLib['VRadio'],
   radioGroup: VueLib['VRadioGroup'],
   select: VueLib['VSelect'],
+  switch: VueLib['VSwitch'],
   tab: VueLib['VTab'],
   tabs: VueLib['VTabs'],
   tabsItems: VueLib['VTabsItems'],
@@ -50,33 +52,37 @@ const uiElementToVueCompMap = {
   toolbarItems: VueLib['VToolbarItems'],
   tooltip: VueLib['VTooltip']
 }
-var coreUserFields = ["email", "firstName", "lastName", "dateOfBirth", "ssn", "language"];
+var coreUserFields = ["email", "name", "firstName", "middleName", "lastName", "dateOfBirth", "ssn", "language"];
 
 function ensureDate( val ) {
   if (!val) return null;
   return _.isString(val)?moment(val).toDate():val;
 }
-function makeFunction( funcSpec ) {
+function makeFunction( funcSpec, name ) {
   try {
-    var getSetObj = null;
-    if (funcSpec.set) {
-      getSetObj = getSetObj || {};
-      getSetObj.set = makeFunction( funcSpec.set );
+    if (_.isString(funcSpec)) {
+      return Function.apply( null, [funcSpec]);
+    } else {
+      var getSetObj = null;
+      if (funcSpec.set) {
+        getSetObj = getSetObj || {};
+        getSetObj.set = makeFunction( funcSpec.set, name+':set' );
+      }
+      if (funcSpec.get) {
+        getSetObj = getSetObj || {};
+        getSetObj.get = makeFunction( funcSpec.get, name+':get' );
+      }
+      if (getSetObj) return getSetObj;
+      var args = funcSpec.args || [];
+      args.push(funcSpec.body);
+      var func = Function.apply( null, args);
+      if (_.isString(func)) {
+        throw func;
+      }
+      return func;
     }
-    if (funcSpec.get) {
-      getSetObj = getSetObj || {};
-      getSetObj.get = makeFunction( funcSpec.get );
-    }
-    if (getSetObj) return getSetObj;
-    var args = funcSpec.args || [];
-    args.push(funcSpec.body);
-    var func = Function.apply( null, args);
-    if (_.isString(func)) {
-      throw func;
-    }
-    return func;
   } catch (e) {
-    console.log(e);
+    console.log('makeFunction error for '+name+':'+e);
   }
 }
 
@@ -173,7 +179,7 @@ function makeComponent( h, metaData, ctx, pScopedProps ) {
       if (kk) {
         if (metaData[kk] instanceof Object) {
           o[k] = Object.keys(metaData[kk]).reduce((obj, key)=>{
-            var isLiteral = (key.indexOf(":")!=0);
+            var isLiteral = (key != 'rules' && key.indexOf(":")!=0);
             var val = metaData[kk][key];
             if (isLiteral) {
               obj[key] = val;
@@ -213,15 +219,15 @@ function makeComponent( h, metaData, ctx, pScopedProps ) {
         }
         Object.keys(onMeta).forEach(ev=>{
           var funcSpec = metaData[ot][ev];
-          if (_.isString(funcSpec)) {
-            if (funcSpec.indexOf("page:")==0) {
-              onObj[ev] = () => {
-                rootThis._gotoAppPage( funcSpec.substring(5) );
-              }
-            } else {
-              onObj[ev] = (event) => {
-                (rootThis[funcSpec])(event )
-              }
+          if (_.isString(funcSpec) && funcSpec.indexOf("page:")==0) {
+            onObj[ev] = () => {
+              rootThis._gotoAppPage( funcSpec.substring(5) );
+            }
+          } else if (_.isString(funcSpec) && rootThis[funcSpec]) {
+            onObj[ev] = (event) => {
+              (()=>{
+                (rootThis[funcSpec]).call(rootThis, event )
+              })();
             }
           } else {
             onObj[ev] = (event) => {
@@ -230,7 +236,7 @@ function makeComponent( h, metaData, ctx, pScopedProps ) {
                 func = rootThis[funcSpec.method];
                 if (func) (func).call(rootThis);
               } else {
-                var script = prepScriptletScope(rootThis, pScopedProps, funcSpec.body);
+                var script = prepScriptletScope(rootThis, pScopedProps, _.isString(funcSpec)?funcSpec:funcSpec.body);
                 var func = Function.apply( null, ["rootThis", "scopedProps", script]);
                 (()=>{
                   (func)(rootThis, Object.assign({},pScopedProps));
@@ -334,13 +340,14 @@ function makeMethods( ctx, uiMethods ) {
   if (uiMethods) {
     methods = Object.keys(uiMethods).reduce((o,m)=>{
       try {
-        o[m] = makeFunction(uiMethods[m]);
+        o[m] = makeFunction(uiMethods[m], m);
       } catch(e) {
         console.log('Method '+m+' error: '+e);
       }
       return o;
     },{});
   }
+  methods._merge = _.merge;
   methods._pdfGet = (postId, cb) => {
     (async () => {
       var response = await PdfApi().post('/vendorapplication/apppost', {app:app, httpMethod: 'GET', postId:postId});
@@ -434,6 +441,7 @@ function makeMethods( ctx, uiMethods ) {
   methods._deepGet = deepGet;
   methods._deepSet = deepSet;
   methods._gotoAppPage = (page, appParams) => {
+    console.log('gotoAppPage '+page+'; '+JSON.stringify(appParams))
     setTimeout(() => {
       router.push({ name: 'AppPageReset', params: { app:app, page:'apppages/'+page, appParams:appParams } });
     }, 300)
@@ -464,11 +472,13 @@ function makeMethods( ctx, uiMethods ) {
       }
     })();
   }
-  methods._getUserData = (userId, cb) => {
+  methods._getUserData = (userId, pTarget, pModelToUserDataMap, cb) => {
     var vm = ctx.rootThis;
+    var modelToUserDataMap = pModelToUserDataMap || vm.modelToTokenMap;
+    var target = pTarget || vm;
     if (!userId) return;
-    var userDataIds = Object.keys(vm.modelToTokenMap).reduce((o,m)=>{
-      var userDataId = vm.modelToTokenMap[m];
+    var userDataIds = Object.keys(modelToUserDataMap).reduce((o,m)=>{
+      var userDataId = modelToUserDataMap[m];
       if (!coreUserFields.find(f=>(f==userDataId))) {
         o[userDataId] = userDataId
       }
@@ -478,8 +488,8 @@ function makeMethods( ctx, uiMethods ) {
     userDataIds = Object.keys(userDataIds);
     (async () => {
       var user = {};
-      var tokenToModelMap = Object.keys(vm.modelToTokenMap).reduce((o,m)=>{
-        var models = o[vm.modelToTokenMap[m]] || (o[vm.modelToTokenMap[m]]=[])
+      var tokenToModelMap = Object.keys(modelToUserDataMap).reduce((o,m)=>{
+        var models = o[modelToUserDataMap[m]] || (o[modelToUserDataMap[m]]=[])
         models.push(m);
         return o;
       },{})  
@@ -498,19 +508,19 @@ function makeMethods( ctx, uiMethods ) {
       coreUserFields.forEach((f)=>{
         var models = tokenToModelMap[f] || [];
         models.forEach((m)=>{
-          deepSet( vm, m, user[f])
+          deepSet( target, m, user[f])
         })
       })
       userDataList.forEach(ud=>{
         var models = tokenToModelMap[ud.name] || [];
         models.forEach((model)=>{
           if (model && ud.content) {
-            deepSet( vm, model, ud.content );
+            deepSet( target, model, ud.content );
           }
         });
       })
       if (cb) {
-        (cb)()
+        (cb).call(ctx.rootThis, ctx.rootThis);
       }
     })();
   }
@@ -553,7 +563,7 @@ function makeMethods( ctx, uiMethods ) {
 function makeFilters( ctx, filters ) {
   return filters?Object.keys(filters).reduce((o,m)=>{
     try {
-      var func = makeFunction( filters[m] );
+      var func = makeFunction( filters[m], m );
       o[m] = (val) => {
         return func.call( ctx.rootThis, val);
       }
@@ -566,7 +576,7 @@ function makeFilters( ctx, filters ) {
 function makeComputed( computed ) {
   return computed?Object.keys(computed).reduce((o,m)=>{
     try {
-      var func = makeFunction( computed[m] );
+      var func = makeFunction( computed[m], m );
       if (func) {
         o[m] = func;
       }
