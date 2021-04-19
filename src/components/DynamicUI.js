@@ -219,18 +219,21 @@ function makeComponent( h, metaData, ctx, pScopedProps ) {
         }
         Object.keys(onMeta).forEach(ev=>{
           var funcSpec = metaData[ot][ev];
+          var eventParts = ev.split('.');
+          var event = eventParts[0];
+          var eventFunc = null;
           if (_.isString(funcSpec) && funcSpec.indexOf("page:")==0) {
-            onObj[ev] = () => {
+            eventFunc = () => {
               rootThis._gotoAppPage( funcSpec.substring(5) );
             }
           } else if (_.isString(funcSpec) && rootThis[funcSpec]) {
-            onObj[ev] = (event) => {
+            eventFunc = (param) => {
               (()=>{
-                (rootThis[funcSpec]).call(rootThis, event )
+                (rootThis[funcSpec]).call(rootThis, param )
               })();
             }
           } else {
-            onObj[ev] = (event) => {
+            eventFunc = (param) => {
               var func = null;
               if (funcSpec.method) {
                 func = rootThis[funcSpec.method];
@@ -242,13 +245,72 @@ function makeComponent( h, metaData, ctx, pScopedProps ) {
                   (func)(rootThis, Object.assign({},pScopedProps));
                 })();
               }
-              if (funcSpec.eventModifier == "stop") {
-                event.stopPropagation();
-              } else if (funcSpec.eventModifier == "prevent") {
-                event.preventDefault();
-              }
             }
           }
+          if (eventParts.length>1) {
+            eventParts = eventParts.slice(1);
+            var modifierMap = eventParts.reduce((mp,p)=>{
+              mp[p] = p;
+              return mp;
+            },{});
+            ['ctrl', 'shift', 'alt', 'meta'].forEach(e=>{
+              if (modifierMap[e]) {
+                var origEventFunc = eventFunc;
+                eventFunc = (param) => {
+                  if (!param[e+'Key']) return;
+                  return (origEventFunc)(param);
+                }
+              }
+            });
+            if (modifierMap.stop) {
+              var origEventFunc = eventFunc;
+              eventFunc = (param) => {
+                param.stopPropagation();
+                return (origEventFunc)(param);
+              }
+            }
+            if (modifierMap.prevent) {
+              var origEventFunc = eventFunc;
+              eventFunc = (param) => {
+                param.preventDefault();
+                return (origEventFunc)(param);
+              }
+            }
+            const keyCodes = {
+              esc: 27,
+              tab: 9,
+              enter: 13,
+              space: 32,
+              up: 38,
+              left: 37,
+              right: 39,
+              down: 40,
+              'delete': [8, 46]
+            }
+            eventParts.forEach(p=>{
+              if (/\d+$/.test(p)) {
+                keyCodes[p] = parseInt(p);
+              }
+            })
+            Object.keys(keyCodes).forEach(kc=>{
+              if (modifierMap[kc]) {
+                var keyVal = keyCodes[kc];
+                var origEventFunc = eventFunc;
+                if (Array.isArray(keyVal)) {
+                  eventFunc = (param) => {
+                    if (!keyVal.find(e=>(e===param.keyCode))) return;
+                    return (origEventFunc)(param);
+                  }      
+                } else {
+                  eventFunc = (param) => {
+                    if (!param.keyCode !== keyVal) return;
+                    return (origEventFunc)(param);
+                  }    
+                }
+              }
+            })
+          }
+          if (eventFunc) onObj[event] = eventFunc;
         })
       }  
     })
