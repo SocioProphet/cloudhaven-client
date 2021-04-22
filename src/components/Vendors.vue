@@ -21,13 +21,18 @@
           <v-card-text>
             <v-form ref="theForm" v-model="valid" lazy-validation>
               <v-text-field v-model="editedItem.name" label="Name" required :rules="[rules.required]"></v-text-field>
+              <v-text-field v-model="editedItem.vendorId" label="Id" required :rules="[rules.required]"></v-text-field>
             </v-form>
           </v-card-text>
               <v-tabs dark fixed-tabs background-color="#1E5AC8" color="#FFF10E" >
               <v-tab>Applications</v-tab>
+              <v-tab>Components</v-tab>
               <v-tab>Contacts</v-tab>
               <v-tab-item>
                 <VendorAppsSublist :vendor="editedItem"/>
+              </v-tab-item>
+              <v-tab-item>
+                <VendorComponentsSublist :vendor="editedItem"/>
               </v-tab-item>
               <v-tab-item>
                 <VendorContactsSublist :vendor="editedItem"  :contactTypeOptions="contactTypeOptions"/>
@@ -81,10 +86,12 @@ import { mapState } from 'vuex'
 import { EventBus } from '../event-bus.js';
 import VendorContactsSublist from './VendorContactsSublist.vue'
 import VendorAppsSublist from './VendorAppsSublist.vue'
+import VendorComponentsSublist from './VendorComponentsSublist.vue'
   export default {
     components: {
       VendorContactsSublist,
-      VendorAppsSublist
+      VendorAppsSublist,
+      VendorComponentsSublist
     },
     data: () => ({
       dialog: false,
@@ -102,6 +109,7 @@ import VendorAppsSublist from './VendorAppsSublist.vue'
       editedIndex: -1,
       editedItem: {
         name: '',
+        vendorId: '',
         contacts: [],
         applications: []
       }
@@ -163,6 +171,7 @@ import VendorAppsSublist from './VendorAppsSublist.vue'
         setTimeout(() => {
           this.editedItem = {
             name: '',
+            vendorId: '',
             contacts: [],
             applications: []
           }
