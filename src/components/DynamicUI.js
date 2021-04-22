@@ -65,6 +65,7 @@ const uiElementToVueCompMap = {
   lazy: VueLib['VLazy'],
   list: VueLib['VList'],
   listGroup: VueLib['VListGroup'],
+  listItem: VueLib['VListItem'],
   listItemAction: VueLib['VListItemAction'],
   listItemActionText: VueLib['VListItemActionText'],
   listItemAvatar: VueLib['VListItemAvatar'],
@@ -256,12 +257,12 @@ function makeComponent( h, metaData, ctx, pScopedProps ) {
       if (kk) {
         if (metaData[kk] instanceof Object) {
           o[k] = Object.keys(metaData[kk]).reduce((obj, key)=>{
-            var isLiteral = (key != 'rules' && key.indexOf(":")!=0);
+            var isLiteral = (key.indexOf(":")!=0);
             var val = metaData[kk][key];
-            if (isLiteral) {
+            if (isLiteral && key != 'rules') {
               obj[key] = val;
             } else {
-              key = key.substring(1)
+              key = key.replace(/:/g,'');
               if (key == "rules") {
                 obj.rules = val.map(f=>rootThis[f]);
               } else if (k == 'props' && key == "value") {
@@ -307,6 +308,12 @@ function makeComponent( h, metaData, ctx, pScopedProps ) {
             eventFunc = (param) => {
               (()=>{
                 (rootThis[funcSpec]).call(rootThis, param )
+              })();
+            }
+          } else if (pScopedProps && _.isString(funcSpec) && pScopedProps[funcSpec]) {
+            eventFunc = (param) => {
+              (()=>{
+                (pScopedProps[funcSpec]).call(rootThis, param )
               })();
             }
           } else {
@@ -391,10 +398,13 @@ function makeComponent( h, metaData, ctx, pScopedProps ) {
         })
       }  
     })
-    if (component == 'tabs') {
+    const valFromChangeComponents = ['tabs', 'carousel', 'buttonToggle', 'chipGroup', 'itemGroup', 'listItemGroup', 'slideGroup', 'checkbox',
+    'switch', 'bottomNavigation', 'progressLinear', 'stepper', 'window'];
+    //Calendar? 
+    if (valFromChangeComponents.find(e=>(component==e))) {
       dataObj.on = dataObj.on || {};
       dataObj.on.change = (n) => {
-        setModelValue( rootThis, pScopedProps, metaData.vmodel, n);
+        setModelValue( rootThis, pScopedProps, metaData.vmodel || deepGet(metaData.props,"value") || deepGet(metaData.props, ':value') || metaData.value || metaData[':value'], n);
       }
     }
     if (metaData[':value']) {
@@ -414,7 +424,7 @@ function makeComponent( h, metaData, ctx, pScopedProps ) {
     if (metaData.userData) {
       var userDataId = deepGet(metaData, 'userData.id') || metaData.userData || '';
       if (userDataId) {
-        var modelField = metaData.vmodel || deepGet(metaData, 'userData.model') || userDataId;
+        var modelField = metaData.vmodel || deepGet(metaData.props,"value") || deepGet(metaData.props, ':value') || deepGet(metaData, 'userData.model') || userDataId;
         dataObj.domProps = dataObj.domProps || {};
         dataObj.domProps.tokenValue = ''; //To be filled by getUserData
         rootThis.modelToTokenMap[modelField] = userDataId;
@@ -778,11 +788,71 @@ function makeDynamicComponent( pCtx, cCfg ) {
         (this['created'])();
       }
     },
+    beforeMount() {
+      if (this['beforeMount']) {
+        (this['beforeMount'])();
+      }
+    },
     mounted() {
       if (this['mounted']) {
         (this['mounted'])();
       }
-    }
+    },
+    beforeUpdate() {
+      if (this['beforeUpdate']) {
+        (this['beforeUpdate'])();
+      }
+    },
+    updated() {
+      if (this['updated']) {
+        (this['updated'])();
+      }
+    },
+    beforeDestroy() {
+      if (this['beforeDestroy']) {
+        (this['beforeDestroy'])();
+      }
+    },
+    destroyed() {
+      if (this['destroyed']) {
+        (this['destroyed'])();
+      }
+    }/*, Vue 3 lifecycle events
+    activated() {
+      if (this['activated']) {
+        (this['activated'])();
+      }
+    },
+    deactivated() {
+      if (this['deactivated']) {
+        (this['deactivated'])();
+      }
+    },
+    beforeUnmount() {
+      if (this['beforeUnmount']) {
+        (this['beforeUnmount'])();
+      }
+    },
+    unmounted() {
+      if (this['unmounted']) {
+        (this['unmounted'])();
+      }
+    },
+    renderTracked() {
+      if (this['renderTracked']) {
+        (this['renderTracked'])();
+      }
+    },
+    renderTriggered() {
+      if (this['renderTriggered']) {
+        (this['renderTriggered'])();
+      }
+    },
+    deactivated() {
+      if (this['deactivated']) {
+        (this['deactivated'])();
+      }
+    }*/
   })
 }
 function makeDynamicComponents( pCtx, components ) {

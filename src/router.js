@@ -3,7 +3,6 @@ import Router from 'vue-router'
 import store from './store'
 import AppStore from './components/AppStore.vue'
 import MyApps from './components/MyApps.vue'
-import UISandbox from './components/UISandbox.vue'
 import Users from './components/Users.vue'
 import UserProfile from './components/UserProfile.vue'
 import ViewUserData from './components/ViewUserData.vue'
@@ -26,11 +25,6 @@ let router = new Router({
       name: 'home',
       component: MyApps,
       alias: '/home'
-    },
-    {
-      path: '/uisandbox',
-      name: 'UISandbox',
-      component: UISandbox
     },
     {
       path: '/appstore',

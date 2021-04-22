@@ -163,9 +163,6 @@
          return isOK;
       },
 
-      initialize () {
-      },
-
       createFormData(operation) {
         var formData = new FormData();
         formData.append('operation', operation);

@@ -102,8 +102,6 @@ import UserDataDictionary from './userdatadictionary.js'
       this.$store.commit('SET_RESULTNOTIFICATION', '');
     },
     methods: {
-      initialize () {
-      },
       save () {
         this.valid = this.$refs.form.validate();
         if (!this.valid) return;

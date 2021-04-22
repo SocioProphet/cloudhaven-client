@@ -128,8 +128,6 @@
     },
 
     methods: {
-      initialize () {
-      },
 
       onZipChange() {
         this.$store.commit('SET_RESULTNOTIFICATION', '')
