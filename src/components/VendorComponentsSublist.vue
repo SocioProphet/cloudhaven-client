@@ -25,7 +25,6 @@
         </td>
         <td>{{ item.name }}</td>
         <td>{{ item.componentId }}</td>
-        <td>{{ item.url}}</td>
         </tr>
       </template>
       <template v-slot:[`body.append`]>
@@ -48,7 +47,6 @@
             <v-form ref="appForm" v-model="valid" lazy-validation>
               <v-text-field v-model="editedItem.name" label="Name" required></v-text-field>
               <v-text-field v-model="editedItem.componentId" label="Id" required></v-text-field>
-              <v-text-field v-model="editedItem.url" label="URL" required ></v-text-field>
             </v-form>
           </v-card-text>
 
@@ -75,14 +73,12 @@
       headers: [
         { text: 'Actions', value: 'name', sortable: false, align:'center' },
         { text: 'Name', align: 'left', sortable: true, value: 'name' },
-        { text: 'Id', align: 'left', sortable: true, value: 'componentId' },
-        { text: 'URL', align: 'left', sortable: true, name:'url'}
+        { text: 'Id', align: 'left', sortable: true, value: 'componentId' }
       ],
       editedIndex: -1,
       editedItem: {
         name: '',
-        componentId: '',
-        url: ''
+        componentId: ''
       }
     }),
     computed: {
@@ -103,8 +99,7 @@
           vendor_Id:this.vendor._id,
           component_Id: this.editedItem._id,
           componentId: this.editedItem.componentId,
-          name: this.editedItem.name,
-          url: this.editedItem.url
+          name: this.editedItem.name
         };
       },
       editItem (item) {
@@ -112,8 +107,7 @@
         this.editedIndex = this.vendor.components.findIndex((component) => {return component.name === item.name;});
         this.editedItem = Object.assign({
           name: '',
-          componentId:'',
-          url: ''
+          componentId:''
         }, item);
         this.dialog = true;
         this.appErrMsg = '';

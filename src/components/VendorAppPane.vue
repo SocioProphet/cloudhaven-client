@@ -19,7 +19,7 @@ export default {
     return {
       component: 'VSheet',
       app: null,
-      uiConfig:{},
+      uiConfig:{components:[]},
     }
   },
   mounted() {
@@ -28,13 +28,21 @@ export default {
     if (!this.app) return;
     var pApp = {url:this.app.url, vendorId: this.app.vendorId, _id: this.app._id};
     (async () => {
-      var response = await Api().post('/vendorapplication/apppost', {app:pApp, httpMethod: 'GET', postId:page});
+      var response = await Api().post('/vendorapplication/getapppage', {app:pApp, page:page});
       this.uiConfig = response.data;
       if (this.uiConfig.appFrame) {
         EventBus.$emit('set app frame', Object.assign(this.app, this.uiConfig.appFrame))
       }
-      //{requiredUserData, dataModel, uiMethods, uiSchema}
-      this.component = 'DynamicUI';
+      var u = this.uiConfig;
+      if (this.uiConfig.externalComponents) {
+        var response = await Api().post('/vendorcomponent/getcomponents', {vendorComps:this.uiConfig.externalComponents});
+        if (response.status==200 && response.data.success) {
+          this.uiConfig.components = (this.uiConfig.components || []).concat(response.data.components);
+        }
+        this.component = 'DynamicUI';
+      } else {
+        this.component = 'DynamicUI';
+      }
     })();
   }
 }

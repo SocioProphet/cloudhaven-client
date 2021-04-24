@@ -22,6 +22,7 @@
             <v-form ref="theForm" v-model="valid" lazy-validation>
               <v-text-field v-model="editedItem.name" label="Name" required :rules="[rules.required]"></v-text-field>
               <v-text-field v-model="editedItem.vendorId" label="Id" required :rules="[rules.required]"></v-text-field>
+              <v-text-field v-model="editedItem.componentsUrl" label="Components URL" :rules="[rules.url]"></v-text-field>
             </v-form>
           </v-card-text>
               <v-tabs dark fixed-tabs background-color="#1E5AC8" color="#FFF10E" >
@@ -73,7 +74,9 @@
           </v-icon>
           </v-btn>
         </td>
-        <td>{{ item.name }}</td>
+        <td>{{item.name}}</td>
+        <td>{{item.vendorId}}</td>
+        <td>{{item.componentsUrl}}</td>
        </tr>
       </template>
     </v-data-table>
@@ -99,12 +102,22 @@ import VendorComponentsSublist from './VendorComponentsSublist.vue'
       rules: {
           required: value => !!value || 'Required.',
           requiredObject: value => (value && value._id!='') || 'Required.',
-          nonNegative: value => value >= 0 || 'Enter non-negative number.'
+          nonNegative: value => value >= 0 || 'Enter non-negative number.',
+          url: (v) => {
+            try {
+              new URL(v);
+              return true;
+            } catch (e) {
+              return 'Please enter a valid URL.'
+            }
+          } 
       },
       contactTypeOptions: ['Primary', 'Associate'],
       headers: [
         { text: 'Actions', value: 'name', sortable: false, align:'center' },
         { text: 'Name', align:'left', sortable:true, value: 'name' },
+        { text: 'Vendor Id', align:'left', sortable:true, value: 'vendorId' },
+        { text: 'Comonents URL', align:'left', sortable:true, value: 'componentsUrl' }
       ],
       editedIndex: -1,
       editedItem: {

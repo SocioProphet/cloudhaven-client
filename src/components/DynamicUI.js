@@ -173,7 +173,7 @@ function getModelValue( rootThis, pScopedProps, src ) {
         val = deepGet(pScopedProps, src);
         if (val !== undefined) return val;
       }
-      return deepGet(rootThis, src) || null;
+      return deepGet(rootThis, src)/* || null*/;
     }
     var script = prepScriptletScope(rootThis, pScopedProps, src);
     var func = Function.apply( null, ["rootThis", "scopedProps", 'return '+script]);
@@ -211,6 +211,7 @@ function propValsFromModel( ctx, props ) {
   return val;
 }
 function makeComponent( h, metaData, ctx, pScopedProps ) {
+  console.log(metaData.component);
   if (_.isString(metaData)) {
     return {text:metaData};
   }
@@ -746,6 +747,7 @@ function makeProps( propsCfg) {
   },{}):{}
 }
 function makeDynamicComponent( pCtx, cCfg ) {
+  console.log('DYNAMIC COMPONENT '+cCfg.name);
   var ctx = {rootThis:null, route:pCtx.route, app:pCtx.app};
   cCfg.dataModel.ch_userData = cCfg.requiredUserData?cCfg.requiredUserData.reduce((o,f)=>{
     o[f] = '';
@@ -777,6 +779,7 @@ function makeDynamicComponent( pCtx, cCfg ) {
       ctx.rootThis._moment = moment;
       ctx.rootThis.modelToTokenMap = {};
       if (cCfg.components) {
+        //Should not get here
         ctx.components = Object.assign({},makeDynamicComponents( ctx, cCfg.components ));
       }
       if (this['beforeCreate']) {
@@ -872,7 +875,6 @@ const DynamicUI = Vue.component('DynamicUI', {
   template: '<div id="dynamicUIDiv"></div>',
   mounted() {
     var ctx = {rootThis:null, route:this.$route, app: {url:this.app.url, vendorId: this.app.vendorId, _id: this.app._id}};
-
 //    outerThis.uiConfig.dataModel.ch_userData = outerThis.uiConfig.requiredUserData?outerThis.uiConfig.requiredUserData.reduce((o,f)=>{
     this.uiConfig.dataModel.ch_userData = this.uiConfig.requiredUserData?this.uiConfig.requiredUserData.reduce((o,f)=>{
       o[f] = '';
