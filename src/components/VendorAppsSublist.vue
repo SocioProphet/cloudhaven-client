@@ -24,6 +24,7 @@
           </v-icon>
         </td>
         <td>{{ item.name }}</td>
+        <td>{{ item.applicationId }}</td>
         <td><v-img max-width="30" max-height="30" :src="item.logo" /></td>
         <td>{{ item.url}}</td>
         </tr>
@@ -47,6 +48,7 @@
           </v-alert>
             <v-form ref="appForm" v-model="valid" lazy-validation>
               <v-text-field v-model="editedItem.name" label="Name" required></v-text-field>
+              <v-text-field v-model="editedItem.applicationId" label="Application Id" required></v-text-field>
               <v-text-field v-model="editedItem.url" label="URL" required ></v-text-field>
               <v-row fill-height wrap class="pt-4" >
                 <div style="width:100%" >
@@ -92,12 +94,14 @@
       headers: [
         { text: 'Actions', value: 'name', sortable: false, align:'center' },
         { text: 'Name', align: 'left', sortable: true, value: 'name' },
+        { text: 'Application Id', align: 'left', sortable: true, value: 'applicationId' },
         { text: 'Logo', align:'left', sortable:true, name:'logo'},
         { text: 'URL', align: 'left', sortable: true, name:'url'}
       ],
       editedIndex: -1,
       editedItem: {
         name: '',
+        applicationId:'',
         logo:null,
         url: ''
       },
@@ -167,7 +171,8 @@
         var formData = new FormData();
         formData.append('operation', operation);
         formData.append('vendor_Id', this.vendor._id);
-        formData.append('applicationId', this.editedItem._id);
+        formData.append('applicationId', this.editedItem.applicationId);
+        formData.append('_id', this.editedItem._id);
         formData.append('logo', this.editedItem.logo);
         formData.append('logoUpdated', this.logoUpdated)
         formData.append('name', this.editedItem.name);
@@ -179,6 +184,8 @@
         this.editedIndex = this.vendor.applications.findIndex((application) => {return application.name === item.name;});
         this.editedItem = Object.assign({
           name: '',
+          application_Id:'',
+          applicationId: '',
           logo:'',
           url: ''
         }, item);
@@ -216,6 +223,10 @@
           this.appErrMsg = '';
           this.editedItem = {
             name: '',
+            applicationId: '',
+            application_Id: '',
+            logo:'',
+            url:''
           };
           this.editedIndex = -1
         }, 300)
@@ -226,7 +237,7 @@
         var operation = this.editedIndex > -1 ? 'update' : 'add';
         if (operation == 'update' || this.vendor._id) {
           (async () => {
-            var response = await MultipartPostApi().post('/vendorapplication', this.createFormData(operation));
+            var response = await MultipartPostApi().post('/vendorapplication/upsert', this.createFormData(operation));
             if (response.data.success) {
               this.$store.commit('SET_SUCCESS', `${this.editedItem.name} ${operation=='update'?'updated':'added'}.`);
               this.vendor.applications = response.data.applications;

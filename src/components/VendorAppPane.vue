@@ -18,15 +18,17 @@ export default {
   data() {
     return {
       component: 'VSheet',
-      app: null,
+      app: {},
       uiConfig:{components:[]},
     }
   },
   mounted() {
-    this.app = this.$route.params.app;
+    var app = this.$route.params.app;
+    if (!app) return;
+    var pApp = {url:app.url, vendorId: app.vendorId, _id: app._id, applicationId:app.applicationId};
     var page = this.$route.params.page || 'home';
-    if (!this.app) return;
-    var pApp = {url:this.app.url, vendorId: this.app.vendorId, _id: this.app._id};
+    pApp.page = page;
+    this.app = Object.assign({}, pApp);
     (async () => {
       var response = await Api().post('/vendorapplication/getapppage', {app:pApp, page:page});
       this.uiConfig = response.data;

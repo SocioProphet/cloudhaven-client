@@ -211,7 +211,6 @@ function propValsFromModel( ctx, props ) {
   return val;
 }
 function makeComponent( h, metaData, ctx, pScopedProps ) {
-  console.log(metaData.component);
   if (_.isString(metaData)) {
     return {text:metaData};
   }
@@ -508,10 +507,14 @@ function makeMethods( ctx, uiMethods ) {
   };
   methods._appGet = (postId, cb) => {
     (async () => {
+      try {
       var response = await Api().post('/vendorapplication/apppost', {app:app, httpMethod: 'GET', postId:postId});
       if (cb) {
         (cb).call(ctx.rootThis, response.data);
       }
+    } catch(e) {
+      console.log(e);
+    }
     })();
   };
   methods._appDelete = (postId, cb) => {
@@ -593,7 +596,7 @@ function makeMethods( ctx, uiMethods ) {
   methods._gotoAppPage = (page, appParams) => {
     console.log('gotoAppPage '+page+'; '+JSON.stringify(appParams))
     setTimeout(() => {
-      router.push({ name: 'AppPageReset', params: { app:app, page:'apppages/'+page, appParams:appParams } });
+      router.push({ name: 'AppPageReset', params: { app:app, page:page, appParams:appParams } });
     }, 300)
   }
   methods._eventBusOn = ( id, f) => {
@@ -642,8 +645,7 @@ function makeMethods( ctx, uiMethods ) {
         var models = o[modelToUserDataMap[m]] || (o[modelToUserDataMap[m]]=[])
         models.push(m);
         return o;
-      },{})  
-
+      },{})
       var response = await Api().get('/userinfo/'+userId);
       if (response.data) {
         user = response.data;
@@ -874,7 +876,7 @@ const DynamicUI = Vue.component('DynamicUI', {
   vuetify,
   template: '<div id="dynamicUIDiv"></div>',
   mounted() {
-    var ctx = {rootThis:null, route:this.$route, app: {url:this.app.url, vendorId: this.app.vendorId, _id: this.app._id}};
+    var ctx = {rootThis:null, route:this.$route, app: Object.assign({},this.app)};
 //    outerThis.uiConfig.dataModel.ch_userData = outerThis.uiConfig.requiredUserData?outerThis.uiConfig.requiredUserData.reduce((o,f)=>{
     this.uiConfig.dataModel.ch_userData = this.uiConfig.requiredUserData?this.uiConfig.requiredUserData.reduce((o,f)=>{
       o[f] = '';
@@ -908,6 +910,7 @@ const DynamicUI = Vue.component('DynamicUI', {
       beforeCreate() {
         ctx.rootThis = this;
         ctx.rootThis._route = ctx.route;
+        ctx.rootThis._app = ctx.app;
         ctx.rootThis._appParams = deepGet(this.$route, "params.appParams")
         ctx.rootThis._moment = moment;
         ctx.rootThis.modelToTokenMap = {};

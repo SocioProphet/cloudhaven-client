@@ -75,7 +75,49 @@
                 </v-row>
               </td-->
               <td class="pt-3">{{ item.content }}</td>
-              <td class="pt-3">{{ item.created_at }}</td>
+              <td class="pt-3">{{ item.created_at | datetime}}</td>
+            </tr>
+            </template>
+          </v-data-table>
+        </v-expansion-panel-content>
+      </v-expansion-panel>
+      <v-expansion-panel >
+        <v-expansion-panel-header>Conversations</v-expansion-panel-header>
+        <v-expansion-panel-content>
+          <v-data-table
+            :headers="conversationHeaders"
+            :items="comments"
+            hide-default-footer disable-pagination
+            class="elevation-1"
+          >
+            <template v-slot:item="{ item }">
+            <tr> <!--  @click="editItem(item)" -->
+              <!--td>
+                <v-row class="justify-center align-center align-stretch">
+                <v-btn icon >
+                <v-icon
+                  medium
+                  @click.stop="editItem(item)"
+                >
+                  mdi-pencil
+                </v-icon>
+                </v-btn>
+                <v-btn icon >
+                <v-icon
+                  medium
+                  @click.stop="deleteItem(item)"
+                >
+                  mdi-trash-can
+                </v-icon>
+                </v-btn>
+                </v-row>
+              </td-->
+              <td class="pt-3">{{ item.vendor.name }}</td>
+              <td class="pt-3">{{ item.applicationId }}</td>
+              <td class="pt-3">{{ item.page }}</td>
+              <td class="pt-3">{{ item.topic }}</td>
+              <td class="pt-3">{{ item.comment }}</td>
+              <td class="pt-3">{{ item.created_at | datetime}}</td>
             </tr>
             </template>
           </v-data-table>
@@ -90,6 +132,7 @@
 import { mapState } from 'vuex'
 import { EventBus } from '../event-bus.js';
 import Api from '@/services/Api'
+import moment from 'moment';
   export default {
     data: () => ({
       panel: [0],
@@ -104,13 +147,26 @@ import Api from '@/services/Api'
         { text: 'Value', align: 'left', sortable: true, value: 'content' },
         { text: 'Create Datetime', sortable: true, align:'left', value: 'created_at' },
       ],
-      bulkList: []
+      conversationHeaders: [
+        { text: 'Vendor', align: 'left', sortable: true, value: 'vendor.name' },
+        { text: 'Application', align: 'left', sortable: true, value: 'applicationId' },
+        { text: 'Page', align: 'left', sortable: true, value: 'page' },
+        { text: 'Topic', align: 'left', sortable: true, value: 'topic' },
+        { text: 'Comment', align: 'left', sortable: true, value: 'comment' },
+        { text: 'Create Datetime', sortable: true, align:'left', value: 'created_at' }
+      ],
+      bulkList: [],
+      comments: []
     }),
 
     computed: {
       ...mapState(['user'])
     },
-
+    filters: {
+      datetime: (value) => {
+        return value?moment(value).format('l LT'):'';
+      }
+    },
     created () {
       this.$store.commit('SET_RESULTNOTIFICATION', '');
       this.loadUserData();
@@ -125,10 +181,25 @@ import Api from '@/services/Api'
           var response = await Api().post('/userdata/batchget', {userIds: [this.user._id]});
           var userDataMap = response.data || {};
           this.userDataList = userDataMap[this.user._id] || [];
-        })();
-        (async () => {
-          var response = await Api().get('/userdata/getbulkdata/'+this.user._id);
+          response = await Api().get('/userdata/getbulkdata/'+this.user._id);
           this.bulkList = response.data;
+          response = await Api().get('/conversation/list');
+          if (response.data) {
+            var comments = response.data.reduce((ar, cnv)=>{
+              var rec = {vendor:cnv.vendor, applicationId: cnv.applicationId, page: cnv.page, topic:cnv.topic}
+              cnv.comments.forEach(c=>{
+                var row = Object.assign({}, rec);
+                row.comment = c.content;
+                row.created_at = c.created_at;
+                ar.push(row);
+              },[])
+              return ar;
+            },[]);
+            this.comments = comments;
+          } else {
+            this.comments = {comments:[]};
+          }
+
         })();
       }
     }

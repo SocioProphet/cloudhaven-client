@@ -31,6 +31,8 @@ import Comment from './CommentItem.vue'
 import Api from '@/services/Api'
     export default {
     props: {
+      vendorId: { type: String},
+      application: { type: Object },
       topic: { type: String, required: true}
     },
       components: {
@@ -48,7 +50,7 @@ import Api from '@/services/Api'
       },
       mounted() {
         (async () => {
-          var response = await Api().get('/conversation/'+this.topic);
+          var response = await Api().post('/conversation',{application:this.application, topic: this.topic})
           console.log(response.data);
           if (response.data) {
             this.conversation = response.data;
@@ -63,7 +65,7 @@ import Api from '@/services/Api'
           var response = null;
           if (!this.conversation._id && this.conversation.comments.length==0) {
             response = await Api().post('/conversation/create',
-              { userId: this.$store.state.user._id, topic: this.topic, content: this.newComment });
+              { userId: this.$store.state.user._id, application: this.application, topic: this.topic, content: this.newComment });
             this.conversation = response.data.conversation;
           } else {
             response = await Api().post('/conversation/addcomment',
