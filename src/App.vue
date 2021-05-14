@@ -236,7 +236,7 @@ export default {
             this.$router.push('/home');
           }
         } else {
-          this.$router.push({ name: 'AppPageReset', params: { app:this.appDetails, page:this.appDetails.homePage } })
+          this.$router.push({ name: 'AppPageReset', params: { app:this.appDetails, page:'home' } })
         }
       }
       this.leftDrawer = false;

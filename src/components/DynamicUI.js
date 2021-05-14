@@ -763,7 +763,7 @@ function makeDynamicComponent( pCtx, cCfg ) {
       return dataObj;
     },
     vuetify,
-    methods: makeMethods( ctx, cCfg.uiMethods ),
+    methods: makeMethods( ctx, cCfg.methods ),
     computed: makeComputed( cCfg.computed ),
     filters: makeFilters( ctx, cCfg.filters ),
     watch: makeComputed( cCfg.watch ),
@@ -896,7 +896,7 @@ const DynamicUI = Vue.component('DynamicUI', {
       },
       store: this.$store,
       vuetify,
-      methods: makeMethods( ctx, this.uiConfig.uiMethods ),
+      methods: makeMethods( ctx, this.uiConfig.methods ),
       computed: makeComputed( this.uiConfig.computed ),
       filters: makeFilters( ctx, this.uiConfig.filters ),
       watch: makeComputed( this.uiConfig.watch ),
