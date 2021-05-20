@@ -92,11 +92,9 @@ import UserDataDictionary from './userdatadictionary.js'
           })
         }
       })();
-//      this.$nextTick(this.$refs.firstName.focus)
     },
     beforeCreate() {
 //      this.$nextTick(this.$refs.firstField.focus)
-
     },
     created() {
       this.$store.commit('SET_RESULTNOTIFICATION', '');

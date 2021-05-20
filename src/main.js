@@ -11,6 +11,10 @@ import moment from 'moment'
 import Axios from 'axios'
 import { VueMaskDirective } from 'v-mask'
 
+import VueZoomer from 'vue-zoomer'
+Vue.use(VueZoomer);
+
+
 //import JsonCSV from 'vue-json-csv'
  
 //Vue.component('downloadCsv', JsonCSV)
@@ -86,3 +90,6 @@ Vue.prototype.$digitsToDate = function( digits ) {
   if (digits.length<10) return null;
   return moment(digits, 'MM/DD/YYYY').toDate();
 }
+Vue.filter('mimeType', (value)=>{
+  return value=='application/vnd.openxmlformats-officedocument.wordprocessingml.document'?'(docx)':value;
+})

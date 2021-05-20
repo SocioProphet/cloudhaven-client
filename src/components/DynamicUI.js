@@ -4,13 +4,16 @@ import _, { method } from 'lodash'
 import vuetify from '@/plugins/vuetify'
 import PdfApi from '@/services/PdfApi'
 import Api from '@/services/Api'
+import MultipartPostApi from '@/services/MultipartPostApi'
 import CommentsManager from './CommentsManager.vue'
 import prepScriptletScope from '../_helpers/scopeprep.js'
 import { deepGet, deepSet } from '../_helpers/deep.js'
 import CHDateField from './CHDateField.vue'
+import CHFileViewer from './CHFileViewer.vue'
 import router from '../router'
 import { EventBus } from '../event-bus.js';
 import moment from 'moment'
+import { mapState } from 'vuex'
 
 const uiElementToVueCompMap = {
   alert: VueLib['VAlert'],
@@ -127,7 +130,8 @@ const uiElementToVueCompMap = {
   window: VueLib['VWindow'],
   windowItem: VueLib['VWindowItem'],
   conversation: CommentsManager,
-  dateField: CHDateField
+  dateField: CHDateField,
+  fileViewer: CHFileViewer
 
 }
 var coreUserFields = ["email", "name", "firstName", "middleName", "lastName", "dateOfBirth", "ssn", "language"];
@@ -517,6 +521,24 @@ function makeMethods( ctx, uiMethods ) {
     }
     })();
   };
+
+  //postId = getFile for sandboxapp demo app
+  methods._appGetFile = (postId, fileId, cb) => {
+    (async () => {
+      var URL = `/vendorapplication/appgetfile`;
+      var body = {appUrl:app.url, postId:postId, fileId:fileId}
+      try {
+        var response = await Api().post(URL, body, {responseType: 'blob', timeout: 30000 });
+        var cd = response.headers["content-disposition"];
+        var parts = cd.split(/["']/);
+        const filename = parts[1];
+        const contentType = response.headers["content-type"];
+        cb.call(ctx.rootThis, response.data, filename, contentType );
+      } catch(e) {
+        console.log('_appGetFile error: '+e);
+      }
+    })();
+  }
   methods._appDelete = (postId, cb) => {
     (async () => {
       var response = await Api().post('/vendorapplication/apppost', {app:app, httpMethod: 'DELETE', postId:postId});
@@ -578,7 +600,24 @@ function makeMethods( ctx, uiMethods ) {
         response = await Api().post("/userdata/batchupsert", {userId: userId, updates: updates});
         var result = response.data;
       }
-      var response = await Api().post('/vendorapplication/apppost', {app:app, httpMethod: 'POST', postId:postId, postData:postData});
+      var response = null;
+      if (postData.files) {
+        var formData = Object.keys(postData).reduce((fd,key)=>{
+          if (key == 'files') {
+            Object.keys(postData.files).forEach(fileName=>{
+              fd.append('files.'+fileName, postData.files[fileName]);
+            })
+          } else {
+            fd.append(key, postData[key]);
+          }
+          return fd;
+        },new FormData());
+        formData.append("_appUrl", app.url);
+        formData.append("_postId", postId);
+        response = await Api().post('/vendorapplication/appmultipartpost', formData );
+      } else {
+        response = await MultipartPostApi().post('/vendorapplication/apppost', {app:app, httpMethod: 'POST', postId:postId, postData:postData});
+      }
       Object.keys(savedUserData).forEach(m=>{
         deepSet( vm, m, savedUserData[m])
       });
@@ -617,9 +656,6 @@ function makeMethods( ctx, uiMethods ) {
   methods._lookupCloudHavenUser = (searchSpec, cb) => { //currently on email supported
     (async () => {
       var response = await Api().post('/userinfo/lookup', searchSpec);
-      if (response.data) {
-        ctx.rootThis.cloudHavenUserId = response.data._id; //this.cloudHavenUserId = user._id;
-      }
       if (cb) {
         (cb).call(ctx.rootThis, response.data);
       }
@@ -707,9 +743,72 @@ function makeMethods( ctx, uiMethods ) {
           deepSet(e, listField, d.content);
         })
       })
-      if (cb) (cb)();
+      if (cb) cb.call(ctx.rootThis, ctx.rootThis);
     })();
   };
+  methods._getUserFile = (userId, userFileId, cb) => {
+    (async () => {
+      var response = await Api().get(`/userdata/userfile/body/${userId}/${userFileId}`,
+        {responseType: 'blob', timeout: 30000 });
+      var parts = response.headers["content-disposition"].split(/["']/);
+      const rawFilename = parts[1];
+      const contentType = response.headers["content-type"];
+      if (contentType.indexOf('text/')==0 || contentType == 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
+        cb.call(ctx.rootThis, response.data );
+      } else if (contentType == 'application/pdf'  || contentType.indexOf('image/')==0) {
+        cb.call(ctx.rootThis, new File( [response.data], item.fileName, {type: mimeType}));
+      }
+    })();
+  }
+  methods._userFileOperation = (params, cb) => {
+    var validOps = {add:1, update:1, delete:1};
+    if (!params && !validOps[params.operation]) {
+      throw "Invalid operation parameter";
+      return;
+    }
+    var mimeType = '';
+    if (params.fileType) {
+      var fileType = params.fileType.toLowerCase();
+      var mimeTypeMap = {
+        docx:'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        text:'text/plain',
+        pdf:'application/pdf',
+        apng:'image/apng',
+        avif:'image/avif',
+        gif:'image/gif',
+        jpeg:'image/jpeg',
+        png:'image/png',
+        svg:'image/svg+xml',
+        webp:'image/webp',
+      }
+      mimeType = mimeTypeMap[fileType];
+    } else {
+      mimeType = params.mimeType;
+    }
+    if (!mimeType) {
+      throw 'fileType must one of: '+Object.keys(mimeTypeMap).join(', ');
+      return;
+    }
+
+    (async () => {
+      var formData = new FormData();
+      formData.append('userId',  params.userId);
+      formData.append('operation', params.operation);
+      formData.append('name', params.name);
+      formData.append('fileName', params.filename);
+      formData.append('mimeType', mimeType);
+      if (params.userFileId) {
+        formData.append('fileId', params.userFileId);
+      }
+      if (params.file) {
+        formData.append('files.'+params.filename, params.file);
+      }
+      var response = await MultipartPostApi().post('/userdata/userfile', formData);
+      if (cb) cb.call(ctx.rootThis, this.$safeRef(response.data).success);
+    })();
+
+  }
+
   return methods;
 }
 function makeFilters( ctx, filters ) {
@@ -775,11 +874,6 @@ function makeDynamicComponent( pCtx, cCfg ) {
       return makeComponent( h, cCfg.uiSchema, ctx );
     },
     beforeCreate() {
-      ctx.rootThis = this;
-      ctx.rootThis._route = ctx.route;
-      ctx.rootThis._appParams = deepGet(this.$route, "params.appParams")
-      ctx.rootThis._moment = moment;
-      ctx.rootThis.modelToTokenMap = {};
       if (cCfg.components) {
         //Should not get here
         ctx.components = Object.assign({},makeDynamicComponents( ctx, cCfg.components ));
@@ -789,6 +883,12 @@ function makeDynamicComponent( pCtx, cCfg ) {
       }
     },
     created() {
+      ctx.rootThis = this;
+      this.cloudHavenUserId = this.$store.state.user._id;
+      ctx.rootThis._route = ctx.route;
+      ctx.rootThis._appParams = deepGet(this.$route, "params.appParams")
+      ctx.rootThis._moment = moment;
+      ctx.rootThis.modelToTokenMap = {};
     if (this['created']) {
         (this['created'])();
       }
@@ -908,12 +1008,6 @@ const DynamicUI = Vue.component('DynamicUI', {
         return makeComponent( h, uiSchema, ctx );
       },
       beforeCreate() {
-        ctx.rootThis = this;
-        ctx.rootThis._route = ctx.route;
-        ctx.rootThis._app = ctx.app;
-        ctx.rootThis._appParams = deepGet(this.$route, "params.appParams")
-        ctx.rootThis._moment = moment;
-        ctx.rootThis.modelToTokenMap = {};
           if (this['beforeCreate']) {
           (this['beforeCreate'])();
         }
@@ -922,7 +1016,15 @@ const DynamicUI = Vue.component('DynamicUI', {
         }
       },
       created() {
-      if (this['created']) {
+        ctx.rootThis = this;
+        var userId = this.$store.state.user._id;
+        this.cloudHavenUserId = userId;
+        ctx.rootThis._route = ctx.route;
+        ctx.rootThis._app = ctx.app;
+        ctx.rootThis._appParams = deepGet(this.$route, "params.appParams")
+        ctx.rootThis._moment = moment;
+        ctx.rootThis.modelToTokenMap = {};
+        if (this['created']) {
           (this['created'])();
         }
       },

@@ -4,6 +4,7 @@ import store from './store'
 import AppStore from './components/AppStore.vue'
 import MyApps from './components/MyApps.vue'
 import Users from './components/Users.vue'
+import UserFiles from './components/UserFiles.vue'
 import UserProfile from './components/UserProfile.vue'
 import ViewUserData from './components/ViewUserData.vue'
 import Login from './components/Login.vue'
@@ -60,6 +61,11 @@ let router = new Router({
       path: '/users',
       name: 'users',
       component: Users
+    },
+    {
+      path: '/userFiles',
+      name: 'userFiles',
+      component: UserFiles
     },
     {
       path: '/viewuserdata',

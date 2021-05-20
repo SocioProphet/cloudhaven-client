@@ -106,6 +106,7 @@ const CloudHavenAppDetails = {
     { route: 'MyProfile', action: '', title: 'My Profile'},
     { route: 'vendors', action: '', title: 'Vendors' },
     { route: 'users', action: '', title: 'Users' },
+    { route: 'userFiles', action: '', title: 'User Files' },
     { route: 'ViewUserData', action: '', title: 'View User Data' }
   ]
 };
