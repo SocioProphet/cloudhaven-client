@@ -2,16 +2,16 @@
   <div>
     <v-container>
     <v-toolbar flat color="white">
-      <v-toolbar-title>Vendors</v-toolbar-title>
+      <v-toolbar-title>Organizations</v-toolbar-title>
       <v-divider
         class="mx-3"
         inset
         vertical
       ></v-divider>
       <v-spacer></v-spacer>
-      <v-dialog v-model="dialog" max-width="900px">
+      <v-dialog v-model="dialog" max-width="900px" overlay-opacity="0.2">
         <template v-slot:activator="{ on, attrs }">
-          <v-btn v-bind="attrs" v-on="on" color="primary" dark class="mb-3">New Vendor</v-btn>
+          <v-btn v-bind="attrs" v-on="on" color="primary" dark class="mb-3">New Organization</v-btn>
         </template>
         <v-card>
           <v-card-title>
@@ -20,23 +20,27 @@
 
           <v-card-text>
             <v-form ref="theForm" v-model="valid" lazy-validation>
-              <v-text-field v-model="editedItem.name" label="Name" required :rules="[rules.required]"></v-text-field>
-              <v-text-field v-model="editedItem.vendorId" label="Id" required :rules="[rules.required]"></v-text-field>
-              <v-text-field v-model="editedItem.componentsUrl" label="Components URL" :rules="[rules.url]"></v-text-field>
+              <v-text-field :readonly="editedItem.organizationId=='cloudhaven'" v-model="editedItem.name" label="Name" required :rules="[rules.required]"></v-text-field>
+              <v-text-field :readonly="editedItem.organizationId=='cloudhaven'" v-model="editedItem.organizationId" label="Id" required :rules="[rules.required]"></v-text-field>
+              <v-text-field v-if="editedItem.organizationId!='cloudhaven'" v-model="editedItem.componentsUrl" label="Components URL" :rules="[rules.url]"></v-text-field>
             </v-form>
           </v-card-text>
               <v-tabs dark fixed-tabs background-color="#1E5AC8" color="#FFF10E" >
-              <v-tab>Applications</v-tab>
-              <v-tab>Components</v-tab>
+              <v-tab v-if="editedItem.organizationId!='cloudhaven'" >Applications</v-tab>
+              <v-tab v-if="editedItem.organizationId!='cloudhaven'" >Components</v-tab>
+              <v-tab>Groups</v-tab>
               <v-tab>Contacts</v-tab>
-              <v-tab-item>
-                <VendorAppsSublist :vendor="editedItem"/>
+              <v-tab-item v-if="editedItem.organizationId!='cloudhaven'">
+                <OrganizationAppsSublist :organization="editedItem"/>
+              </v-tab-item>
+              <v-tab-item v-if="editedItem.organizationId!='cloudhaven'">
+                <OrganizationComponentsSublist :organization="editedItem"/>
               </v-tab-item>
               <v-tab-item>
-                <VendorComponentsSublist :vendor="editedItem"/>
+                <OrganizationGroups :organization="editedItem" />
               </v-tab-item>
               <v-tab-item>
-                <VendorContactsSublist :vendor="editedItem"  :contactTypeOptions="contactTypeOptions"/>
+                <OrganizationContactsSublist :organization="editedItem"  :contactTypeOptions="contactTypeOptions"/>
               </v-tab-item>
             </v-tabs>
 
@@ -48,9 +52,9 @@
         </v-card>
       </v-dialog>
     </v-toolbar>
-    <v-data-table id="vendor-table"
+    <v-data-table id="organization-table"
       :headers="headers"
-      :items="vendors"
+      :items="organizations"
       hide-default-footer disable-pagination
       class="elevation-1 mx-1"
     >
@@ -66,7 +70,7 @@
           </v-icon>
           </v-btn>
           <v-btn icon >
-          <v-icon
+          <v-icon v-if="item.organizationId!='cloudhaven'"
             medium
             @click.stop="deleteItem(item)"
           >
@@ -75,7 +79,7 @@
           </v-btn>
         </td>
         <td>{{item.name}}</td>
-        <td>{{item.vendorId}}</td>
+        <td>{{item.organizationId}}</td>
         <td>{{item.componentsUrl}}</td>
        </tr>
       </template>
@@ -87,14 +91,16 @@
 <script>
 import { mapState } from 'vuex'
 import { EventBus } from '../event-bus.js';
-import VendorContactsSublist from './VendorContactsSublist.vue'
-import VendorAppsSublist from './VendorAppsSublist.vue'
-import VendorComponentsSublist from './VendorComponentsSublist.vue'
+import OrganizationContactsSublist from './OrganizationContactsSublist.vue'
+import OrganizationAppsSublist from './OrganizationAppsSublist.vue'
+import OrganizationComponentsSublist from './OrganizationComponentsSublist.vue'
+import OrganizationGroups from './OrganizationGroups.vue'
   export default {
     components: {
-      VendorContactsSublist,
-      VendorAppsSublist,
-      VendorComponentsSublist
+      OrganizationContactsSublist,
+      OrganizationAppsSublist,
+      OrganizationComponentsSublist,
+      OrganizationGroups
     },
     data: () => ({
       dialog: false,
@@ -104,6 +110,7 @@ import VendorComponentsSublist from './VendorComponentsSublist.vue'
           requiredObject: value => (value && value._id!='') || 'Required.',
           nonNegative: value => value >= 0 || 'Enter non-negative number.',
           url: (v) => {
+            if (!v) return true;
             try {
               new URL(v);
               return true;
@@ -116,13 +123,13 @@ import VendorComponentsSublist from './VendorComponentsSublist.vue'
       headers: [
         { text: 'Actions', value: 'name', sortable: false, align:'center' },
         { text: 'Name', align:'left', sortable:true, value: 'name' },
-        { text: 'Vendor Id', align:'left', sortable:true, value: 'vendorId' },
+        { text: 'Organization Id', align:'left', sortable:true, value: 'organizationId' },
         { text: 'Comonents URL', align:'left', sortable:true, value: 'componentsUrl' }
       ],
       editedIndex: -1,
       editedItem: {
         name: '',
-        vendorId: '',
+        organizationId: '',
         contacts: [],
         applications: []
       }
@@ -131,9 +138,9 @@ import VendorComponentsSublist from './VendorComponentsSublist.vue'
 
     computed: {
       formTitle () {
-        return this.editedIndex === -1 ? 'New Vendor' : 'Edit Vendor'
+        return this.editedIndex === -1 ? 'New Organization' : 'Edit Organization'
       },
-      ...mapState(['vendors'])
+      ...mapState(['organizations'])
     },
 
     watch: {
@@ -144,12 +151,12 @@ import VendorComponentsSublist from './VendorComponentsSublist.vue'
 
     created() {
       this.$store.commit('SET_RESULTNOTIFICATION', '');
-      this.$store.commit('SET_CRUDAPISERVCE', 'vendors');
-      this.$store.dispatch('loadRecords', 'vendors');
+      this.$store.commit('SET_CRUDAPISERVCE', 'organizations');
+      this.$store.dispatch('loadRecords', 'organizations');
     },
     mounted () {
-      EventBus.$on('vendors data refresh', () =>{
-        this.$store.dispatch('loadRecords', 'vendors');
+      EventBus.$on('organizations data refresh', () =>{
+        this.$store.dispatch('loadRecords', 'organizations');
       })
     },
 
@@ -159,9 +166,9 @@ import VendorComponentsSublist from './VendorComponentsSublist.vue'
       },
       editItem (item) {
         this.$store.commit('SET_RESULTNOTIFICATION', '');
-        this.editedIndex = this.vendors.indexOf(item);
+        this.editedIndex = this.organizations.indexOf(item);
         if (item._id) {
-          this.$store.dispatch('readRecord', {model:'vendors', _id:item._id})
+          this.$store.dispatch('readRecord', {model:'organizations', _id:item._id})
           .then((readItem)=>{
             this.editedItem = Object.assign({}, readItem);
             this.displayItemToEdit()
@@ -173,7 +180,7 @@ import VendorComponentsSublist from './VendorComponentsSublist.vue'
       },
 
       deleteItem (item) {
-        confirm('Are you sure you want to delete '+item.name+'?') && this.$store.dispatch('deleteRecord', {model:'vendors', dbObject:item, label:item.name});
+        confirm('Are you sure you want to delete '+item.name+'?') && this.$store.dispatch('deleteRecord', {model:'organizations', dbObject:item, label:item.name});
       },
 
       cancel() {
@@ -184,7 +191,7 @@ import VendorComponentsSublist from './VendorComponentsSublist.vue'
         setTimeout(() => {
           this.editedItem = {
             name: '',
-            vendorId: '',
+            organizationId: '',
             contacts: [],
             applications: []
           }
@@ -195,12 +202,12 @@ import VendorComponentsSublist from './VendorComponentsSublist.vue'
       save () {
         if (this.$refs.theForm.validate()) {
           ((this.editedIndex > -1)?
-            this.$store.dispatch('updateRecord', {model:'vendors', label: this.editedItem.name, dbObject:this.editedItem}):
-            this.$store.dispatch('createRecord', {model:'vendors', label: this.editedItem.name, dbObject:this.editedItem})).then((newRec)=> {
+            this.$store.dispatch('updateRecord', {model:'organizations', label: this.editedItem.name, dbObject:this.editedItem}):
+            this.$store.dispatch('createRecord', {model:'organizations', label: this.editedItem.name, dbObject:this.editedItem})).then((newRec)=> {
               if (newRec) {
                 this.$store.commit('SET_SUCCESS', `${this.editedItem.name} ${this.editedIndex > -1?'updated':'added'}.`);
                 this.dialog = false;
-                this.$store.dispatch('loadRecords', 'vendors')
+                this.$store.dispatch('loadRecords', 'organizations')
               }
             })
         }
@@ -210,7 +217,7 @@ import VendorComponentsSublist from './VendorComponentsSublist.vue'
 </script>
 
 <style scoped>
-#vendor-table >>> thead.v-data-table-header >>> th {
+#organization-table >>> thead.v-data-table-header >>> th {
   font-size: 0.8em !important;
 }
 </style>

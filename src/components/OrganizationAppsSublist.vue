@@ -2,7 +2,7 @@
   <div>
     <v-data-table
       :headers="headers"
-      :items="vendor.applications"
+      :items="organization.applications"
       hide-default-footer disable-pagination
       class="elevation-1"
     >
@@ -30,7 +30,7 @@
         </tr>
       </template>
       <template v-slot:[`body.append`]>
-      <v-dialog v-model="dialog" @keydown.esc.prevent="dialog = false" max-width="500px" scrollable>
+      <v-dialog v-model="dialog" @keydown.esc.prevent="dialog = false" max-width="500px" scrollable overlay-opacity="0.2">
         <template v-slot:activator="{ on, attrs }">
           <v-btn v-bind="attrs" v-on="on" color="primary" dark class="mb-3">New Application</v-btn>
         </template>
@@ -86,7 +86,7 @@
   import Api from '@/services/Api'
   import MultipartPostApi from '@/services/MultipartPostApi'
   export default {
-    props: ['vendor'],
+    props: ['organization'],
     data: () => ({
       dialog: false,
       appErrMsg:'',
@@ -170,7 +170,7 @@
       createFormData(operation) {
         var formData = new FormData();
         formData.append('operation', operation);
-        formData.append('vendor_Id', this.vendor._id);
+        formData.append('organization_Id', this.organization._id);
         formData.append('applicationId', this.editedItem.applicationId);
         formData.append('_id', this.editedItem._id);
         formData.append('logo', this.editedItem.logo);
@@ -180,8 +180,8 @@
         return formData;
       },
       editItem (item) {
-        if (!this.vendor.applications) this.vendor.applications = [];
-        this.editedIndex = this.vendor.applications.findIndex((application) => {return application.name === item.name;});
+        if (!this.organization.applications) this.organization.applications = [];
+        this.editedIndex = this.organization.applications.findIndex((application) => {return application.name === item.name;});
         this.editedItem = Object.assign({
           name: '',
           application_Id:'',
@@ -197,22 +197,22 @@
       },
 
       deleteItem (item) {
-        const index = this.vendor.applications.findIndex((application) => {return application.name === item.name && application.contactType == item.contactType;})
+        const index = this.organization.applications.findIndex((application) => {return application.name === item.name && application.contactType == item.contactType;})
         if (confirm('Are you sure you want to delete '+item.name+'?')) {
           if (item._id) {
             (async () => {
-              var response = await Api().delete('/vendorapplication/'+this.vendor._id+'/'+item._id);
+              var response = await Api().delete('/organizationapplication/'+this.organization._id+'/'+item._id);
               if (response.data.success) {
                 this.$store.commit('SET_SUCCESS', `${item.name} deleted.`);
-                this.vendor.applications.splice(index, 1);
-                this.$store.dispatch('loadRecords', 'vendors');
+                this.organization.applications.splice(index, 1);
+                this.$store.dispatch('loadRecords', 'organizations');
                 this.appErrMsg = '';
               } else if (response.data.errMsg) {
                 this.appErrMsg = response.data.errMsg;
               }
             })();
           } else {
-            this.vendor.applications.splice(index, 1);
+            this.organization.applications.splice(index, 1);
           }
         }
       },
@@ -235,21 +235,21 @@
       save () {
         if (!this.$refs.appForm.validate()) return;
         var operation = this.editedIndex > -1 ? 'update' : 'add';
-        if (operation == 'update' || this.vendor._id) {
+        if (operation == 'update' || this.organization._id) {
           (async () => {
-            var response = await MultipartPostApi().post('/vendorapplication/upsert', this.createFormData(operation));
+            var response = await MultipartPostApi().post('/organizationapplication/upsert', this.createFormData(operation));
             if (response.data.success) {
               this.$store.commit('SET_SUCCESS', `${this.editedItem.name} ${operation=='update'?'updated':'added'}.`);
-              this.vendor.applications = response.data.applications;
+              this.organization.applications = response.data.applications;
               this.dialog = false;
-              this.$store.dispatch('loadRecords', 'vendors')
+              this.$store.dispatch('loadRecords', 'organizations')
               this.appErrMsg = '';
             } else if (response.data.errMsg) {
               this.appErrMsg = response.data.errMsg;
             }
           })();
         } else {
-          this.vendor.applications.push(this.editedItem)
+          this.organization.applications.push(this.editedItem)
           this.dialog = false;
         }
       }

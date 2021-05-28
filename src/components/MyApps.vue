@@ -46,8 +46,8 @@ import router from '../router'
       },
       applications() {
         return this.rawSubscriptions.map((a)=>{
-          a.key = a.vendor.name+':'+a.name;
-          a.vendorId = a.vendor._id;
+          a.key = a.organization.name+':'+a.name;
+          a.organizationId = a.organization._id;
           if (a.logo) {
 //            var bytes = new Uint8Array(a.logo.data);
 //            var binary = bytes.reduce((data, b) => data += String.fromCharCode(b), '');
@@ -71,14 +71,14 @@ import router from '../router'
     mounted () {
       this.$store.commit('SET_RESULTNOTIFICATION', '');
       this.loadMyApps();
-      EventBus.$on('vendors data refresh', () =>{
+      EventBus.$on('organizations data refresh', () =>{
         this.loadMyApps()
       })
     },
 
     methods: {
       launchApp(app) {
-        router.push({ name: 'VendorAppPane', params: { app:app, page:'home' } })
+        router.push({ name: 'OrganizationAppPane', params: { app:app, page:'home' } })
       },
       loadMyApps() {
         (async () => {
@@ -94,7 +94,7 @@ import router from '../router'
       unsubscribe(app) {
         var u = this.user;
         (async () => {
-          var response = await Api().delete(`/usersubscription/${this.user._id}/${app.vendorId}/${app._id}`);
+          var response = await Api().delete(`/usersubscription/${this.user._id}/${app.organizationId}/${app._id}`);
           var x = response.data;
           this.loadMyApps();
         })();

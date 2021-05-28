@@ -10,7 +10,7 @@ export default new Vuex.Store({
   state: {
     apiMap: {},
     users: [],
-    vendors: [],
+    organizations: [],
     resultNotification:{msg:'',type:''},
     currentRole:'',
     status: '',

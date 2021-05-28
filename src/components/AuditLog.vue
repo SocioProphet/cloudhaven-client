@@ -85,7 +85,7 @@ import moment from 'moment'
       model: '',
       user: {_id:'', name:''},
       publicId: '',
-      modelOptions:['Vendor', 'Setup'],
+      modelOptions:['Organization', 'Setup'],
       userOptions:[],
       records:[]
     }),

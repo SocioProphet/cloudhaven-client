@@ -3,10 +3,10 @@
   <v-tab>Applications</v-tab>
   <v-tab>Contacts</v-tab>
   <v-tab-item>
-    <VendorAppsSublist :vendor="editedItem"/>
+    <OrganizationAppsSublist :organization="editedItem"/>
   </v-tab-item>
   <v-tab-item>
-    <VendorContactsSublist :vendor="editedItem"  :contactTypeOptions="contactTypeOptions"/>
+    <OrganizationContactsSublist :organization="editedItem"  :contactTypeOptions="contactTypeOptions"/>
   </v-tab-item>
 </v-tabs>
 

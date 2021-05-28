@@ -2,7 +2,7 @@
   <div>
     <v-data-table
       :headers="headers"
-      :items="vendor.contacts"
+      :items="organization.contacts"
       hide-default-footer disable-pagination
       class="elevation-1"
     >
@@ -30,7 +30,7 @@
         </tr>
       </template>
       <template v-slot:[`body.append`]>
-      <v-dialog v-model="dialog" @keydown.esc.prevent="dialog = false" max-width="500px" scrollable>
+      <v-dialog v-model="dialog" @keydown.esc.prevent="dialog = false" max-width="500px" scrollable overlay-opacity="0.2">
         <template v-slot:activator="{ on, attrs }">
           <v-btn v-bind="attrs" v-on="on" color="primary" dark class="mb-3">New Contact</v-btn>
         </template>
@@ -84,7 +84,7 @@
 <script>
   import Api from '@/services/Api'
   export default {
-    props: ['vendor', 'contactTypeOptions'],
+    props: ['organization', 'contactTypeOptions'],
     data: () => ({
       dialog: false,
       contactErrMsg:'',
@@ -146,7 +146,7 @@
         })();
       },
       editItem (item) {
-        this.editedIndex = this.vendor.contacts.findIndex((contact) => {return contact.name === item.name && contact.contactType == item.contactType;});
+        this.editedIndex = this.organization.contacts.findIndex((contact) => {return contact.name === item.name && contact.contactType == item.contactType;});
         this.editedItem = Object.assign({
           name: '',
           contactType:'',
@@ -166,22 +166,22 @@
       },
 
       deleteItem (item) {
-        const index = this.vendor.contacts.findIndex((contact) => {return contact.name === item.name && contact.contactType == item.contactType;})
+        const index = this.organization.contacts.findIndex((contact) => {return contact.name === item.name && contact.contactType == item.contactType;})
         if (confirm('Are you sure you want to delete '+item.name+'?')) {
           if (item._id) {
             (async () => {
-              var response = await Api().delete('/vendorcontact/'+this.vendor._id+'/'+item._id);
+              var response = await Api().delete('/organizationcontact/'+this.organization._id+'/'+item._id);
               if (response.data.success) {
                 this.$store.commit('SET_SUCCESS', `${item.name} deleted.`);
-                this.vendor.contacts.splice(index, 1);
-                this.$store.dispatch('loadRecords', 'vendors');
+                this.organization.contacts.splice(index, 1);
+                this.$store.dispatch('loadRecords', 'organizations');
                 this.contactErrMsg = '';
               } else if (response.data.errMsg) {
                 this.contactErrMsg = response.data.errMsg;
               }
             })();
           } else {
-            this.vendor.contacts.splice(index, 1);
+            this.organization.contacts.splice(index, 1);
           }
         }
       },
@@ -217,12 +217,12 @@
         if (this.editedIndex > -1) {
           //update existing contact
           (async () => {
-            var response = await Api().put('/vendorcontact/'+this.vendor._id+'/'+this.editedItem._id, this.editedItem);
+            var response = await Api().put('/organizationcontact/'+this.organization._id+'/'+this.editedItem._id, this.editedItem);
             if (response.data.success) {
               this.$store.commit('SET_SUCCESS', `${this.editedItem.name} updated.`);
-              Object.assign(this.vendor.contacts[this.editedIndex], this.editedItem)
+              Object.assign(this.organization.contacts[this.editedIndex], this.editedItem)
               this.dialog = false;
-              this.$store.dispatch('loadRecords', 'vendors');
+              this.$store.dispatch('loadRecords', 'organizations');
               this.contactErrMsg = '';
             } else if (response.data.errMsg) {
               this.contactErrMsg = response.data.errMsg;
@@ -230,21 +230,21 @@
           })();
         } else {
           //add new contact
-          if (this.vendor._id) {
+          if (this.organization._id) {
             (async () => {
-              var response = await Api().post('/vendorcontact', {vendorId:this.vendor._id, vendorContact:this.editedItem});
+              var response = await Api().post('/organizationcontact', {organizationId:this.organization._id, organizationContact:this.editedItem});
               if (response.data.success) {
                 this.$store.commit('SET_SUCCESS', `${this.editedItem.name} added.`);
-                this.vendor.contacts = response.data.contacts;
+                this.organization.contacts = response.data.contacts;
                 this.dialog = false;
-                this.$store.dispatch('loadRecords', 'vendors')
+                this.$store.dispatch('loadRecords', 'organizations')
                 this.contactErrMsg = '';
               } else if (response.data.errMsg) {
                 this.contactErrMsg = response.data.errMsg;
               }
             })();
           } else {
-            this.vendor.contacts.push(this.editedItem)
+            this.organization.contacts.push(this.editedItem)
             this.dialog = false;
           }
         }

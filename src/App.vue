@@ -17,7 +17,7 @@
       </v-card-actions>
     </v-card>
   </v-dialog>
-  <!-- v-if="user.rolesMap['SYSADMIN']  || this.isVendor" -->
+  <!-- v-if="user.rolesMap['SYSADMIN']  || this.isOrganization" -->
     <v-navigation-drawer 
       width="300px"
       :mini-variant="miniVariant"
@@ -42,7 +42,7 @@
         </v-list-item>
       </v-list>
     </v-navigation-drawer>
-    <v-app-bar :style="this.appDetails.appBarStyle"
+    <v-app-bar :style="this.appDetails.appBarStyle" dense
       app
       clipped-left
       clipped-right
@@ -75,6 +75,7 @@
       <v-spacer></v-spacer>
       <v-alert class="mt-auto" dark elevation="12" transition="slide-y-reverse-transition" dismissible v-model="showGlobalAlert" :type="globalAlert.type||'success'">{{globalAlert.msg}}</v-alert>
       <v-spacer></v-spacer>
+      <v-btn v-if="isLoggedIn" class="mr-2" color="black" fab small dark @click="gotoMail"><v-icon>mdi-email-multiple-outline</v-icon></v-btn>
       <span v-if="isLoggedIn" :class="appDetails.nameTextClass">{{user.name}}&nbsp;&nbsp;&nbsp;&nbsp;<a :class="appDetails.appBarTextClass" @click="logout"><b>Logout</b></a></span>
       <!--v-spacer></v-spacer>
       <v-btn icon @click.stop="rightDrawer = !rightDrawer">
@@ -104,7 +105,7 @@ const CloudHavenAppDetails = {
     { route: 'MyApps', action: '', title: 'My Apps' },
     { route: 'AppStore', action: '', title: 'App Store' },
     { route: 'MyProfile', action: '', title: 'My Profile'},
-    { route: 'vendors', action: '', title: 'Vendors' },
+    { route: 'organizations', action: '', title: 'Organizations' },
     { route: 'users', action: '', title: 'Users' },
     { route: 'userFiles', action: '', title: 'User Files' },
     { route: 'ViewUserData', action: '', title: 'View User Data' }
@@ -136,7 +137,7 @@ export default {
         appBarStyle: '',
         appBarTextClass: '',
         nameTextClass: '',
-        vendorId: '',
+        organizationId: '',
         appId: '',
         name: '',
         menuItems: []
@@ -154,7 +155,7 @@ export default {
     $route () {
         this.leftDrawer = false;
     },
-    isVendor() {
+    isOrganization() {
       this.goHome();
     },
     pwdDialog (val) {
@@ -188,8 +189,8 @@ export default {
     },
     isLoggedIn : function(){ return this.$store.getters.isLoggedIn},
     ...mapState([ 'user' ]),
-    isVendor() {
-      return this.user.rolesMap['VENDOR']!=null;
+    isOrganization() {
+      return this.user.rolesMap['ORGANIZATION']!=null;
     },
     menuItems() {
 //      if (this.user.rolesMap['SYSADMIN']) {
@@ -204,9 +205,9 @@ export default {
         /*,
         { route: 'auditLog', action: '', title: 'Audit Log'},
         { route: 'eventLog', action: '', title: 'Event Log'}
-      } else if (this.isVendor) {
+      } else if (this.isOrganization) {
         return [
-        { route: 'vendorcalendar', action: '', title: 'Vendor Calendar'},
+        { route: 'organizationcalendar', action: '', title: 'Organization Calendar'},
         { route: null, action: this.chgPwd, title: 'Change Password'}
         ];
       }
@@ -226,10 +227,13 @@ export default {
         this.errorDisplayed = msg;
       }
     },
+    gotoMail() {
+      this.$router.push('/mail');
+    },
     goHome() {
-      if (this.isVendor) {
-        if (this.$router.currentRoute.name != 'vendorCalendar') {
-          this.$router.push('/vendorcalendar');
+      if (this.isOrganization) {
+        if (this.$router.currentRoute.name != 'organizationCalendar') {
+          this.$router.push('/organizationcalendar');
         }
       } else {
         if (this.appDetails.name == CloudHavenAppDetails.name) {

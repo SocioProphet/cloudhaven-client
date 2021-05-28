@@ -1,3 +1,3 @@
-var Vendor = 'Vendor';
+var Organization = 'Organization';
 
-module.exports = [Vendor];
+module.exports = [Organization];

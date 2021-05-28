@@ -9,7 +9,7 @@
         vertical
       ></v-divider>
       <v-spacer></v-spacer>
-      <v-dialog v-model="dialog" max-width="500px" @keydown.esc.prevent="dialog = false" >
+      <v-dialog v-model="dialog" max-width="500px" @keydown.esc.prevent="dialog = false"  overlay-opacity="0.2">
         <template v-slot:activator="{ on, attrs }">
           <v-btn v-bind="attrs" v-on="on" color="primary" dark class="mb-3">New User</v-btn>
         </template>
@@ -17,7 +17,7 @@
           <v-card-title><span class="text-h5">{{ formTitle }}</span></v-card-title>
           <v-card-text>
             <v-form ref="theForm" v-model="valid" lazy-validation>
-            <v-text-field v-if="editedItem.vendor" readonly :value="editedItem.vendor.name" label="Vendor" ></v-text-field>
+            <v-text-field v-if="editedItem.organization" readonly :value="editedItem.organization.name" label="Organization" ></v-text-field>
             <v-text-field v-model="editedItem.email" label="Email (username)" required :rules="[rules.required, rules.email]" ></v-text-field>
             <v-text-field v-model="editedItem.firstName" label="First Name" :rules="[rules.required]"></v-text-field>
             <v-text-field v-model="editedItem.middleName" label="Middle Name"></v-text-field>
@@ -26,8 +26,8 @@
             <v-text-field v-model="editedItem.ssn" label="Social Security Number" :rules="[rules.ssn]"></v-text-field>
             <v-text-field v-if="!editedItem._id" type="password" v-model="editedItem.password" label="Password"></v-text-field>
             <v-select v-model="editedItem.language" :items="['English', 'Spanish']" label="Language" :rules="[rules.required]"></v-select>
-            <v-select v-if="!isVendor" multiple :items="roleOptions" class="mb-0 pb-0" v-model="editedItem.roles" label="Roles"></v-select>
-            <v-text-field v-if="isVendor" readonly :value="'Vendor'" label="Role"></v-text-field>
+            <v-select v-if="!isOrganization" multiple :items="roleOptions" class="mb-0 pb-0" v-model="editedItem.roles" label="Roles"></v-select>
+            <v-text-field v-if="isOrganization" readonly :value="'Organization'" label="Role"></v-text-field>
             </v-form>
           </v-card-text>
           <v-card-actions>
@@ -37,7 +37,7 @@
           </v-card-actions>
         </v-card>
       </v-dialog>
-      <v-dialog v-model="pwdDialog" max-width="500px" @keydown.esc.prevent="pwdDialog = false" >
+      <v-dialog v-model="pwdDialog" max-width="500px" @keydown.esc.prevent="pwdDialog = false" overlay-opacity="0.2">
         <v-card>
           <v-card-title><span class="text-h5">Change Password for {{chgPwdObj.name}}</span></v-card-title>
           <v-card-text>
@@ -116,7 +116,7 @@ import Api from '@/services/Api'
           ssn: (v) => !v || /^\d{3}-?\d{2}-?\d{4}$/.test(v) || 'Please enter a valid SSN.',
       },
       headers: [
-        { text: 'Actions', value: 'name', sortable: false, align:'center' },
+        { text: 'Actions', sortable: false, align:'center' },
         { text: 'Change Password', sortable: false, align:'center' },
         { text: 'Email', align: 'left', sortable: true, value: 'email' },
         { text: 'Name', align:'left', sortable:true, value: 'name' },
@@ -147,8 +147,8 @@ import Api from '@/services/Api'
         return this.editedIndex === -1 ? 'New User' : 'Edit User'
       },
       ...mapState(['users']),
-      isVendor() {
-        return this.editedItem.roles?this.editedItem.roles.find(r=>(r=='VENDOR'))!=null:false;
+      isOrganization() {
+        return this.editedItem.roles?this.editedItem.roles.find(r=>(r=='ORGANIZATION'))!=null:false;
       }
     },
 

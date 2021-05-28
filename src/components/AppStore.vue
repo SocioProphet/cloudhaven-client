@@ -43,11 +43,11 @@ import Api from '@/services/Api'
         return "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7";
       },
       applications() {
-        if (!this.vendors) return [];
-        return this.vendors.reduce((ar, v)=>{
+        if (!this.organizations) return [];
+        return this.organizations.reduce((ar, v)=>{
           ar = ar.concat(v.applications.map((a)=>{
             a.key = v.name+':'+a.name;
-            a.vendorId = v._id;
+            a.organizationId = v._id;
             if (a.logo) {
               var bytes = new Uint8Array(a.logo.data);
               var binary = bytes.reduce((data, b) => data += String.fromCharCode(b), '');
@@ -60,7 +60,7 @@ import Api from '@/services/Api'
           return ar;
         },[]);
       },
-      ...mapState(['vendors', 'user'])
+      ...mapState(['organizations', 'user'])
     },
 
     watch: {
@@ -71,10 +71,10 @@ import Api from '@/services/Api'
 
     mounted () {
       this.$store.commit('SET_RESULTNOTIFICATION', '');
-      this.$store.commit('SET_CRUDAPISERVCE', 'vendors');
-      this.$store.dispatch('loadRecords', 'vendors');
-      EventBus.$on('vendors data refresh', () =>{
-        this.$store.dispatch('loadRecords', 'vendors');
+      this.$store.commit('SET_CRUDAPISERVCE', 'organizations');
+      this.$store.dispatch('loadRecords', 'organizations');
+      EventBus.$on('organizations data refresh', () =>{
+        this.$store.dispatch('loadRecords', 'organizations');
       })
     },
 
@@ -82,10 +82,10 @@ import Api from '@/services/Api'
       subscribe(app) {
         var u = this.user;
         (async () => {
-          var postData = {userId: this.user._id, vendorId: app.vendorId, applicationId: app._id};
+          var postData = {userId: this.user._id, organizationId: app.organizationId, applicationId: app._id};
           var response = await Api().post('/usersubscription', postData);
           var x = response.data;
-          this.$store.commit('SET_CRUDAPISERVCE', 'vendors');
+          this.$store.commit('SET_CRUDAPISERVCE', 'organizations');
         })();
 
       }

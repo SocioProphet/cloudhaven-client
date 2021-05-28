@@ -25,19 +25,19 @@ export default {
   mounted() {
     var app = this.$route.params.app;
     if (!app) return;
-    var pApp = {url:app.url, vendorId: app.vendorId, _id: app._id, applicationId:app.applicationId};
+    var pApp = {url:app.url, organizationId: app.organizationId, _id: app._id, applicationId:app.applicationId};
     var page = this.$route.params.page || 'home';
     pApp.page = page;
     this.app = Object.assign({}, pApp);
     (async () => {
-      var response = await Api().post('/vendorapplication/getapppage', {app:pApp, page:page});
+      var response = await Api().post('/organizationapplication/getapppage', {app:pApp, page:page});
       this.uiConfig = response.data;
       if (this.uiConfig.appFrame) {
         EventBus.$emit('set app frame', Object.assign(this.app, this.uiConfig.appFrame))
       }
       var u = this.uiConfig;
       if (this.uiConfig.externalComponents) {
-        var response = await Api().post('/vendorcomponent/getcomponents', {vendorComps:this.uiConfig.externalComponents});
+        var response = await Api().post('/organizationcomponent/getcomponents', {organizationComps:this.uiConfig.externalComponents});
         if (response.status==200 && response.data.success) {
           this.uiConfig.components = (this.uiConfig.components || []).concat(response.data.components);
         }

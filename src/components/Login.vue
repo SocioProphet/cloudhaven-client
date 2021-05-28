@@ -55,7 +55,7 @@
         this.$store.dispatch('login', { email, password })
        .then((user) => {
          this.$store.commit('SET_ERRMSG', '');
-         this.$router.push(user.roles.find(r=>(r=='VENDOR'))?'/vendorcalendar': '/home')
+         this.$router.push(user.roles.find(r=>(r=='ORGANIZATION'))?'/organizationcalendar': '/home')
        })
        .catch(() => {
          this.loginErrMsg = 'Login failed.';

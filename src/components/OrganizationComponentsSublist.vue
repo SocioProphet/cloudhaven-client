@@ -2,7 +2,7 @@
   <div>
     <v-data-table
       :headers="headers"
-      :items="vendor.components"
+      :items="organization.components"
       hide-default-footer disable-pagination
       class="elevation-1"
     >
@@ -28,7 +28,7 @@
         </tr>
       </template>
       <template v-slot:[`body.append`]>
-      <v-dialog v-model="dialog" @keydown.esc.prevent="dialog = false" max-width="500px" scrollable>
+      <v-dialog v-model="dialog" @keydown.esc.prevent="dialog = false" max-width="500px" scrollable overlay-opacity="0.2">
         <template v-slot:activator="{ on, attrs }">
           <v-btn v-bind="attrs" v-on="on" color="primary" dark class="mb-3">New Component</v-btn>
         </template>
@@ -65,7 +65,7 @@
 <script>
   import Api from '@/services/Api'
   export default {
-    props: ['vendor'],
+    props: ['organization'],
     data: () => ({
       dialog: false,
       appErrMsg:'',
@@ -96,15 +96,15 @@
       createFormData(operation) {
         return {
           operation: operation,
-          vendor_Id:this.vendor._id,
+          organization_Id:this.organization._id,
           component_Id: this.editedItem._id,
           componentId: this.editedItem.componentId,
           name: this.editedItem.name
         };
       },
       editItem (item) {
-        if (!this.vendor.components) this.vendor.components = [];
-        this.editedIndex = this.vendor.components.findIndex((component) => {return component.name === item.name;});
+        if (!this.organization.components) this.organization.components = [];
+        this.editedIndex = this.organization.components.findIndex((component) => {return component.name === item.name;});
         this.editedItem = Object.assign({
           name: '',
           componentId:''
@@ -117,22 +117,22 @@
       },
 
       deleteItem (item) {
-        const index = this.vendor.components.findIndex((component) => {return component.name === item.name && component.contactType == item.contactType;})
+        const index = this.organization.components.findIndex((component) => {return component.name === item.name && component.contactType == item.contactType;})
         if (confirm('Are you sure you want to delete '+item.name+'?')) {
           if (item._id) {
             (async () => {
-              var response = await Api().delete('/vendorcomponent/'+this.vendor._id+'/'+item._id);
+              var response = await Api().delete('/organizationcomponent/'+this.organization._id+'/'+item._id);
               if (response.data.success) {
                 this.$store.commit('SET_SUCCESS', `${item.name} deleted.`);
-                this.vendor.components.splice(index, 1);
-                this.$store.dispatch('loadRecords', 'vendors');
+                this.organization.components.splice(index, 1);
+                this.$store.dispatch('loadRecords', 'organizations');
                 this.appErrMsg = '';
               } else if (response.data.errMsg) {
                 this.appErrMsg = response.data.errMsg;
               }
             })();
           } else {
-            this.vendor.components.splice(index, 1);
+            this.organization.components.splice(index, 1);
           }
         }
       },
@@ -151,21 +151,21 @@
       save () {
         if (!this.$refs.appForm.validate()) return;
         var operation = this.editedIndex > -1 ? 'update' : 'add';
-        if (operation == 'update' || this.vendor._id) {
+        if (operation == 'update' || this.organization._id) {
           (async () => {
-            var response = await Api().post('/vendorcomponent', this.createFormData(operation));
+            var response = await Api().post('/organizationcomponent', this.createFormData(operation));
             if (response.data.success) {
               this.$store.commit('SET_SUCCESS', `${this.editedItem.name} ${operation=='update'?'updated':'added'}.`);
-              this.vendor.components = response.data.components;
+              this.organization.components = response.data.components;
               this.dialog = false;
-              this.$store.dispatch('loadRecords', 'vendors')
+              this.$store.dispatch('loadRecords', 'organizations')
               this.appErrMsg = '';
             } else if (response.data.errMsg) {
               this.appErrMsg = response.data.errMsg;
             }
           })();
         } else {
-          this.vendor.components.push(this.editedItem)
+          this.organization.components.push(this.editedItem)
           this.dialog = false;
         }
       }

@@ -112,7 +112,7 @@
                 </v-btn>
                 </v-row>
               </td-->
-              <td class="pt-3">{{ item.vendor.name }}</td>
+              <td class="pt-3">{{ item.organization.name }}</td>
               <td class="pt-3">{{ item.applicationId }}</td>
               <td class="pt-3">{{ item.page }}</td>
               <td class="pt-3">{{ item.topic }}</td>
@@ -148,7 +148,7 @@ import moment from 'moment';
         { text: 'Create Datetime', sortable: true, align:'left', value: 'created_at' },
       ],
       conversationHeaders: [
-        { text: 'Vendor', align: 'left', sortable: true, value: 'vendor.name' },
+        { text: 'Organization', align: 'left', sortable: true, value: 'organization.name' },
         { text: 'Application', align: 'left', sortable: true, value: 'applicationId' },
         { text: 'Page', align: 'left', sortable: true, value: 'page' },
         { text: 'Topic', align: 'left', sortable: true, value: 'topic' },
@@ -186,7 +186,7 @@ import moment from 'moment';
           response = await Api().get('/conversation/list');
           if (response.data) {
             var comments = response.data.reduce((ar, cnv)=>{
-              var rec = {vendor:cnv.vendor, applicationId: cnv.applicationId, page: cnv.page, topic:cnv.topic}
+              var rec = {organization:cnv.organization, applicationId: cnv.applicationId, page: cnv.page, topic:cnv.topic}
               cnv.comments.forEach(c=>{
                 var row = Object.assign({}, rec);
                 row.comment = c.content;

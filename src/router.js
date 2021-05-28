@@ -4,6 +4,7 @@ import store from './store'
 import AppStore from './components/AppStore.vue'
 import MyApps from './components/MyApps.vue'
 import Users from './components/Users.vue'
+import Mail from './components/Mail.vue'
 import UserFiles from './components/UserFiles.vue'
 import UserProfile from './components/UserProfile.vue'
 import ViewUserData from './components/ViewUserData.vue'
@@ -11,11 +12,11 @@ import Login from './components/Login.vue'
 import AuditLog from './components/AuditLog'
 import Alerts from './components/Alerts'
 import EventLog from './components/EventLog'
-import Vendors from './components/Vendors'
+import Organizations from './components/Organizations'
 import AppPageReset from './components/AppPageReset'
-import VendorAppPane from './components/VendorAppPane'
+import OrganizationAppPane from './components/OrganizationAppPane'
 import SchedulingCalendar from './components/SchedulingCalendar'
-import VendorCalendar from './components/VendorCalendar'
+import OrganizationCalendar from './components/OrganizationCalendar'
 
 Vue.use(Router)
 
@@ -26,6 +27,11 @@ let router = new Router({
       name: 'home',
       component: MyApps,
       alias: '/home'
+    },
+    {
+      path: '/mail',
+      name: 'mail',
+      component: Mail
     },
     {
       path: '/appstore',
@@ -48,9 +54,9 @@ let router = new Router({
       component: UserProfile
     },
     {
-      path: '/vendorapppane',
-      name: 'VendorAppPane',
-      component: VendorAppPane
+      path: '/organizationapppane',
+      name: 'OrganizationAppPane',
+      component: OrganizationAppPane
     },
     {
       path: '/login',
@@ -73,9 +79,9 @@ let router = new Router({
       component: ViewUserData
     },
     {
-      path: '/vendorcalendar',
-      name: 'vendorCalendar',
-      component: VendorCalendar
+      path: '/organizationcalendar',
+      name: 'organizationCalendar',
+      component: OrganizationCalendar
     },
     {
       path: '/schedulingcalendar',
@@ -83,9 +89,9 @@ let router = new Router({
       component: SchedulingCalendar
     },
     {
-      path: '/vendors',
-      name: 'vendors',
-      component: Vendors
+      path: '/organizations',
+      name: 'organizations',
+      component: Organizations
     },
     {
       path: '/alerts',

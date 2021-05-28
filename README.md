@@ -20,14 +20,14 @@ HIPAA and GDPR compliance is greatly simplified since applications don't touch P
 CloudHaven also enables the following:
 
 1. One-click registrations of vetted applications
-(Users only need to register with CloudHaven once and vendors only need to register their application with CloudHaven once).
+(Users only need to register with CloudHaven once and organizations only need to register their application with CloudHaven once).
 CloudHaven is like a telephone switch - instead of having point-to-point connections between every application and every user, only a fraction of the connections are required - between users and CH and between CH and applications
 2. Universal localization
 3. Rapid application development
 Application developers no longer need to concern themselves with implementing authentication, roles and permissions, user management, file-sharing, messaging and collaboration, low-level UI presentation (they still, however, develop the higher level UI logic that defines their application)
 4. Users can still monetize data, but only anoymously such as for health research and only if they democratically agree to do this.
 
-Another way to look at CloudHaven is that it is a vendor neutral platform for integrating many proprietary silos of application functionality.
+Another way to look at CloudHaven is that it is a organization neutral platform for integrating many proprietary silos of application functionality.
 
 Another intent of CloudHaven is for users to have a single way to work with any application. In fact, there could be a marketplace of UI themes that a user could select to work with any application they have one-click registered with - that way they work with forms, tables, reports, searches, etc. in the same way regardless of which application they are using.
 

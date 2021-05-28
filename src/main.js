@@ -32,7 +32,7 @@ Vue.directive('mask', VueMaskDirective );
 Vue.config.productionTip = false;
 /*Vue.filter('yesno', function (value) {
   return value ? 'Yes' : 'No';
-});
+});*/
 Vue.filter('date', function(value){
   return value?moment(value).format('l'):'';
 });
@@ -57,21 +57,11 @@ Vue.filter('formattedPhone', function(value) {
     return rawPhone;
   }
 });
-Vue.filter('formattedSSN', function(value) {
+/*Vue.filter('formattedSSN', function(value) {
   if (!value) return '';
   if (value.length!=9) return value;
   return `${value.substring(0,3)}-${value.substring(3,5)}-${value.substring(5)}`;
 })*/
-
-Vue.use(require('vue-moment'))
-Vue.prototype.moment = moment;
-Vue.prototype.$safeRef = (obj) => obj?obj:{}
-new Vue({
-  vuetify,
-  router,
-  store,
-  render: h => h(App)
-}).$mount('#app');
 Vue.prototype.$ordinalSuffix = (i) => {
   var j = i % 10,
       k = i % 100;
@@ -93,3 +83,13 @@ Vue.prototype.$digitsToDate = function( digits ) {
 Vue.filter('mimeType', (value)=>{
   return value=='application/vnd.openxmlformats-officedocument.wordprocessingml.document'?'(docx)':value;
 })
+
+Vue.use(require('vue-moment'))
+Vue.prototype.moment = moment;
+Vue.prototype.$safeRef = (obj) => obj?obj:{}
+new Vue({
+  vuetify,
+  router,
+  store,
+  render: h => h(App)
+}).$mount('#app');

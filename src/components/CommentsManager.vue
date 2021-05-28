@@ -31,7 +31,7 @@ import Comment from './CommentItem.vue'
 import Api from '@/services/Api'
     export default {
     props: {
-      vendorId: { type: String},
+      organizationId: { type: String},
       application: { type: Object },
       topic: { type: String, required: true}
     },

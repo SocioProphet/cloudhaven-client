@@ -503,7 +503,7 @@ function makeMethods( ctx, uiMethods ) {
   methods._merge = _.merge;
   methods._pdfGet = (postId, cb) => {
     (async () => {
-      var response = await PdfApi().post('/vendorapplication/apppost', {app:app, httpMethod: 'GET', postId:postId});
+      var response = await PdfApi().post('/organizationapplication/apppost', {app:app, httpMethod: 'GET', postId:postId});
       if (cb) {
         (cb).call(ctx.rootThis, response.data);
       }
@@ -512,7 +512,7 @@ function makeMethods( ctx, uiMethods ) {
   methods._appGet = (postId, cb) => {
     (async () => {
       try {
-      var response = await Api().post('/vendorapplication/apppost', {app:app, httpMethod: 'GET', postId:postId});
+      var response = await Api().post('/organizationapplication/apppost', {app:app, httpMethod: 'GET', postId:postId});
       if (cb) {
         (cb).call(ctx.rootThis, response.data);
       }
@@ -525,7 +525,7 @@ function makeMethods( ctx, uiMethods ) {
   //postId = getFile for sandboxapp demo app
   methods._appGetFile = (postId, fileId, cb) => {
     (async () => {
-      var URL = `/vendorapplication/appgetfile`;
+      var URL = `/organizationapplication/appgetfile`;
       var body = {appUrl:app.url, postId:postId, fileId:fileId}
       try {
         var response = await Api().post(URL, body, {responseType: 'blob', timeout: 30000 });
@@ -541,7 +541,7 @@ function makeMethods( ctx, uiMethods ) {
   }
   methods._appDelete = (postId, cb) => {
     (async () => {
-      var response = await Api().post('/vendorapplication/apppost', {app:app, httpMethod: 'DELETE', postId:postId});
+      var response = await Api().post('/organizationapplication/apppost', {app:app, httpMethod: 'DELETE', postId:postId});
       if (cb) {
         (cb).call(ctx.rootThis, response.data);
       }
@@ -614,9 +614,9 @@ function makeMethods( ctx, uiMethods ) {
         },new FormData());
         formData.append("_appUrl", app.url);
         formData.append("_postId", postId);
-        response = await Api().post('/vendorapplication/appmultipartpost', formData );
+        response = await Api().post('/organizationapplication/appmultipartpost', formData );
       } else {
-        response = await MultipartPostApi().post('/vendorapplication/apppost', {app:app, httpMethod: 'POST', postId:postId, postData:postData});
+        response = await MultipartPostApi().post('/organizationapplication/apppost', {app:app, httpMethod: 'POST', postId:postId, postData:postData});
       }
       Object.keys(savedUserData).forEach(m=>{
         deepSet( vm, m, savedUserData[m])
