@@ -20,14 +20,14 @@
   <!-- v-if="user.rolesMap['SYSADMIN']  || this.isOrganization" -->
     <v-navigation-drawer 
       width="300px"
-      :mini-variant="miniVariant"
+      :mini-variant="miniVariant" 
       clipped
       v-model="leftDrawer"
       disable-resize-watcher
       dark
       class="light-blue darken-4"
-      fixed
       app
+      :style="{ top: $vuetify.application.top + 'px', zIndex: 4 }"
     >
       <v-list dark>
         <v-list-item 
@@ -42,11 +42,7 @@
         </v-list-item>
       </v-list>
     </v-navigation-drawer>
-    <v-app-bar :style="this.appDetails.appBarStyle" dense
-      app
-      clipped-left
-      clipped-right
-    >
+    <v-app-bar :style="this.appDetails.appBarStyle" app dense clipped-left >
     <!-- (user.rolesMap['SYSADMIN']) &&  -->
       <v-app-bar-nav-icon v-if="$route.name!='login'" :class="appDetails.appBarTextClass" @click.stop="leftDrawer = !leftDrawer"></v-app-bar-nav-icon>
       <v-tooltip v-if="$route.name!='home' && $route.name!='login'" bottom color="#2572d2" light>
@@ -75,6 +71,7 @@
       <v-spacer></v-spacer>
       <v-alert class="mt-auto" dark elevation="12" transition="slide-y-reverse-transition" dismissible v-model="showGlobalAlert" :type="globalAlert.type||'success'">{{globalAlert.msg}}</v-alert>
       <v-spacer></v-spacer>
+      <v-btn v-if="isLoggedIn" class="mr-2" color="black" fab small dark @click="gotoCalendar"><v-icon>mdi-calendar-month-outline</v-icon></v-btn>
       <v-btn v-if="isLoggedIn" class="mr-2" color="black" fab small dark @click="gotoMail"><v-icon>mdi-email-multiple-outline</v-icon></v-btn>
       <span v-if="isLoggedIn" :class="appDetails.nameTextClass">{{user.name}}&nbsp;&nbsp;&nbsp;&nbsp;<a :class="appDetails.appBarTextClass" @click="logout"><b>Logout</b></a></span>
       <!--v-spacer></v-spacer>
@@ -226,6 +223,9 @@ export default {
         }, 10000)
         this.errorDisplayed = msg;
       }
+    },
+    gotoCalendar() {
+      this.$router.push('/calendar');
     },
     gotoMail() {
       this.$router.push('/mail');

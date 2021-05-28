@@ -12,25 +12,25 @@
     </v-row>
     <v-row>
       <v-col cols="3"  nowrap>
-        <v-treeview :items="folderTree" elevation="2" dense activatable @update:active="onActivated"></v-treeview>
+        <v-treeview :items="folderTree" elevation="2" dense activatable :active="active" @update:active="onActivated"></v-treeview>
       </v-col>
       <v-col cols="9" class="justify-start">
         <v-row>
-        <v-divider class="ma-4" vertical ></v-divider>        
+        <v-divider class="ma-4" vertical ></v-divider>
     <v-data-table :headers="headers" :items="messages" style="width:100%">
       <template v-slot:[`header.selector`]="{header}">
         <v-simple-checkbox dense hide-details />
       </template>
       <template v-slot:item="{ item }">
-       <tr @click="viewMail(item)">
+       <tr @click="viewMessage(item)">
          <td style="width:5%" class="align-center"><v-simple-checkbox dense hide-details /></td>
         <td style="width:10%">
           <v-row class="justify-center align-center align-stretch">
-          <v-btn icon ><v-icon medium @click.stop="editMessage(item)">mdi-email-open-outline</v-icon></v-btn>
+          <v-btn icon ><v-icon medium @click.stop="viewMessage(item)">mdi-email-open-outline</v-icon></v-btn>
           <v-btn icon >
           <v-icon
             medium
-            @click.stop="deleteItem(item)"
+            @click.stop="deleteMessage(item)"
           >
             mdi-trash-can
           </v-icon>
@@ -97,16 +97,17 @@ import moment from 'moment';
       folderTree:[],
       searchText:'',
       currentFolder: null,
-      messages: [
-        {subject:'Test Subject', correspondent:'Rich Vann', date: new Date() }
-      ],
+      messages: [],
       folderMap: {},
-      activeFolderId: '',
+      active: []
     }),
 
     computed: {
+      activeFolderId() {
+        return this.active.length>0?this.active[0]:null;
+      },
       activeFolder() {
-        return this.activeFolderId?this.folderMap[this.activeFolderId]:'';
+        return this.activeFolderId?this.folderMap[this.activeFolderId]:{};
       },
       activeFolderName() {
         return this.activeFolder?this.activeFolder.name:'';
@@ -122,6 +123,9 @@ import moment from 'moment';
     },
 
     watch: {
+      active() {
+        this.loadMessages();
+      }
     },
 
     created () {
@@ -133,7 +137,7 @@ import moment from 'moment';
     },
     methods: {
       onActivated( activeItems ) {
-        this.activeFolderId = activeItems.length>0?activeItems[0]:null;
+        this.active = activeItems;
       },
       getChildren( curFolder, folders ) {
         curFolder.children = folders.reduce((ar,f)=>{
@@ -156,21 +160,38 @@ import moment from 'moment';
             }
             return ar;
           },[]);
+          this.active.push(this.folderTree[0].id);
+          this.loadMessages();
           this.folderTree.forEach(f=>{
             this.getChildren( f, folders );
           })
         })();
       },
+      loadMessages() {
+        (async () => {
+          var response = await Api().get('/messagemgr/getfoldermsgs/'+this.activeFolderId+'/'+(this.activeFolderName=='Sent'?'true':'false'));
+          var messages = (response.data || []);
+          messages.sort((a,b)=>(a.date<b.date?-1:(a.date>b.date?1:0)));
+          messages = messages.map((m)=>{
+            debugger;
+            var sharing = m.sharings.find(s=>(s.recipientType=='to'));
+            var correspondent = sharing.user.name;
+            return {subject: m.subject, date: m.date, correspondent: correspondent, message:m.message}
+          })
+          this.messages = messages;
+        })();
+      },
       cancel() {
         this.dialog = false;
       },
-      editMessage (item) {
-        this.dialog = true
+      viewMessage (item) {
+        this.message = Object.assign({}, item);
+        this.dialog = true;
       },
 
-      deleteItem (item) {
+      deleteMessage (item) {
         this.$store.commit('SET_RESULTNOTIFICATION', '')
-        if (confirm('Are you sure you want to delete '+item.name+'?')) {
+        if (confirm('Are you sure you want to delete '+item.subject+'?')) {
           (async () => {
 /*            var formData = new FormData();
             formData.append('userId',  this.user._id);

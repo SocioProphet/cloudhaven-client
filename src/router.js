@@ -5,6 +5,7 @@ import AppStore from './components/AppStore.vue'
 import MyApps from './components/MyApps.vue'
 import Users from './components/Users.vue'
 import Mail from './components/Mail.vue'
+import Calendar from './components/Calendar.vue'
 import UserFiles from './components/UserFiles.vue'
 import UserProfile from './components/UserProfile.vue'
 import ViewUserData from './components/ViewUserData.vue'
@@ -32,6 +33,11 @@ let router = new Router({
       path: '/mail',
       name: 'mail',
       component: Mail
+    },
+    {
+      path: '/calendar',
+      name: 'calendar',
+      component: Calendar
     },
     {
       path: '/appstore',
