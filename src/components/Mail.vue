@@ -4,7 +4,7 @@
       <v-toolbar dense elevation="5">
       <v-toolbar-title class="mr-3">Messages</v-toolbar-title>
       <v-btn icon><v-icon>mdi-email-sync-outline</v-icon></v-btn>
-      <v-btn icon @click.stop="editMessage()"><v-icon>mdi-email-plus-outline</v-icon>
+      <v-btn icon @click.stop="addMessage()"><v-icon>mdi-email-plus-outline</v-icon>
       </v-btn>
       <v-spacer></v-spacer>
       <v-form class="ma-0 pa-0"><v-text-field class="ma-0 pa-0" prepend-inner-icon="mdi-magnify" hide-details placeholder="Search" dense/></v-form>
@@ -51,6 +51,18 @@
           <v-card-title><span class="text-h5">Create Message</span></v-card-title>
           <v-card-text>
             <v-form ref="theForm" v-model="valid" lazy-validation>
+            <v-autocomplete v-model="to" :items="toOptions" :loading="toIsLoading" :search-input.sync="toSearch" color="white"
+              hide-no-data hide-selected item-text="email" item-value="_id" label="To" dense
+              placeholder="TO: type some letters of the email or name" return-object
+            ></v-autocomplete>
+            <v-autocomplete v-model="cc" :items="ccOptions" :loading="ccIsLoading" :search-input.sync="ccSearch" color="white"
+              hide-no-data hide-selected item-text="email" item-value="_id" label="CC" dense
+              placeholder="CC: type some letters of the email or name" return-object
+            ></v-autocomplete>
+            <v-autocomplete v-model="bcc" :items="bccOptions" :loading="bccIsLoading" :search-input.sync="bccSearch" color="white"
+              hide-no-data hide-selected item-text="email" item-value="_id" label="BCC" dense
+              placeholder="BCC: type some letters of the email or name" return-object
+            ></v-autocomplete>
               <v-text-field v-model="message.subject" label="Subject" :rules="[rules.required]"></v-text-field>
               <v-textarea v-model="message.message" label="Message"></v-textarea>
             </v-form>
@@ -58,7 +70,7 @@
           <v-card-actions>
             <v-btn elevation="2" color="blue darken-1" text @click.native="cancel">Cancel</v-btn>
             <v-spacer></v-spacer>
-            <v-btn elevation="2" color="blue darken-1" text @click.native="save"><v-icon left dark>mdi-content-save</v-icon>Save</v-btn>
+            <v-btn elevation="2" color="blue darken-1" text @click.native="sendMsg"><v-icon left dark>mdi-content-save</v-icon>Save</v-btn>
           </v-card-actions>
         </v-card>
       </v-dialog>
@@ -99,9 +111,26 @@ import moment from 'moment';
       currentFolder: null,
       messages: [],
       folderMap: {},
-      active: []
+      active: [],
+      to:null,
+      toSearch:'',
+      toSearchTimeoutId:null,
+      toOptions:[],
+      toIsLoading:false,
+      toDests:[],
+      cc:null,
+      ccSearch:'',
+      ccSearchTimeoutId:null,
+      ccOptions:[],
+      ccIsLoading:false,
+      ccDests:[],
+      bcc:null,
+      bccSearch:'',
+      bccSearchTimeoutId:null,
+      bccOptions:[],
+      bccIsLoading:false,
+      bccDests:[]
     }),
-
     computed: {
       activeFolderId() {
         return this.active.length>0?this.active[0]:null;
@@ -123,19 +152,69 @@ import moment from 'moment';
     },
 
     watch: {
-      active() {
-        this.loadMessages();
+      toSearch( value ) {
+        if (this.toSearchTimeoutId) {
+          clearTimeout(this.toSearchTimeoutId);
+        }
+        this.toIsLoading = true;
+        this.toSearchTimeoutId = setTimeout(() => {
+          this.loadUserOptions( 'toOptions', value, () => {this.toIsLoading = false;});
+        }, 600);
+      },
+      ccSearch( value ) {
+        if (this.ccSearchTimeoutId) {
+          clearTimeout(this.ccSearchTimeoutId);
+        }
+        this.ccIsLoading = true;
+        this.ccSearchTimeoutId = setTimeout(() => {
+          this.loadUserOptions('ccOptions', value, () => {this.ccIsLoading = false;});
+        }, 600);
+      },
+      bccSearch( value ) {
+        if (this.bccSearchTimeoutId) {
+          clearTimeout(this.bccSearchTimeoutId);
+        }
+        this.bccIsLoading = true;
+        this.bccSearchTimeoutId = setTimeout(() => {
+          this.loadUserOptions('bccOptions', value, () => {this.bccIsLoading = false;} );
+        }, 600);
+      },
+      active( actives ) {
+        debugger;
+        this.loadMessages( actives.length>0?actives[0]:null);
       }
     },
 
-    created () {
+    mounted () {
       this.$store.commit('SET_RESULTNOTIFICATION', '');
+      this.toOptions = [];
+      this.ccOptions = [];
+      this.bccOptions = [];
       EventBus.$on('messages data refresh', () =>{
         loadFolderTree();
       })
       this.loadFolderTree();
     },
     methods: {
+      loadUserOptions( options, searchPhrase, cb ) {
+        if (!searchPhrase) {
+          options = [];
+          return;
+        }
+        var vm = this;
+        (async () => {
+          try {
+            var response = await Api().post('/usersearch/emailnamesearch', {searchPhrase:searchPhrase});
+
+            vm[options] = (response.data || []).sort((a,b) => {
+              return a.email<b.email?-1:(a.email>b.email?1:0);
+            });
+          } finally {
+//            if (cb) (cb)();
+          }
+        })();
+
+      },
       onActivated( activeItems ) {
         this.active = activeItems;
       },
@@ -157,6 +236,7 @@ import moment from 'moment';
           this.folderTree = folders.reduce((ar, f)=>{
             if (!f.parentFolder) {
               ar.push({id:f._id, name: f.name, children:[], folder:f});
+              this.folderMap[f._id] = f;
             }
             return ar;
           },[]);
@@ -167,13 +247,19 @@ import moment from 'moment';
           })
         })();
       },
-      loadMessages() {
+      loadMessages( folderId ) {
+        if (!folderId) {
+          this.messages = [];
+          return;
+        }
+        var fMap = this.folderMap;
+        var folderName = fMap[folderId].name;
+        debugger;
         (async () => {
-          var response = await Api().get('/messagemgr/getfoldermsgs/'+this.activeFolderId+'/'+(this.activeFolderName=='Sent'?'true':'false'));
+          var response = await Api().get('/messagemgr/getfoldermsgs/'+folderId+'/'+(folderName=='Sent'?'true':'false'));
           var messages = (response.data || []);
           messages.sort((a,b)=>(a.date<b.date?-1:(a.date>b.date?1:0)));
           messages = messages.map((m)=>{
-            debugger;
             var sharing = m.sharings.find(s=>(s.recipientType=='to'));
             var correspondent = sharing.user.name;
             return {subject: m.subject, date: m.date, correspondent: correspondent, message:m.message}
@@ -183,6 +269,10 @@ import moment from 'moment';
       },
       cancel() {
         this.dialog = false;
+      },
+      addMessage (item) {
+        this.message = Object.assign({}, item);
+        this.dialog = true;
       },
       viewMessage (item) {
         this.message = Object.assign({}, item);
@@ -215,9 +305,13 @@ import moment from 'moment';
           this.message = {_id:null, subject: '',  message:'', date: null}
         }, 300)
       },
-      save () {
+      sendMsg () {
         if (!this.$refs.theForm.validate()) return;
         (async () => {
+            var response = await Api().post('/messagemgr/usersendmsg', 
+            {sender: this.user._id, recipients:[{type:'to', email:this.to.email}], subject: this.message.subject, message: this.message.message});
+            alert(JSON.stringify(response));
+//req.body.sender, req.body.recipients, "Inbox",  req.body.subject, req.body.message
           this.dialog = false;
         })();
       }
