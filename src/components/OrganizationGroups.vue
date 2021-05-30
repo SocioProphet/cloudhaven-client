@@ -149,7 +149,6 @@
               var response = await Api().post('/organizationgroup', {organizationId:this.organization._id, organizationGroup:this.editedItem});
               if (response.data.success) {
                 this.$store.commit('SET_SUCCESS', `${this.editedItem.name} added.`);
-                debugger;
                 this.organization.groups = [].concat(response.data.newOrg.groups);
                 this.dialog = false;
               } else if (response.data.errMsg) {

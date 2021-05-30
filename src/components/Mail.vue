@@ -48,21 +48,32 @@
     </v-row>
       <v-dialog v-model="dialog" max-width="1000px" @keydown.esc.prevent="dialog = false" overlay-opacity="0.2">
         <v-card>
-          <v-card-title><span class="text-h5">Create Message</span></v-card-title>
+          <v-card-title class="ma-0 py-1 px-2"><span class="text-h5">Create Message</span><v-spacer></v-spacer>
+            <v-checkbox v-model="showCC" @input="showCC=!showCC" label="CC" class="ma-0 pa-1"></v-checkbox>
+            <v-checkbox v-model="showBCC" @input="showBCC=!showBCC" label="BCC" class="ml-3 my-0 pa-1"></v-checkbox></v-card-title>
           <v-card-text>
-            <v-form ref="theForm" v-model="valid" lazy-validation>
-            <v-autocomplete v-model="to" :items="toOptions" :loading="toIsLoading" :search-input.sync="toSearch" color="white"
-              hide-no-data hide-selected item-text="email" item-value="_id" label="To" dense
-              placeholder="TO: type some letters of the email or name" return-object
-            ></v-autocomplete>
-            <v-autocomplete v-model="cc" :items="ccOptions" :loading="ccIsLoading" :search-input.sync="ccSearch" color="white"
-              hide-no-data hide-selected item-text="email" item-value="_id" label="CC" dense
-              placeholder="CC: type some letters of the email or name" return-object
-            ></v-autocomplete>
-            <v-autocomplete v-model="bcc" :items="bccOptions" :loading="bccIsLoading" :search-input.sync="bccSearch" color="white"
-              hide-no-data hide-selected item-text="email" item-value="_id" label="BCC" dense
-              placeholder="BCC: type some letters of the email or name" return-object
-            ></v-autocomplete>
+            <v-form ref="theForm" v-model="valid" lazy-validation >
+                <v-autocomplete v-model="to" :items="toOptions" :loading="toIsLoading" :search-input.sync="toSearch"
+                  hide-no-data placeholder="type some letters of the email or name" dense label="To" hide-details
+                  item-text="email" item-value="_id" return-object @change="toSelected" width="250px"
+                ></v-autocomplete>
+                <v-chip-group show-arrows>
+                <v-chip v-for="user in toDests" :key="user.key" style="display:inline-block" class="ma-0" close @click:close="toDelete(user.key)">{{user.email}}</v-chip>
+                </v-chip-group>
+                <v-autocomplete v-if="showCC" class="mt-3" v-model="cc" :items="ccOptions" :loading="ccIsLoading" :search-input.sync="ccSearch"
+                  hide-no-data placeholder="type some letters of the email or name" dense label="CC" hide-details
+                  item-text="email" item-value="_id" return-object @change="ccSelected" width="250px"
+                ></v-autocomplete>
+                <v-chip-group  v-if="showCC" show-arrows>
+                  <v-chip v-for="user in ccDests" :key="user.key" class="ma-0" close @click:close="ccDelete(user.key)">{{user.email}}</v-chip>
+                </v-chip-group>
+                <v-autocomplete v-if="showBCC" class="mt-3" v-model="bcc" :items="bccOptions" :loading="bccIsLoading" :search-input.sync="bccSearch"
+                  hide-no-data placeholder="type some letters of the email or name" dense label="BCC" hide-details
+                  item-text="email" item-value="_id" return-object @change="bccSelected" width="250px"
+                ></v-autocomplete>
+                <v-chip-group  v-if="showBCC" show-arrows>
+                  <v-chip v-for="user in bccDests" :key="user.key" class="ma-0" close @click:close="bccDelete(user.key)">{{user.email}}</v-chip>
+                </v-chip-group>
               <v-text-field v-model="message.subject" label="Subject" :rules="[rules.required]"></v-text-field>
               <v-textarea v-model="message.message" label="Message"></v-textarea>
             </v-form>
@@ -118,18 +129,21 @@ import moment from 'moment';
       toOptions:[],
       toIsLoading:false,
       toDests:[],
+      showCC: false,
       cc:null,
       ccSearch:'',
       ccSearchTimeoutId:null,
       ccOptions:[],
       ccIsLoading:false,
       ccDests:[],
+      showBCC: false,
       bcc:null,
       bccSearch:'',
       bccSearchTimeoutId:null,
       bccOptions:[],
       bccIsLoading:false,
-      bccDests:[]
+      bccDests:[],
+      uniqueKey:1
     }),
     computed: {
       activeFolderId() {
@@ -153,34 +167,15 @@ import moment from 'moment';
 
     watch: {
       toSearch( value ) {
-        if (this.toSearchTimeoutId) {
-          clearTimeout(this.toSearchTimeoutId);
-        }
-        this.toIsLoading = true;
-        this.toSearchTimeoutId = setTimeout(() => {
-          this.loadUserOptions( 'toOptions', value, () => {this.toIsLoading = false;});
-        }, 600);
+        this.genericLoadUserOptions( 'to', value );
       },
       ccSearch( value ) {
-        if (this.ccSearchTimeoutId) {
-          clearTimeout(this.ccSearchTimeoutId);
-        }
-        this.ccIsLoading = true;
-        this.ccSearchTimeoutId = setTimeout(() => {
-          this.loadUserOptions('ccOptions', value, () => {this.ccIsLoading = false;});
-        }, 600);
+        this.genericLoadUserOptions( 'cc', value );
       },
       bccSearch( value ) {
-        if (this.bccSearchTimeoutId) {
-          clearTimeout(this.bccSearchTimeoutId);
-        }
-        this.bccIsLoading = true;
-        this.bccSearchTimeoutId = setTimeout(() => {
-          this.loadUserOptions('bccOptions', value, () => {this.bccIsLoading = false;} );
-        }, 600);
+        this.genericLoadUserOptions( 'bcc', value );
       },
       active( actives ) {
-        debugger;
         this.loadMessages( actives.length>0?actives[0]:null);
       }
     },
@@ -196,6 +191,44 @@ import moment from 'moment';
       this.loadFolderTree();
     },
     methods: {
+      toDelete( key ) {
+        this.toDests = this.toDests.filter(td=>(td.key!=key));
+      },
+      ccDelete( key ) {
+        this.ccDests = this.ccDests.filter(td=>(td.key!=key));
+      },
+      bccDelete( key ) {
+        this.bccDests = this.bccDests.filter(td=>(td.key!=key));
+      },
+      toSelected( user ) {
+        this.onDestSelected( user, 'to');
+      },
+      ccSelected( user ) {
+        this.onDestSelected( user, 'cc');
+      },
+      bccSelected( user ) {
+        this.onDestSelected( user, 'bcc');
+      },
+      onDestSelected( user, type ) {
+        if (user) {
+          user.key = this.uniqueKey++;
+          this[type+'Dests'].push(user);
+        }
+        this[type+'Search'] = '';
+      },
+      genericLoadUserOptions( prefix, value ) {
+        if (this[prefix+'SearchTimeoutId']) {
+          clearTimeout(this[prefix+'SearchTimeoutId']);
+        }
+        this[prefix+'IsLoading'] = value?true:false;
+        if (!value) {
+          this[prefix+'Options'] = [];
+          return;
+        }
+        this[prefix+'SearchTimeoutId'] = setTimeout(() => {
+          this.loadUserOptions( prefix+'Options', value, () => {this[prefix+'IsLoading'] = false;});
+        }, 500);
+      },
       loadUserOptions( options, searchPhrase, cb ) {
         if (!searchPhrase) {
           options = [];
@@ -249,12 +282,14 @@ import moment from 'moment';
       },
       loadMessages( folderId ) {
         if (!folderId) {
+          folderId = this.active.length>0?this.active[0]:null;
+        }
+        if (!folderId) {
           this.messages = [];
           return;
         }
         var fMap = this.folderMap;
         var folderName = fMap[folderId].name;
-        debugger;
         (async () => {
           var response = await Api().get('/messagemgr/getfoldermsgs/'+folderId+'/'+(folderName=='Sent'?'true':'false'));
           var messages = (response.data || []);
@@ -308,11 +343,22 @@ import moment from 'moment';
       sendMsg () {
         if (!this.$refs.theForm.validate()) return;
         (async () => {
-            var response = await Api().post('/messagemgr/usersendmsg', 
-            {sender: this.user._id, recipients:[{type:'to', email:this.to.email}], subject: this.message.subject, message: this.message.message});
+          var recipients = ['to', 'cc', 'bcc'].reduce((ar,type)=>{
+            var emailMap = {};
+            this[type+'Dests'].forEach(d=>{
+              if (!emailMap[d.email]) {
+                ar.push({type:type, email:d.email})
+              }
+              emailMap[d.email] = true;
+            })
+            return ar;
+          },[]);
+          var response = await Api().post('/messagemgr/usersendmsg', 
+            {sender: this.user._id, recipients:recipients, subject: this.message.subject, message: this.message.message});
             alert(JSON.stringify(response));
 //req.body.sender, req.body.recipients, "Inbox",  req.body.subject, req.body.message
           this.dialog = false;
+          this.loadMessages();
         })();
       }
     }
