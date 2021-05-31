@@ -291,13 +291,13 @@ import moment from 'moment';
         var fMap = this.folderMap;
         var folderName = fMap[folderId].name;
         (async () => {
-          var response = await Api().get('/messagemgr/getfoldermsgs/'+folderId+'/'+(folderName=='Sent'?'true':'false'));
+          var response = await Api().get('/messagemgr/getfoldermsgs/'+folderId);
           var messages = (response.data || []);
           messages.sort((a,b)=>(a.date<b.date?-1:(a.date>b.date?1:0)));
           messages = messages.map((m)=>{
             var sharing = m.sharings.find(s=>(s.recipientType=='to'));
             var correspondent = sharing.user.name;
-            return {subject: m.subject, date: m.date, correspondent: correspondent, message:m.message}
+            return {_id:m._id, subject: m.subject, date: m.date, correspondent: correspondent, message:m.message}
           })
           this.messages = messages;
         })();
@@ -317,16 +317,12 @@ import moment from 'moment';
       deleteMessage (item) {
         this.$store.commit('SET_RESULTNOTIFICATION', '')
         if (confirm('Are you sure you want to delete '+item.subject+'?')) {
+          var folderId = this.active.length>0?this.active[0]:null;
+          var msgId = item._id;
+          var userId = this.user._id;
           (async () => {
-/*            var formData = new FormData();
-            formData.append('userId',  this.user._id);
-            formData.append('op', 'delete');
-            formData.append('fileId', item._id);
-            var response = await Api().post('/userdata/userfile', formData);
-            if (this.$safeRef(response.data).success) {
-              this.loadUserFiles();
-              this.$store.commit('SET_SUCCESS', `${item.name} deleted.`);
-            }*/
+            var response = await Api().delete(`/messagemgr/userdeletemsg/${userId}/${folderId}/${msgId}`);
+            this.loadMessages();
           })();
         }
       },
@@ -355,8 +351,6 @@ import moment from 'moment';
           },[]);
           var response = await Api().post('/messagemgr/usersendmsg', 
             {sender: this.user._id, recipients:recipients, subject: this.message.subject, message: this.message.message});
-            alert(JSON.stringify(response));
-//req.body.sender, req.body.recipients, "Inbox",  req.body.subject, req.body.message
           this.dialog = false;
           this.loadMessages();
         })();
