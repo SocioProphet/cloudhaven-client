@@ -93,6 +93,7 @@ import { mapState } from 'vuex'
 import { EventBus } from './event-bus.js';
 import Api from '@/services/Api'
 import router from './router'
+import lodash from 'lodash'
 const CloudHavenAppDetails = {
   name: 'CloudHaven',
   appBarStyle: {background: 'linear-gradient(to bottom, #FFFFFF -100%, #00528d 100%)'},
@@ -196,7 +197,7 @@ export default {
       }
       var menuItems = [];
       this.appDetails.menuItems.forEach(m=>{
-        menuItems.push({ name: 'AppPageReset', params: { app:this.appDetails, page:m.page }, title: m.title })
+        menuItems.push({ name: 'AppPageReset', params: { app:_.omit(this.appDetails,['logo']), page:m.page }, title: m.title })
       })
       return menuItems;
         /*,

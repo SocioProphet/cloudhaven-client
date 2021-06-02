@@ -3,10 +3,9 @@
     <v-row>
       <v-toolbar dense elevation="5">
       <v-toolbar-title class="mr-3">Messages</v-toolbar-title>
-      <v-btn icon><v-icon>mdi-email-sync-outline</v-icon></v-btn>
-      <v-btn icon @click.stop="addMessage()"><v-icon>mdi-email-plus-outline</v-icon>
-      </v-btn>
       <v-spacer></v-spacer>
+      <v-btn icon><v-icon>mdi-email-sync-outline</v-icon></v-btn>
+      <v-btn icon @click.stop="addMessage()" class="mr-2"><v-icon>mdi-email-plus-outline</v-icon></v-btn>
       <v-form class="ma-0 pa-0"><v-text-field class="ma-0 pa-0" prepend-inner-icon="mdi-magnify" hide-details placeholder="Search" dense/></v-form>
     </v-toolbar>
     </v-row>
@@ -46,28 +45,28 @@
         </v-row>
       </v-col>
     </v-row>
-      <v-dialog v-model="dialog" max-width="1000px" @keydown.esc.prevent="dialog = false" overlay-opacity="0.2">
-        <v-card>
-          <v-card-title class="ma-0 py-1 px-2"><span class="text-h5">Create Message</span><v-spacer></v-spacer>
+      <v-dialog v-model="dialog" max-width="95%" @keydown.esc.prevent="dialog = false" overlay-opacity="0.2" >
+        <v-card style="margin-top:15vh">
+          <v-card-title class="ma-0 py-1 px-2"><span class="text-h5">{{editMode=='edit'?'Create':'View'}} Message</span><v-spacer></v-spacer>
             <v-checkbox v-model="showCC" @input="showCC=!showCC" label="CC" class="ma-0 pa-1"></v-checkbox>
             <v-checkbox v-model="showBCC" @input="showBCC=!showBCC" label="BCC" class="ml-3 my-0 pa-1"></v-checkbox></v-card-title>
           <v-card-text>
             <v-form ref="theForm" v-model="valid" lazy-validation >
-                <v-autocomplete v-model="to" :items="toOptions" :loading="toIsLoading" :search-input.sync="toSearch"
+                <v-autocomplete :readonly="editMode=='view'" v-model="to" :items="toOptions" :loading="toIsLoading" :search-input.sync="toSearch"
                   hide-no-data placeholder="type some letters of the email or name" dense label="To" hide-details
                   item-text="email" item-value="_id" return-object @change="toSelected" width="250px"
                 ></v-autocomplete>
                 <v-chip-group show-arrows>
                 <v-chip v-for="user in toDests" :key="user.key" style="display:inline-block" class="ma-0" close @click:close="toDelete(user.key)">{{user.email}}</v-chip>
                 </v-chip-group>
-                <v-autocomplete v-if="showCC" class="mt-3" v-model="cc" :items="ccOptions" :loading="ccIsLoading" :search-input.sync="ccSearch"
+                <v-autocomplete v-if="editMode=='view' && showCC" class="mt-3" v-model="cc" :items="ccOptions" :loading="ccIsLoading" :search-input.sync="ccSearch"
                   hide-no-data placeholder="type some letters of the email or name" dense label="CC" hide-details
                   item-text="email" item-value="_id" return-object @change="ccSelected" width="250px"
                 ></v-autocomplete>
                 <v-chip-group  v-if="showCC" show-arrows>
                   <v-chip v-for="user in ccDests" :key="user.key" class="ma-0" close @click:close="ccDelete(user.key)">{{user.email}}</v-chip>
                 </v-chip-group>
-                <v-autocomplete v-if="showBCC" class="mt-3" v-model="bcc" :items="bccOptions" :loading="bccIsLoading" :search-input.sync="bccSearch"
+                <v-autocomplete v-if="editMode=='view' && showBCC" class="mt-3" v-model="bcc" :items="bccOptions" :loading="bccIsLoading" :search-input.sync="bccSearch"
                   hide-no-data placeholder="type some letters of the email or name" dense label="BCC" hide-details
                   item-text="email" item-value="_id" return-object @change="bccSelected" width="250px"
                 ></v-autocomplete>
@@ -76,12 +75,13 @@
                 </v-chip-group>
               <v-text-field v-model="message.subject" label="Subject" :rules="[rules.required]"></v-text-field>
               <v-textarea v-model="message.message" label="Message"></v-textarea>
+              <OrganizationAppPane v-if="editMode=='view'" :application="app" :page="page"></OrganizationAppPane>
             </v-form>
           </v-card-text>
           <v-card-actions>
             <v-btn elevation="2" color="blue darken-1" text @click.native="cancel">Cancel</v-btn>
             <v-spacer></v-spacer>
-            <v-btn elevation="2" color="blue darken-1" text @click.native="sendMsg"><v-icon left dark>mdi-content-save</v-icon>Save</v-btn>
+            <v-btn v-if="editMode=='edit'" elevation="2" color="blue darken-1" text @click.native="sendMsg"><v-icon left dark>mdi-content-save</v-icon>Save</v-btn>
           </v-card-actions>
         </v-card>
       </v-dialog>
@@ -94,10 +94,11 @@ import { EventBus } from '../event-bus.js';
 import Api from '@/services/Api'
 import MultipartPostApi from '@/services/MultipartPostApi'
 import CHFileViewer from './CHFileViewer.vue'
+import OrganizationAppPane from './OrganizationAppPane.vue'
 import moment from 'moment';
 
   export default {
-    components:{CHFileViewer},
+    components:{CHFileViewer, OrganizationAppPane},
     data: () => ({
       dialog: false,
       valid: true,
@@ -143,7 +144,10 @@ import moment from 'moment';
       bccOptions:[],
       bccIsLoading:false,
       bccDests:[],
-      uniqueKey:1
+      uniqueKey:1,
+      app:{applicationId:"test-app", organizationId:"603ee28599a16849b4870d5b", name:'Test App', url:'http://localhost:3300/api/sandboxapp'},
+      page:"home",
+      editMode:'edit'
     }),
     computed: {
       activeFolderId() {
@@ -306,10 +310,12 @@ import moment from 'moment';
         this.dialog = false;
       },
       addMessage (item) {
+        this.editMode = 'edit';
         this.message = Object.assign({}, item);
         this.dialog = true;
       },
       viewMessage (item) {
+        this.editMode = 'view';
         this.message = Object.assign({}, item);
         this.dialog = true;
       },
@@ -352,6 +358,9 @@ import moment from 'moment';
           var response = await Api().post('/messagemgr/usersendmsg', 
             {sender: this.user._id, recipients:recipients, subject: this.message.subject, message: this.message.message});
           this.dialog = false;
+          if (resonse.data.success) {
+            EventBus.$emit('global success alert', this.message.subject+' sent.');
+          }
           this.loadMessages();
         })();
       }

@@ -16,7 +16,6 @@ import EventLog from './components/EventLog'
 import Organizations from './components/Organizations'
 import AppPageReset from './components/AppPageReset'
 import OrganizationAppPane from './components/OrganizationAppPane'
-import SchedulingCalendar from './components/SchedulingCalendar'
 import OrganizationCalendar from './components/OrganizationCalendar'
 
 Vue.use(Router)
@@ -88,11 +87,6 @@ let router = new Router({
       path: '/organizationcalendar',
       name: 'organizationCalendar',
       component: OrganizationCalendar
-    },
-    {
-      path: '/schedulingcalendar',
-      name: 'schedulingCalendar',
-      component: SchedulingCalendar
     },
     {
       path: '/organizations',

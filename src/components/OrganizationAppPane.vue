@@ -15,18 +15,22 @@ export default {
   components: {
     DynamicUI, VSheet
   },
+  props: {
+    application: Object,
+    page: String
+  },
   data() {
     return {
       component: 'VSheet',
       app: {},
-      uiConfig:{components:[]},
+      uiConfig:{components:[]}
     }
   },
   mounted() {
-    var app = this.$route.params.app;
+    var app = this.application || this.$route.params.app;
     if (!app) return;
     var pApp = {url:app.url, organizationId: app.organizationId, _id: app._id, applicationId:app.applicationId};
-    var page = this.$route.params.page || 'home';
+    var page = this.page || this.$route.params.page || 'home';
     pApp.page = page;
     this.app = Object.assign({}, pApp);
     (async () => {

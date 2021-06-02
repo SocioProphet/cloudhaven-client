@@ -9,7 +9,7 @@ export default {
     var app = this.$route.params.app;
     var page = this.$route.params.page || 'home';
     var appParams = this.$route.params.appParams
-    router.push({ name: 'OrganizationAppPane', params: { userId: this.$store.state.user._id, app:app, page:page, appParams:appParams } })
+    router.push({ name: 'OrganizationAppPane', params: { app:app, page:page, appParams:appParams } })
   }
 }
 </script>

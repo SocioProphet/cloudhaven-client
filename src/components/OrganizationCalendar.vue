@@ -5,7 +5,6 @@
     </v-card-title>
 
     <v-card-text>
-      <EventCalendar :organizationId="'5c17d7900da1c45d104d0eef'"></EventCalendar>
     </v-card-text>
 
     <!--v-card-actions>
@@ -17,10 +16,8 @@
 
 <script>
 import router from '../router'
-import EventCalendar from './EventCalendar.vue'
   export default {
     components: {
-      EventCalendar
     },
     data: () => ({
       error: ''
