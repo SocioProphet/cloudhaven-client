@@ -9,7 +9,6 @@ import DynamicUI from './DynamicUI.js'
 import Api from '@/services/Api'
 import { VSheet } from 'vuetify/lib'
 import { EventBus } from '../event-bus.js';
-import { deepGet, deepSet } from '../_helpers/deep.js'
 
 export default {
   components: {

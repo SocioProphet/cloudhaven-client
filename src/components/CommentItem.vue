@@ -46,7 +46,6 @@ import moment from 'moment'
           (async () => {
             var response = await Api().post('/conversation/updatecomment', 
               { contentId:this.comment._id, content: this.comment.content });
-              console.log(response.data);
             this.$emit('updateComment', this.comment);
             this.editMode = false;
           })();          

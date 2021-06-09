@@ -51,7 +51,6 @@ import Api from '@/services/Api'
       mounted() {
         (async () => {
           var response = await Api().post('/conversation',{application:this.application, topic: this.topic})
-          console.log(response.data);
           if (response.data) {
             this.conversation = response.data;
           } else {

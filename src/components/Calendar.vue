@@ -2,10 +2,16 @@
   <div>
     <v-sheet tile height="54" class="d-flex mb-0 pb-0" >
       <v-toolbar dense elevation="0" class="mb-0 pb-0">
+      <v-btn icon class="ma-2" @click="$refs.calendar.prev()">
+        <v-icon>mdi-chevron-left</v-icon>
+      </v-btn>
       <v-toolbar-title class="mr-3">{{$safeRef($refs.calendar).title}}</v-toolbar-title>
-      <v-btn icon><v-icon>mdi-calendar-refresh</v-icon></v-btn>
       <v-select style="max-width:85px" v-model="calendarMode" :items="calendarModes" dense hide-details class="ma-2" placeholder="type" ></v-select>
+      <v-btn icon class="ma-2" @click="$refs.calendar.next()" >
+        <v-icon>mdi-chevron-right</v-icon>
+      </v-btn>
       <v-btn icon @click.stop="addEvent()"><v-icon>mdi-calendar-plus</v-icon></v-btn>
+      <v-btn icon><v-icon>mdi-calendar-refresh</v-icon></v-btn>
       <v-spacer></v-spacer>
       <v-spacer></v-spacer>
       <v-form class="ma-0 pa-0"><v-text-field class="ma-0 pa-0" prepend-inner-icon="mdi-magnify" hide-details placeholder="Search" dense/></v-form>
@@ -77,6 +83,7 @@ var eventTypeToColorMap = {
   PTO: '#ea0109',
   Travel: '#00b397',
   Event: '#73c934',
+  Task: '#73c934',
   Birthday: '#eb7a00',
   Conference: '#808080'
 };
@@ -104,7 +111,7 @@ var defaultEvent = {
       rules: {
           required: value => !!value || 'Required.'
       },
-      eventTypes: ['Event', 'Meeting', 'Conference', 'PTO', 'Travel',  'Birthday', 'Holiday'],
+      eventTypes: ['Birthday', 'Conference', 'Event', 'Holiday', 'Meeting', 'PTO', 'Task', 'Travel'],
       datePickerDlg:false,
       event: {
         _id: null,
@@ -183,7 +190,6 @@ var defaultEvent = {
       },
       getEventColor (event) {
         var darkColor = this.lightenColor(event.color, -7);
-        console.log(event.color+': '+darkColor);
         return darkColor;
       },
       loadCalendar( start, end) {

@@ -355,10 +355,10 @@ import moment from 'moment';
             })
             return ar;
           },[]);
-          var response = await Api().post('/messagemgr/usersendmsg', 
+          var response = await Api().post('/messagemgr/send', 
             {sender: this.user._id, recipients:recipients, subject: this.message.subject, message: this.message.message});
           this.dialog = false;
-          if (resonse.data.success) {
+          if (response.data.success) {
             EventBus.$emit('global success alert', this.message.subject+' sent.');
           }
           this.loadMessages();

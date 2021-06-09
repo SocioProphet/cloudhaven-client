@@ -808,6 +808,51 @@ function makeMethods( ctx, uiMethods ) {
     })();
 
   }
+  /*
+  {
+	"ownerEmail":"richjvann@gmail.com",
+	"type": "Task",
+	"title": "App-created Task",
+	"content": "here is some content for the app-created task, ...",
+	"start": "2021-06-15T15:00:00Z",
+	"end": "2021-06-15T15:30:00Z",
+	"durationType": "timed",
+	"organization": "603ee28599a16849b4870d5b",
+	"applicationId": "test-app",
+  "componentId": "",
+  "appConfigData": {...}
+}
+  */
+  methods._appCreateCalendarEntry = ( params ) => {
+    (async () => {
+      params.organizationId = app.organizationId;
+      var response = await Api().post("calendarmgr/appcreateevent", params);
+//      var result = response.data;
+      if (cb) {
+        vm.$nextTick(() =>{
+          setTimeout(() => {
+            (cb).call(vm, response.data);
+          }, 100)
+        })
+      }
+    })();
+  }
+
+  //params: senderId||senderEmail, recipients, subject, message,
+	//        organization, applicationId, componentId, appConfigData
+  //recipients = [{type:'[to|cc|bcc]', email:'jsmith@widget.com'}]
+  methods._appSendMessage = ( params ) => {
+    (async () => {
+      if (!params.senderId && !params.senderEmail) {
+        params.senderId = this.user._id;
+      }
+      var response = await Api().post('/messagemgr/send', params );
+      this.dialog = false;
+      if (response.data.success) {
+        EventBus.$emit('global success alert', this.message.subject+' sent.');
+      }
+    })();
+  }
 
   return methods;
 }
