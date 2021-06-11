@@ -17,6 +17,7 @@ import Organizations from './components/Organizations'
 import AppPageReset from './components/AppPageReset'
 import OrganizationAppPane from './components/OrganizationAppPane'
 import OrganizationCalendar from './components/OrganizationCalendar'
+import CreateOrAssignOrg from './components/CreateOrAssignOrg'
 
 Vue.use(Router)
 
@@ -32,6 +33,11 @@ let router = new Router({
       path: '/mail',
       name: 'mail',
       component: Mail
+    },
+    {
+      path: '/createorassignorg',
+      name: 'CreateOrAssignOrg',
+      component: CreateOrAssignOrg
     },
     {
       path: '/calendar',

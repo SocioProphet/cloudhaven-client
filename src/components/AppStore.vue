@@ -34,31 +34,13 @@ import Api from '@/services/Api'
     },
     data: () => ({
       dialog: false,
-      valid: true
-
+      valid: true,
+      applications: []
     }),
 
     computed: {
       emptyLogo() {
         return "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7";
-      },
-      applications() {
-        if (!this.organizations) return [];
-        return this.organizations.reduce((ar, v)=>{
-          ar = ar.concat(v.applications.map((a)=>{
-            a.key = v.name+':'+a.name;
-            a.organizationId = v._id;
-            if (a.logo) {
-              var bytes = new Uint8Array(a.logo.data);
-              var binary = bytes.reduce((data, b) => data += String.fromCharCode(b), '');
-              a.logoSrc = "data:image/jpeg;base64," + btoa(binary);
-            } else {
-              a.logoSrc = this.emptyLogo;
-            }
-            return a;
-          })||[]);
-          return ar;
-        },[]);
       },
       ...mapState(['organizations', 'user'])
     },
@@ -71,16 +53,23 @@ import Api from '@/services/Api'
 
     mounted () {
       this.$store.commit('SET_RESULTNOTIFICATION', '');
-      this.$store.commit('SET_CRUDAPISERVCE', 'organizations');
-      this.$store.dispatch('loadRecords', 'organizations');
-      EventBus.$on('organizations data refresh', () =>{
-        this.$store.dispatch('loadRecords', 'organizations');
-      })
+      (async () => {
+        var response = await Api().get('/organizationapplication/applications');
+        this.applications = (response.data || []).map((a)=>{
+          if (a.logo) {
+            var bytes = new Uint8Array(a.logo.data);
+            var binary = bytes.reduce((data, b) => data += String.fromCharCode(b), '');
+            a.logoSrc = "data:image/jpeg;base64," + btoa(binary);
+          } else {
+            a.logoSrc = this.emptyLogo;
+          }
+          return a;
+        });
+      })();
     },
 
     methods: {
       subscribe(app) {
-        var u = this.user;
         (async () => {
           var postData = {userId: this.user._id, organizationId: app.organizationId, applicationId: app._id};
           var response = await Api().post('/usersubscription', postData);

@@ -18,7 +18,7 @@
     </v-card>
   </v-dialog>
   <!-- v-if="user.rolesMap['SYSADMIN']  || this.isOrganization" -->
-    <v-navigation-drawer 
+    <v-navigation-drawer v-if="user.status=='Active'"
       width="300px"
       :mini-variant="miniVariant" 
       clipped
@@ -44,8 +44,8 @@
     </v-navigation-drawer>
     <v-app-bar :style="this.appDetails.appBarStyle" app dense clipped-left >
     <!-- (user.rolesMap['SYSADMIN']) &&  -->
-      <v-app-bar-nav-icon v-if="$route.name!='login'" :class="appDetails.appBarTextClass" @click.stop="leftDrawer = !leftDrawer"></v-app-bar-nav-icon>
-      <v-tooltip v-if="$route.name!='home' && $route.name!='login'" bottom color="#2572d2" light>
+      <v-app-bar-nav-icon v-if="$route.name!='login' && user.status=='Active'" :class="appDetails.appBarTextClass" @click.stop="leftDrawer = !leftDrawer"></v-app-bar-nav-icon>
+      <v-tooltip v-if="showHomeIcon" bottom color="#2572d2" light>
         <template v-slot:activator="{ on, attrs }">
           <v-btn icon @click="goHome" v-bind="attrs" v-on="on">
             <v-icon color="yellow accent-2">mdi-home</v-icon>
@@ -53,7 +53,7 @@
         </template>
         <span>Home</span>
       </v-tooltip>
-      <v-tooltip v-if="$route.name!='home' && $route.name!='login'" bottom color="#2572d2" light>
+      <v-tooltip v-if="showHomeIcon" bottom color="#2572d2" light>
         <template v-slot:activator="{ on, attrs }">
           <div class="cloudHavenIcon mr-1" @click="gotoCloudHaven" v-bind="attrs" v-on="on"/>
         </template>
@@ -69,10 +69,10 @@
       </v-tooltip-->
       <v-toolbar-title :class="appDetails.appBarTextClass" @click="gotoCloudHaven" style="cursor:pointer">{{appTitle?appTitle:'CloudHaven'}}</v-toolbar-title>
       <v-spacer></v-spacer>
-      <v-alert class="mt-auto" dark elevation="12" transition="slide-y-reverse-transition" dismissible v-model="showGlobalAlert" :type="globalAlert.type||'success'">{{globalAlert.msg}}</v-alert>
+      <v-alert class="mt-auto mb-auto" dense dark elevation="12" transition="slide-y-reverse-transition" dismissible v-model="showGlobalAlert" :type="globalAlert.type||'success'">{{globalAlert.msg}}</v-alert>
       <v-spacer></v-spacer>
-      <v-btn v-if="isLoggedIn" class="mr-2" color="black" fab small dark @click="gotoCalendar"><v-icon>mdi-calendar-month-outline</v-icon></v-btn>
-      <v-btn v-if="isLoggedIn" class="mr-2" color="black" fab small dark @click="gotoMail"><v-icon>mdi-email-multiple-outline</v-icon></v-btn>
+      <v-btn v-if="isLoggedIn && user.status=='Active'" class="mr-2" color="black" fab small dark @click="gotoCalendar"><v-icon>mdi-calendar-month-outline</v-icon></v-btn>
+      <v-btn v-if="isLoggedIn && user.status=='Active'" class="mr-2" color="black" fab small dark @click="gotoMail"><v-icon>mdi-email-multiple-outline</v-icon></v-btn>
       <span v-if="isLoggedIn" :class="appDetails.nameTextClass">{{user.name}}&nbsp;&nbsp;&nbsp;&nbsp;<a :class="appDetails.appBarTextClass" @click="logout"><b>Logout</b></a></span>
       <!--v-spacer></v-spacer>
       <v-btn icon @click.stop="rightDrawer = !rightDrawer">
@@ -99,7 +99,7 @@ const CloudHavenAppDetails = {
   appBarStyle: {background: 'linear-gradient(to bottom, #FFFFFF -100%, #00528d 100%)'},
   appBarTextClass: "white--text text--accent-2",
   nameTextClass: "yellow--text",
-  menuItems: [
+  sysAdminMenuItems: [
     { route: 'MyApps', action: '', title: 'My Apps' },
     { route: 'AppStore', action: '', title: 'App Store' },
     { route: 'MyProfile', action: '', title: 'My Profile'},
@@ -107,6 +107,12 @@ const CloudHavenAppDetails = {
     { route: 'users', action: '', title: 'Users' },
     { route: 'userFiles', action: '', title: 'User Files' },
     { route: 'ViewUserData', action: '', title: 'View User Data' }
+  ],
+  userMenuItems: [
+    { route: 'MyApps', action: '', title: 'My Apps' },
+    { route: 'AppStore', action: '', title: 'App Store' },
+    { route: 'MyProfile', action: '', title: 'My Profile'},
+    { route: 'organizations', action: '', title: 'My Organizations'}
   ]
 };
 export default {
@@ -182,6 +188,9 @@ export default {
     this.goHome();
   },
   computed: {
+    showHomeIcon() {
+      return this.$route.name=='OrganizationAppPane' && this.user.status=='Active'
+    },
     appTitle() {
       return this.appDetails.name==CloudHavenAppDetails.name?'': ` ${this.appDetails.name}`
     },
@@ -193,7 +202,7 @@ export default {
     menuItems() {
 //      if (this.user.rolesMap['SYSADMIN']) {
       if (this.appDetails.name == CloudHavenAppDetails.name || !this.appDetails.menuItems) {
-        return CloudHavenAppDetails.menuItems;
+        return this.user.roles.find(r=>(r=='SYSADMIN'))?CloudHavenAppDetails.sysAdminMenuItems:CloudHavenAppDetails.userMenuItems;
       }
       var menuItems = [];
       this.appDetails.menuItems.forEach(m=>{

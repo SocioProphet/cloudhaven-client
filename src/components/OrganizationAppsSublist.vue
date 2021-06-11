@@ -39,17 +39,18 @@
             <span class="text-h5">Application</span>
           </v-card-title>
           <v-card-text>
-          <v-alert
-            :value="appErrMsg?true:false"
-            dismissible
-            type="error"
-          >
-            {{appErrMsg}}
-          </v-alert>
             <v-form ref="appForm" v-model="valid" lazy-validation>
               <v-text-field v-model="editedItem.name" label="Name" required></v-text-field>
               <v-text-field v-model="editedItem.applicationId" label="Application Id" required></v-text-field>
+              <v-radio-group v-model="editedItem.source" row label="Source">
+                <v-radio label='App Server' value='App Server'></v-radio>
+                <v-radio label='CloudHaven' value='CloudHaven'></v-radio>
+              </v-radio-group>
               <v-text-field v-model="editedItem.url" label="URL" required ></v-text-field>
+              <v-tabs dark fixed-tabs background-color="#1E5AC8" color="#FFF10E" >
+              <v-tab>Logo</v-tab>
+              <v-tab>Pages</v-tab>
+              <v-tab-item>
               <v-row fill-height wrap class="pt-4" >
                 <div style="width:100%" >
                   <span class="v-label v-label--active theme--light ml-3" >Logo</span>
@@ -67,6 +68,11 @@
                   </v-sheet>
                 </v-col>
               </v-row>
+              </v-tab-item>
+              <v-tab-item>
+                <AppPagesSublist :organizationId="organization._id" :application="editedItem" @appPagesChanged="appPagesChanged"/>
+              </v-tab-item>
+            </v-tabs>
             </v-form>
           </v-card-text>
 
@@ -84,12 +90,14 @@
 
 <script>
   import Api from '@/services/Api'
+  import { EventBus } from '../event-bus.js';
   import MultipartPostApi from '@/services/MultipartPostApi'
+  import AppPagesSublist from './AppPagesSublist.vue'
   export default {
     props: ['organization'],
+    components: {AppPagesSublist},
     data: () => ({
       dialog: false,
-      appErrMsg:'',
       valid: true,
       headers: [
         { text: 'Actions', value: 'name', sortable: false, align:'center' },
@@ -102,8 +110,10 @@
       editedItem: {
         name: '',
         applicationId:'',
+        source: 'CloudHaven',
         logo:null,
-        url: ''
+        url: '',
+        pages: []
       },
       logoUpdated: false,
       dragAndDropCapable: false,
@@ -133,6 +143,10 @@
     },
 
     methods: {
+      appPagesChanged( pages ) {
+        debugger;
+        this.editedItem.pages = [].concat(pages);
+      },
       prepDragNDrop() {
         //File drag-n-drop logic
         this.dragAndDropCapable = this.determineDragAndDropCapable();
@@ -170,8 +184,9 @@
       createFormData(operation) {
         var formData = new FormData();
         formData.append('operation', operation);
-        formData.append('organization_Id', this.organization._id);
         formData.append('applicationId', this.editedItem.applicationId);
+        formData.append('organization_Id', this.organization._id);
+        formData.append('source', this.editedItem.source);
         formData.append('_id', this.editedItem._id);
         formData.append('logo', this.editedItem.logo);
         formData.append('logoUpdated', this.logoUpdated)
@@ -186,33 +201,34 @@
           name: '',
           application_Id:'',
           applicationId: '',
+          source: 'CloudHaven',
           logo:'',
           url: ''
         }, item);
         this.dialog = true;
-        this.appErrMsg = '';
         setTimeout(()=>{
           this.prepDragNDrop();
           }, 500);
       },
 
       deleteItem (item) {
+        var vm = this;
         const index = this.organization.applications.findIndex((application) => {return application.name === item.name && application.contactType == item.contactType;})
         if (confirm('Are you sure you want to delete '+item.name+'?')) {
           if (item._id) {
             (async () => {
               var response = await Api().delete('/organizationapplication/'+this.organization._id+'/'+item._id);
               if (response.data.success) {
-                this.$store.commit('SET_SUCCESS', `${item.name} deleted.`);
-                this.organization.applications.splice(index, 1);
-                this.$store.dispatch('loadRecords', 'organizations');
-                this.appErrMsg = '';
+                EventBus.$emit('global success alert', `${item.name} deleted.`);
+                vm.$emit('orgAppsChanged', response.data.apps);
               } else if (response.data.errMsg) {
-                this.appErrMsg = response.data.errMsg;
+                EventBus.$emit('global error alert', response.data.errMsg);
               }
             })();
           } else {
-            this.organization.applications.splice(index, 1);
+            var apps = [].concat(this.organization.applications);
+            apps.splice(index, 1);
+            vm.$emit('orgAppsChanged', apps );
           }
         }
       },
@@ -225,31 +241,36 @@
             name: '',
             applicationId: '',
             application_Id: '',
+            source: 'CloudHaven',
             logo:'',
-            url:''
+            url:'',
+            pages: []
           };
           this.editedIndex = -1
         }, 300)
       },
 
       save () {
+        var vm = this;
         if (!this.$refs.appForm.validate()) return;
         var operation = this.editedIndex > -1 ? 'update' : 'add';
         if (operation == 'update' || this.organization._id) {
           (async () => {
+
             var response = await MultipartPostApi().post('/organizationapplication/upsert', this.createFormData(operation));
             if (response.data.success) {
               this.$store.commit('SET_SUCCESS', `${this.editedItem.name} ${operation=='update'?'updated':'added'}.`);
-              this.organization.applications = response.data.applications;
+              vm.$emit('orgAppsChanged', response.data.applications );
               this.dialog = false;
-              this.$store.dispatch('loadRecords', 'organizations')
               this.appErrMsg = '';
             } else if (response.data.errMsg) {
               this.appErrMsg = response.data.errMsg;
             }
           })();
         } else {
-          this.organization.applications.push(this.editedItem)
+          var apps = [].concat( this.organization.applications );
+          apps.push(this.editedItem);
+          vm.$emit('orgAppsChanged', response.data.applications );
           this.dialog = false;
         }
       }

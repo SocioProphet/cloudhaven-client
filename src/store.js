@@ -31,6 +31,16 @@ export default new Vuex.Store({
     }
   },
   actions: {
+    reloadUser({commit, state}) {
+      axios({url: process.env.VUE_APP_REST_SERVER_URL+'/userdata/getuser/'+state.user._id, method: 'GET' })
+      .then(resp => {
+        commit('SET_USERINFO', resp.data.user);
+        resolve(resp.data.user);
+      })
+      .catch(err => {
+        reject(err.response.status)
+      })
+    },
     login({commit, state}, user){
       return new Promise((resolve, reject) => {
         commit('auth_request');
@@ -187,7 +197,7 @@ export default new Vuex.Store({
         mp[role] = role;
         return mp;
       },{});
-      localStorage.setItem('ch_user', JSON.stringify(state.user));
+//      localStorage.setItem('ch_user', JSON.stringify(state.user));
     },
     auth_error(state){
       state.status = 'error'
@@ -243,13 +253,12 @@ export default new Vuex.Store({
       }
     },
     SET_USERINFO: (state, userInfo) => {
-      state.user._id = userInfo._id;
-      state.user.recentCases = userInfo.recentCases;
-      state.user.roles = userInfo.roles;
+      state.user = Object.assign({}, userInfo);
       state.user.rolesMap = state.user.roles.reduce((mp,role)=>{
         mp[role] = role;
         return mp;
-      },{})
+      },{});
+      localStorage.setItem('ch_user', JSON.stringify(state.user));
     },
     SET_USER_SETTING(state, payload) {
       state.userSettings[payload.setting] = payload.value;

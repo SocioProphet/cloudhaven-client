@@ -295,7 +295,6 @@ var defaultEvent = {
             EventBus.$emit('global success alert', `${this.event.type} ${this.event.title} ${this.editMode=='add'?'added':'saved'}.`);
           } else if (response.data.errMsg) {
             EventBus.$emit('global error alert', response.data.errMsg);
-
           }
           this.dialog = false;
         })();

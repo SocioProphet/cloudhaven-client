@@ -20,27 +20,27 @@
 
           <v-card-text>
             <v-form ref="theForm" v-model="valid" lazy-validation>
-              <v-text-field :readonly="editedItem.organizationId=='cloudhaven'" v-model="editedItem.name" label="Name" required :rules="[rules.required]"></v-text-field>
-              <v-text-field :readonly="editedItem.organizationId=='cloudhaven'" v-model="editedItem.organizationId" label="Id" required :rules="[rules.required]"></v-text-field>
-              <v-text-field v-if="editedItem.organizationId!='cloudhaven'" v-model="editedItem.componentsUrl" label="Components URL" :rules="[rules.url]"></v-text-field>
+              <v-text-field :readonly="editedOrg.organization.organizationId=='cloudhaven'" v-model="editedOrg.organization.name" label="Name" required :rules="[rules.required]"></v-text-field>
+              <v-text-field :readonly="editedOrg.organization.organizationId=='cloudhaven'" v-model="editedOrg.organization.organizationId" label="Id" required :rules="[rules.required]"></v-text-field>
+              <v-text-field v-if="editedOrg.organization.organizationId!='cloudhaven'" v-model="editedOrg.organization.componentsUrl" label="Components URL" :rules="[rules.url]"></v-text-field>
             </v-form>
           </v-card-text>
               <v-tabs dark fixed-tabs background-color="#1E5AC8" color="#FFF10E" >
-              <v-tab v-if="editedItem.organizationId!='cloudhaven'" >Applications</v-tab>
-              <v-tab v-if="editedItem.organizationId!='cloudhaven'" >Components</v-tab>
+              <v-tab v-if="editedOrg.organization.organizationId!='cloudhaven'" >Applications</v-tab>
+              <v-tab v-if="editedOrg.organization.organizationId!='cloudhaven'" >Components</v-tab>
               <v-tab>Groups</v-tab>
               <v-tab>Contacts</v-tab>
-              <v-tab-item v-if="editedItem.organizationId!='cloudhaven'">
-                <OrganizationAppsSublist :organization="editedItem"/>
+              <v-tab-item v-if="editedOrg.organization.organizationId!='cloudhaven'">
+                <OrganizationAppsSublist :organization="editedOrg.organization" @orgAppsChanged="orgAppsChanged"/>
               </v-tab-item>
-              <v-tab-item v-if="editedItem.organizationId!='cloudhaven'">
-                <OrganizationComponentsSublist :organization="editedItem"/>
-              </v-tab-item>
-              <v-tab-item>
-                <OrganizationGroups :organization="editedItem" />
+              <v-tab-item v-if="editedOrg.organization.organizationId!='cloudhaven'">
+                <OrganizationComponentsSublist :organization="editedOrg.organization"/>
               </v-tab-item>
               <v-tab-item>
-                <OrganizationContactsSublist :organization="editedItem"  :contactTypeOptions="contactTypeOptions"/>
+                <OrganizationGroups :organization="editedOrg.organization" />
+              </v-tab-item>
+              <v-tab-item>
+                <OrganizationContactsSublist :organization="editedOrg.organization"  :contactTypeOptions="contactTypeOptions"/>
               </v-tab-item>
             </v-tabs>
 
@@ -54,7 +54,7 @@
     </v-toolbar>
     <v-data-table id="organization-table"
       :headers="headers"
-      :items="organizations"
+      :items="myOrgMemberships"
       hide-default-footer disable-pagination
       class="elevation-1 mx-1"
     >
@@ -70,7 +70,7 @@
           </v-icon>
           </v-btn>
           <v-btn icon >
-          <v-icon v-if="item.organizationId!='cloudhaven'"
+          <v-icon v-if="item.organization.organizationId!='cloudhaven'"
             medium
             @click.stop="deleteItem(item)"
           >
@@ -78,9 +78,10 @@
           </v-icon>
           </v-btn>
         </td>
-        <td>{{item.name}}</td>
-        <td>{{item.organizationId}}</td>
-        <td>{{item.componentsUrl}}</td>
+        <td>{{item.organization.isAdmin?'Yes':'No'}}
+        <td>{{item.organization.name}}</td>
+        <td>{{item.organization.organizationId}}</td>
+        <td>{{item.organization.componentsUrl}}</td>
        </tr>
       </template>
     </v-data-table>
@@ -90,6 +91,7 @@
 
 <script>
 import { mapState } from 'vuex'
+import Api from '@/services/Api'
 import { EventBus } from '../event-bus.js';
 import OrganizationContactsSublist from './OrganizationContactsSublist.vue'
 import OrganizationAppsSublist from './OrganizationAppsSublist.vue'
@@ -122,17 +124,22 @@ import OrganizationGroups from './OrganizationGroups.vue'
       contactTypeOptions: ['Primary', 'Associate'],
       headers: [
         { text: 'Actions', value: 'name', sortable: false, align:'center' },
-        { text: 'Name', align:'left', sortable:true, value: 'name' },
-        { text: 'Organization Id', align:'left', sortable:true, value: 'organizationId' },
-        { text: 'Comonents URL', align:'left', sortable:true, value: 'componentsUrl' }
+        { text: 'Is Admin', align:'left', sortable:true, value: 'isAdmin' },
+        { text: 'Name', align:'left', sortable:true, value: 'organization.name' },
+        { text: 'Organization Id', align:'left', sortable:true, value: 'organization.organizationId' },
+        { text: 'Comonents URL', align:'left', sortable:true, value: 'organization.componentsUrl' }
       ],
-      editedIndex: -1,
-      editedItem: {
-        name: '',
-        organizationId: '',
-        contacts: [],
-        applications: []
-      }
+      editedOrgId: '',
+      editedOrg: {
+        isAdmin: false,
+        organization: {
+          name: '',
+          organizationId: '',
+          contacts: [],
+          applications: []
+        }
+      },
+      myOrgMemberships: []
 
     }),
 
@@ -140,7 +147,7 @@ import OrganizationGroups from './OrganizationGroups.vue'
       formTitle () {
         return this.editedIndex === -1 ? 'New Organization' : 'Edit Organization'
       },
-      ...mapState(['organizations'])
+      ...mapState(['organizations', 'user'])
     },
 
     watch: {
@@ -151,63 +158,76 @@ import OrganizationGroups from './OrganizationGroups.vue'
 
     created() {
       this.$store.commit('SET_RESULTNOTIFICATION', '');
-      this.$store.commit('SET_CRUDAPISERVCE', 'organizations');
-      this.$store.dispatch('loadRecords', 'organizations');
+      this.loadRecords();
     },
     mounted () {
       EventBus.$on('organizations data refresh', () =>{
-        this.$store.dispatch('loadRecords', 'organizations');
+        this.loadRecords();
       })
     },
 
     methods: {
+      orgAppsChanged(apps) {
+        debugger;
+        this.editedItem.applications = [].concat(pages);
+      },
+      loadRecords() {
+        if (this.user.rolesMap['SYSADMIN']) {
+          this.$store.commit('SET_CRUDAPISERVCE', 'organizations');
+          this.$store.dispatch('loadRecords', 'organizations');
+        } else {
+          (async () => {
+              var response = await Api().get('/organizationuser/currentuserorgs');
+              if (response.data.success) {
+                this.myOrgMemberships = [].concat(response.data.orgMemberships);
+                debugger;
+              } else if (response.data.errMsg) {
+                EventBus.$emit('global error alert', response.data.errMsg);
+              }
+          })();
+        }
+      },
       displayItemToEdit() {
         this.dialog = true;
       },
       editItem (item) {
         this.$store.commit('SET_RESULTNOTIFICATION', '');
-        this.editedIndex = this.organizations.indexOf(item);
-        if (item._id) {
-          this.$store.dispatch('readRecord', {model:'organizations', _id:item._id})
-          .then((readItem)=>{
-            this.editedItem = Object.assign({}, readItem);
-            this.displayItemToEdit()
-          })
-        } else {
-          this.editedItem = Object.assign({}, item);
-          this.displayItemToEdit()
-        }
+        this.editedOrgId = item._id;
+        this.editedOrg = Object.assign({}, item);
+        this.displayItemToEdit()
       },
 
       deleteItem (item) {
-        confirm('Are you sure you want to delete '+item.name+'?') && this.$store.dispatch('deleteRecord', {model:'organizations', dbObject:item, label:item.name});
+        if (confirm('Are you sure you want to delete '+item.organization.name+'?')) {
+          //        } && this.$store.dispatch('deleteRecord', {model:'organizations', dbObject:item, label:item.name});
+          alert('Delete not currently implemented.');
+        }
       },
 
       cancel() {
-        this.$store.commit('SET_RESULTNOTIFICATION', '');
         this.dialog = false;
       },
       close () {
         setTimeout(() => {
-          this.editedItem = {
+          this.editedOrg = {
             name: '',
             organizationId: '',
             contacts: [],
             applications: []
           }
-          this.editedIndex = -1;
+          this.editedOrgId = '';
         }, 300)
       },
 
       save () {
         if (this.$refs.theForm.validate()) {
-          ((this.editedIndex > -1)?
-            this.$store.dispatch('updateRecord', {model:'organizations', label: this.editedItem.name, dbObject:this.editedItem}):
-            this.$store.dispatch('createRecord', {model:'organizations', label: this.editedItem.name, dbObject:this.editedItem})).then((newRec)=> {
+          ((this.editedOrgId)?
+            this.$store.dispatch('updateRecord', {model:'organizations', label: this.editedOrg.organization.name, dbObject:this.editedOrg}):
+            this.$store.dispatch('createRecord', {model:'organizations', label: this.editedOrg.organization.name, dbObject:this.editedOrg})).then((newRec)=> {
               if (newRec) {
-                this.$store.commit('SET_SUCCESS', `${this.editedItem.name} ${this.editedIndex > -1?'updated':'added'}.`);
+                EventBus.$emit('global success alert', `${this.editedOrg.organization.name} ${this.editedOrgId?'updated':'added'}.`);
                 this.dialog = false;
-                this.$store.dispatch('loadRecords', 'organizations')
+                this.loadRecords();
               }
             })
         }

@@ -42,9 +42,10 @@
 import Api from '@/services/Api'
 import router from '../router'
 import stateList from '../_helpers/stateList.js'
-import moment from 'moment'
+import { EventBus } from '../event-bus.js';
 import { mapState } from 'vuex'
 import UserDataDictionary from './userdatadictionary.js'
+import moment from 'moment';
 
   export default {
     data: () => ({
@@ -83,6 +84,7 @@ import UserDataDictionary from './userdatadictionary.js'
       this.$store.commit('SET_RESULTNOTIFICATION', '');
       var u = this.user;
       (async () => {
+        var dummy = await this.$store.dispatch('reloadUser');
         var response = await Api().post('/userdata/batchget', {userIds: [this.user._id]});
         var userDataMap = response.data || {};
         var userDataList = userDataMap[this.user._id];
@@ -91,6 +93,11 @@ import UserDataDictionary from './userdatadictionary.js'
             this.userData[e.name] = e.content;
           })
         }
+        UserDataDictionary.forEach(de=>{
+          if (de.coreData) {
+            this.userData[de.id] = de.id=='dateOfBirth'? moment(this.user[de.id]).format('l'):this.user[de.id];
+          }
+        })
       })();
     },
     beforeCreate() {
@@ -106,7 +113,11 @@ import UserDataDictionary from './userdatadictionary.js'
         var updates = Object.keys(this.userData).map(p=>({name:p, content:this.userData[p]}));
         (async () => {
           var response = await Api().post("/userdata/batchupsert", {userId: this.user._id, updates: updates});
-          var result = response.data;
+          if (response.data.success) {
+            EventBus.$emit('global success alert', `User profile updated.`);
+          } else if (response.data.errMsg) {
+            EventBus.$emit('global error alert', response.data.errMsg || 'Update failed.');
+          }
         })();
       },
       cancelForm() {

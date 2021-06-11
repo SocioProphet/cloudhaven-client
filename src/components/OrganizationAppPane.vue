@@ -34,19 +34,24 @@ export default {
     this.app = Object.assign({}, pApp);
     (async () => {
       var response = await Api().post('/organizationapplication/getapppage', {app:pApp, page:page});
-      this.uiConfig = response.data;
-      if (this.uiConfig.appFrame) {
-        EventBus.$emit('set app frame', Object.assign(this.app, this.uiConfig.appFrame))
-      }
-      var u = this.uiConfig;
-      if (this.uiConfig.externalComponents) {
-        var response = await Api().post('/organizationcomponent/getcomponents', {organizationComps:this.uiConfig.externalComponents});
-        if (response.status==200 && response.data.success) {
-          this.uiConfig.components = (this.uiConfig.components || []).concat(response.data.components);
+      if (response.data.success) {
+        this.uiConfig = response.data;
+        if (this.uiConfig.appFrame) {
+          EventBus.$emit('set app frame', Object.assign(this.app, this.uiConfig.appFrame))
         }
-        this.component = 'DynamicUI';
+        var u = this.uiConfig;
+        if (this.uiConfig.externalComponents) {
+          var response = await Api().post('/organizationcomponent/getcomponents', {organizationComps:this.uiConfig.externalComponents});
+          if (response.status==200 && response.data.success) {
+            this.uiConfig.components = (this.uiConfig.components || []).concat(response.data.components);
+          }
+          this.component = 'DynamicUI';
+        } else {
+          this.component = 'DynamicUI';
+        }
       } else {
-        this.component = 'DynamicUI';
+        EventBus.$emit('global error alert', response.data.errMsg);
+
       }
     })();
   }
