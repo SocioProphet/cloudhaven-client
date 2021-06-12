@@ -49,6 +49,8 @@
             <v-spacer></v-spacer>
             <v-btn elevation="2" color="blue darken-1" text @click.native="save"><v-icon left dark>mdi-content-save</v-icon>Save</v-btn>
           </v-card-actions>
+          <v-textarea v-if="errors.length>0" wrap="off" light color="red--text text--darken-2" class="mx-5 mt-4" label="Errors" :value="errors.join('\n')">
+          </v-textarea>
         </v-card>
       </v-dialog>
       </template>
@@ -71,7 +73,6 @@
   import 'prismjs/themes/prism-funky.css'; // import syntax highlighting styles
   export default {
     components: { PrismEditor },
-    aaa: "asdfasdf",
     props: {
       organizationId: String,
       application: Object
@@ -145,11 +146,11 @@
         var errors = [];
         try {
           var uiConfig = JSON5.parse(this.page.content);
-          errors = vcdnUtils.checkSyntax(uiConfig);
+          errors = vcdnUtils.checkSyntax(uiConfig) || [];
         } catch (e) {
           errors.push(e+'');
         }
-        debugger;
+        this.errors = errors;
         if (operation == 'update' || this.application._id) {
           (async () => {
             var response = await Api().post('/organizationapplication/writepage', 
@@ -157,8 +158,10 @@
             if (response.data.success) {
               this.$store.commit('SET_SUCCESS', `${this.page.name} ${operation=='update'?'updated':'added'}.`);
               vm.$emit('appPagesChanged', response.data.pages );
-              this.dialog = false;
-              EventBus.$emit('global success alert', `${this.page.name} ${this.editedIndex > -1?'updated':'added'}.`);
+              if (errors.length==0) {
+                this.dialog = false;
+              }
+              EventBus.$emit('global success alert', `${this.page.name} passed syntax cgecj${this.editedIndex > -1?'updated':'added'}${errors.length>0?' with errors':''}.`);
             } else if (response.data.errMsg) {
               EventBus.$emit('global error alert',  response.data.errMsg );
             }
@@ -184,6 +187,7 @@
         name: '',
         content: ''
       },
+      errors: [],
       defaultPage: `{
   requiredUserData: ['firstName', 'lastName'],
   dataModel:{

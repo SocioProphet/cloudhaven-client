@@ -1,3 +1,7 @@
+import * as VueLib from 'vuetify/lib'
+import CommentsManager from '../components/CommentsManager.vue'
+import CHDateField from '../components/CHDateField.vue'
+import CHFileViewer from '../components/CHFileViewer.vue'
 import _ from 'lodash';
 
 function isObject( obj ) {
@@ -5,6 +9,126 @@ function isObject( obj ) {
 }
 
 var obj = {};
+obj.uiElementToVueCompMap = {
+  alert: VueLib['VAlert'],
+  autocomplete: VueLib['VAutocomplete'],
+  avatar: VueLib['VAvatar'],
+  badge: VueLib['VBadge'],
+  banner: VueLib['VBanner'],
+  bottomNavigation: VueLib['VBottomNavigation'],
+  bottomSheet: VueLib['VBottomSheet'],
+  breadcrumbs: VueLib['VBreadcrumbs'],
+  col: VueLib['VCol'],
+  button: VueLib['VBtn'],
+  buttonToggle: VueLib['VBtnToggle'],
+  calendar: VueLib['VCalendar'],
+  calendarDaily: VueLib['VCalendarDaily'],
+  calendarMonthly: VueLib['VCalendarMonthly'],
+  calendarWeekly: VueLib['VCalendarWeekly'],
+  card: VueLib['VCard'],
+  cardSubtitle: VueLib['VCardSubtitle'],
+  cardTitle: VueLib['VCardTitle'],
+  cardText: VueLib['VCardText'],
+  cardActions: VueLib['VCardActions'],
+  carousel: VueLib['VCarousel'],
+  carouselItem: VueLib['VCarouselItem'],
+  chip: VueLib['VChip'],
+  chipGroup: VueLib['VChipGroup'],
+  checkbox: VueLib['VCheckbox'],
+  colorPicker: VueLib['VColorPicker'],
+  combobox: VueLib['VCombobox'],
+  container: VueLib['VContainer'],
+  dataIterator: VueLib['VDataIterator'],
+  dataFooter: VueLib['VDataFooter'],
+  datePicker: VueLib['VDatePicker'],
+  dataTable: VueLib['VDataTable'],
+  dataTableHeader: VueLib['VDataTableHeader'],
+  dialog: VueLib['VDialog'],
+  divider: VueLib['VDivider'],
+  expansionPanel: VueLib['VExpansionPanel'],
+  expansionPanelHeader: VueLib['VExpansionPanelHeader'],
+  expansionPanelContent: VueLib['VExpansionPanelContent'],
+  expansionPanels: VueLib['VExpansionPanels'],
+  editDialog: VueLib['VEditDialog'],
+  fileInput: VueLib['VFileInput'],
+  footer: VueLib['VFooter'],
+  form: VueLib['VForm'],
+  hover: VueLib['VHover'],
+  icon: VueLib['VIcon'],
+  image: VueLib['VImg'],
+  input: VueLib['VInput'],
+  item: VueLib['VItem'],
+  itemGroup: VueLib['VItemGroup'],
+  lazy: VueLib['VLazy'],
+  list: VueLib['VList'],
+  listGroup: VueLib['VListGroup'],
+  listItem: VueLib['VListItem'],
+  listItemAction: VueLib['VListItemAction'],
+  listItemActionText: VueLib['VListItemActionText'],
+  listItemAvatar: VueLib['VListItemAvatar'],
+  listItemContent: VueLib['VListItemContent'],
+  listItemGroup: VueLib['VListItemGroup'],
+  listItemIcon: VueLib['VListItemIcon'],
+  listItemSubtitle: VueLib['VListItemSubtitle'],
+  listItemTitle: VueLib['VListItemTitle'],
+  menu: VueLib['VMenu'],
+  navigationDrawer: VueLib['VNavigationDrawer'],
+  overflowButton: VueLib['VOverflowBtn'],
+  overlay: VueLib['VOverlay'],
+  pagination: VueLib['VPagination'],
+  parallax: VueLib['VParallax'],
+  progressCircular: VueLib['VProgressCircular'],
+  progressLinear: VueLib['VProgressLinear'],
+  overlay: VueLib['VOverlay'],
+  overlay: VueLib['VOverlay'],
+  radio: VueLib['VRadio'],
+  rangeSlider: VueLib['VRangeSlider'],
+  radioGroup: VueLib['VRadioGroup'],
+  rating: VueLib['VRating'],
+  responsive: VueLib['VResponsive'],
+  row: VueLib['VRow'],
+  select: VueLib['VSelect'],
+  sheet: VueLib['VSheet'],
+  simpleCheckbox: VueLib['VSimpleCheckbox'],
+  simpleTable: VueLib['VSimpleTable'],
+  skeletonLoader: VueLib['VSkeletonLoader'],
+  slider: VueLib['VSlider'],
+  slideGroup: VueLib['VSlideGroup'],
+  slideItem: VueLib['VSlideItem'],
+  snackbar: VueLib['VSnackbar'],
+  spacer: VueLib['VSpacer'],
+  sparkline: VueLib['VSparkline'],
+  stepper: VueLib['VStepper'],
+  stepperContent: VueLib['VStepperContent'],
+  stepperHeader: VueLib['VStepperHeader'],
+  stepperItems: VueLib['VStepperItems'],
+  stepperStep: VueLib['VStepperStep'],
+  subheader: VueLib['VSubheader'],
+  switch: VueLib['VSwitch'],
+  tab: VueLib['VTab'],
+  tabs: VueLib['VTabs'],
+  tabsItems: VueLib['VTabsItems'],
+  tabItem: VueLib['VTabItem'],
+  tabsSlider: VueLib['VTabsSlider'],
+  textarea: VueLib['VTextarea'],
+  textField: VueLib['VTextField'],
+  timePicker: VueLib['VTimePicker'],
+  timeline: VueLib['VTimeline'],
+  timelineItem: VueLib['VTimelineItem'],
+  toolbar: VueLib['VToolbar'],
+  toolbarTitle: VueLib['VToolbarTitle'],
+  toolbarItems: VueLib['VToolbarItems'],
+  tooltip: VueLib['VTooltip'],
+  treeview: VueLib['VTreeview'],
+  virtualScroll: VueLib['VVirtualScroll'],
+  window: VueLib['VWindow'],
+  windowItem: VueLib['VWindowItem'],
+  conversation: CommentsManager,
+  dateField: CHDateField,
+  fileViewer: CHFileViewer
+
+}
+
 
 obj.checkSyntax = ( vcdn ) => {
   var errors = [];
@@ -119,8 +243,62 @@ obj.checkSyntax = ( vcdn ) => {
 
     })
   }
-  function validateUISchema( appFrameJSON ) {
-
+  function validateUISchema( uiSchema ) {
+    if (!uiSchema.component) {
+      errors.push('Missing component property.');
+    }
+    if (!uiSchema.contents && !uiSchema.template) {
+      errors.push(`Missing contents or template property for component ${uiSchema.component}`);
+    }
+    var validComponents = Object.keys(obj.uiElementToVueCompMap).concat(["template", "dynamicComponent", "loop"]);
+    var validProps = [
+      'component',
+      'class',
+      'style',
+      'attrs',
+      'props',
+      'domProps',
+      'key',
+      'ref',
+      ':class',
+      ':style',
+      ':attrs',
+      ':props',
+      ':domProps',
+      ':key',
+      ':ref',
+      'to',
+      'nativeOn',
+      'on',
+      'vmodel',
+      'userData',
+      'scopedSlots',
+      'contents',
+      'omit',
+      'show',
+      'scopedSlots',
+      'template'
+    ];
+    var validPropsMap = validProps.reduce((mp,p)=>{ mp[p] = true; return mp; },{});
+    Object.keys(uiSchema).forEach(prop =>{
+      if (!validPropsMap[prop]) {
+        errors.push(`Unrecognized uiSchema component ${uiSchema.component} property ${prop} (${validProps.join(', ')})`);
+      }
+      if (prop == 'component') {
+        if (validComponents.indexOf(uiSchema.component)<0) {
+          errors.push(`Unrecognized uiSchema component ${uiSchema.component}`);
+        }
+      }
+    });
+    if (uiSchema.contents) {
+      if (Array.isArray(uiSchema.contents)) {
+        uiSchema.contents.forEach(c=>{
+          validateUISchema(c);
+        })
+      } else if (isObject(uiSchema.contents)) {
+        validateUISchema(uiSchema.contents);
+      }
+    }
   }
   var validPropertiesMap = {
     components:'array',
