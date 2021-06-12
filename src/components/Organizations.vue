@@ -168,8 +168,8 @@ import OrganizationGroups from './OrganizationGroups.vue'
 
     methods: {
       orgAppsChanged(apps) {
-        debugger;
-        this.editedItem.applications = [].concat(pages);
+        this.editedItem.applications = [].concat(apps);
+        this.loadRecords();
       },
       loadRecords() {
         if (this.user.rolesMap['SYSADMIN']) {
@@ -180,7 +180,6 @@ import OrganizationGroups from './OrganizationGroups.vue'
               var response = await Api().get('/organizationuser/currentuserorgs');
               if (response.data.success) {
                 this.myOrgMemberships = [].concat(response.data.orgMemberships);
-                debugger;
               } else if (response.data.errMsg) {
                 EventBus.$emit('global error alert', response.data.errMsg);
               }
@@ -210,10 +209,13 @@ import OrganizationGroups from './OrganizationGroups.vue'
       close () {
         setTimeout(() => {
           this.editedOrg = {
-            name: '',
-            organizationId: '',
-            contacts: [],
-            applications: []
+            isAdmin: false,
+            organization: {
+              name: '',
+              organizationId: '',
+              contacts: [],
+              applications: []
+            }
           }
           this.editedOrgId = '';
         }, 300)

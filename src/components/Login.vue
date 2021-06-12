@@ -17,7 +17,7 @@
             <v-tabs-slider color="#00528d"></v-tabs-slider>
               <v-tab v-for="(i,index) in tabs" :key="index">
                   <v-icon large>{{ i.icon }}</v-icon>
-                  <div class="caption py-1">{{ i.name }}</div>
+                  <div class="py-1">{{ i.name }}</div>
               </v-tab>
               <v-tab-item>
                 <v-card flat >

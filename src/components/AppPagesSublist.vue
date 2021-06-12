@@ -24,7 +24,7 @@
           </v-icon>
         </td>
         <td>{{ item.name }}</td>
-        <td>{{ item.content?item.content.length:0 }}</td>
+        <td align="right">{{ item.content?item.content.length:0 }}</td>
         </tr>
       </template>
       <template v-slot:[`body.append`]>
@@ -39,7 +39,8 @@
           <v-card-text>
             <v-form ref="pageForm" v-model="valid" lazy-validation>
               <v-text-field v-model="page.name" label="Name" required></v-text-field>
-              <v-textarea rows="20" v-model="page.content" label="Contents" required></v-textarea>
+              <!--v-textarea rows="20" v-model="page.content" label="Contents" required></v-textarea-->
+              <prism-editor class="my-editor" v-model="page.content" :highlight="highlighter" line-numbers></prism-editor>
             </v-form>
           </v-card-text>
 
@@ -58,18 +59,27 @@
 <script>
   import { EventBus } from '../event-bus.js';
   import Api from '@/services/Api'
+  import { PrismEditor } from 'vue-prism-editor';
+  import JSON5 from 'json5'
+  import vcdnUtils from '../_helpers/vcdnutils.js'
+  import 'vue-prism-editor/dist/prismeditor.min.css'; // import the styles somewhere
+ 
+  // import highlighting library (you can use any library you want just return html string)
+  import { highlight, languages } from 'prismjs/components/prism-core';
+  import 'prismjs/components/prism-clike';
+  import 'prismjs/components/prism-javascript';
+  import 'prismjs/themes/prism-funky.css'; // import syntax highlighting styles
   export default {
+    components: { PrismEditor },
+    aaa: "asdfasdf",
     props: {
       organizationId: String,
       application: Object
     },
     computed: {
       pages() {
-        debugger;
-      var pgs = [].concat(this.application.pages) || [];
-      debugger;
-      var x= '';
-      return pgs;
+        var pgs = [].concat(this.application.pages) || [];
+        return pgs;
       }
     },
     watch: {
@@ -83,8 +93,10 @@
     },
 
     methods: {
+      highlighter( code ) {
+        return highlight(code, languages.js);
+      },
       editItem (item) {
-        debugger;
         this.editedIndex = this.application.pages.findIndex((page) => {return page.name === item.name;});
         if (this.editedIndex<0 && !this.page.content) {
           this.page.content = this.defaultPage;
@@ -100,7 +112,6 @@
           if (item._id) {
             (async () => {
               var path = `/organizationapplication/page/${this.organizationId}/${this.application._id}/${encodeURIComponent(item.name)}`;
-              debugger;
               var response = await Api().delete(path);
               if (response.data.success) {
                 EventBus.$emit('global success alert', `${item.name} deleted.`);
@@ -131,6 +142,14 @@
         var vm = this;
         if (!this.$refs.pageForm.validate()) return;
         var operation = this.editedIndex > -1 ? 'update' : 'add';
+        var errors = [];
+        try {
+          var uiConfig = JSON5.parse(this.page.content);
+          errors = vcdnUtils.checkSyntax(uiConfig);
+        } catch (e) {
+          errors.push(e+'');
+        }
+        debugger;
         if (operation == 'update' || this.application._id) {
           (async () => {
             var response = await Api().post('/organizationapplication/writepage', 
@@ -173,13 +192,13 @@
   methods: {
     mounted: {
       args:[],
-      body: 'this.displayString = \'CloudHaven skeleton application\';'
+      body: 'this.displayString = "CloudHaven skeleton application";'
     }
   },
   computed: {
     decoratedDisplayString: {
       args:[],
-      body: 'return \'** \'+this.displayString+\' **;'
+      body: "return '** '+this.displayString+' **';"
     }
   },
   externalComponents: [{organizationId:'some-org', componentId:'some-component-id'}],
@@ -210,3 +229,22 @@
   }
 </script>
 
+<style>
+  /* required class */
+  .my-editor {
+    /* we dont use `language-` classes anymore so thats why we need to add background and text color manually */
+    background: #1e1e1e;
+    color: #9cdcf0;
+ 
+    /* you must provide font-family font-size line-height. Example: */
+    font-family: Fira code, Fira Mono, Consolas, Menlo, Courier, monospace;
+    font-size: 14px;
+    line-height: 1.5;
+    padding: 5px;
+  }
+ 
+  /* optional class for removing the outline */
+  .prism-editor__textarea:focus {
+    outline: none;
+  }
+</style> 

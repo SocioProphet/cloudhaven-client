@@ -32,14 +32,16 @@ export default new Vuex.Store({
   },
   actions: {
     reloadUser({commit, state}) {
-      axios({url: process.env.VUE_APP_REST_SERVER_URL+'/userdata/getuser/'+state.user._id, method: 'GET' })
-      .then(resp => {
-        commit('SET_USERINFO', resp.data.user);
-        resolve(resp.data.user);
-      })
-      .catch(err => {
-        reject(err.response.status)
-      })
+      return new Promise((resolve, reject) => {
+        axios({url: process.env.VUE_APP_REST_SERVER_URL+'/userdata/getuser/'+state.user._id, method: 'GET' })
+        .then(resp => {
+          commit('SET_USERINFO', resp.data.user);
+          resolve(resp.data.user);
+        })
+        .catch(err => {
+          reject(err.response.status)
+        })
+      });
     },
     login({commit, state}, user){
       return new Promise((resolve, reject) => {

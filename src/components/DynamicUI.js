@@ -501,6 +501,23 @@ function makeMethods( ctx, uiMethods ) {
     },{});
   }
   methods._merge = _.merge;
+  methods._writeAppData = (table, key, dataString, cb) => {
+    (async () => {
+      var response = await Api().post('/appstoremgr/upsert', 
+          {organizationId: app.organizationId, table:table, key:key, jsonData:dataString});
+      if (cb) {
+        (cb).call(ctx.rootThis, response.data);
+      }
+    })();
+  }
+  methods._readAppData = (table, key, cb) => {
+    (async () => {
+      var response = await Api().get(`/appstoremgr/get/${app.organizationId}/${encodeURIComponent(table)}/${encodeURIComponent(key)}`);
+      if (cb) {
+        (cb).call(ctx.rootThis, response.data);
+      }
+    })();
+  }
   methods._pdfGet = (postId, cb) => {
     (async () => {
       var response = await PdfApi().post('/organizationapplication/apppost', {app:app, httpMethod: 'GET', postId:postId});
@@ -870,6 +887,7 @@ function makeFilters( ctx, filters ) {
   },{}):{};
 }
 function makeComputed( computed ) {
+  debugger;
   return computed?Object.keys(computed).reduce((o,m)=>{
     try {
       var func = makeFunction( computed[m], m );

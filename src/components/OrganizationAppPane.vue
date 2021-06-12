@@ -9,6 +9,7 @@ import DynamicUI from './DynamicUI.js'
 import Api from '@/services/Api'
 import { VSheet } from 'vuetify/lib'
 import { EventBus } from '../event-bus.js';
+import JSON5 from 'json5'
 
 export default {
   components: {
@@ -32,14 +33,32 @@ export default {
     var page = this.page || this.$route.params.page || 'home';
     pApp.page = page;
     this.app = Object.assign({}, pApp);
-    (async () => {
-      var response = await Api().post('/organizationapplication/getapppage', {app:pApp, page:page});
-      if (response.data.success) {
-        this.uiConfig = response.data;
-        if (this.uiConfig.appFrame) {
-          EventBus.$emit('set app frame', Object.assign(this.app, this.uiConfig.appFrame))
+    if (app.source == 'CloudHaven') {
+      var homePage = app.pages.find(p=>(p.name=='home'));
+      if (!homePage) {
+        EventBus.$emit('global error alert', 'No home page found.');
+        return;
+      }
+      this.uiConfig = JSON5.parse(homePage.content);
+      this.getComponents();
+    } else {
+      (async () => {
+        var response = await Api().post('/organizationapplication/getapppage', {app:pApp, page:page});
+        if (response.data.success) {
+          this.uiConfig = response.data;
+          if (this.uiConfig.appFrame) {
+            EventBus.$emit('set app frame', Object.assign(this.app, this.uiConfig.appFrame))
+          }
+          this.getComponents();
+        } else {
+          EventBus.$emit('global error alert', response.data.errMsg);
         }
-        var u = this.uiConfig;
+      })();
+    }
+  },
+  methods: {
+    getComponents() {
+      (async () => {
         if (this.uiConfig.externalComponents) {
           var response = await Api().post('/organizationcomponent/getcomponents', {organizationComps:this.uiConfig.externalComponents});
           if (response.status==200 && response.data.success) {
@@ -49,11 +68,8 @@ export default {
         } else {
           this.component = 'DynamicUI';
         }
-      } else {
-        EventBus.$emit('global error alert', response.data.errMsg);
-
-      }
-    })();
+      })();
+    }
   }
 }
 </script>

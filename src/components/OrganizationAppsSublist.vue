@@ -144,7 +144,6 @@
 
     methods: {
       appPagesChanged( pages ) {
-        debugger;
         this.editedItem.pages = [].concat(pages);
       },
       prepDragNDrop() {
