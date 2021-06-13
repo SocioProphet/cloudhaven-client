@@ -38,9 +38,9 @@
           </v-card-title>
           <v-card-text>
             <v-form ref="pageForm" v-model="valid" lazy-validation>
-              <v-text-field v-model="page.name" label="Name" required></v-text-field>
+              <v-text-field v-model="page.name" label="Name" required :rules="[rules.required]"></v-text-field>
               <!--v-textarea rows="20" v-model="page.content" label="Contents" required></v-textarea-->
-              <prism-editor class="my-editor" v-model="page.content" :highlight="highlighter" line-numbers></prism-editor>
+              <prism-editor class="my-editor" v-model="page.content" :highlight="highlighter" line-numbers :rules="[rules.required]"></prism-editor>
             </v-form>
           </v-card-text>
 
@@ -98,6 +98,7 @@
         return highlight(code, languages.js);
       },
       editItem (item) {
+        debugger;
         this.editedIndex = this.application.pages.findIndex((page) => {return page.name === item.name;});
         if (this.editedIndex<0 && !this.page.content) {
           this.page.content = this.defaultPage;
@@ -182,6 +183,9 @@
         { text: 'Name', align: 'left', sortable: true, value: 'name' },
         { text: 'Length', align: 'right', sortable: true, value: 'content.length' }
       ],
+      rules: {
+          required: value => !!value || 'Required.'
+      },
       editedIndex: -1,
       page: {
         name: '',

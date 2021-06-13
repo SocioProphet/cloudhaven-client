@@ -26,6 +26,7 @@
         <td>{{ item.name }}</td>
         <td>{{ item.applicationId }}</td>
         <td><v-img max-width="30" max-height="30" :src="item.logo" /></td>
+        <td>{{ item.source}}</td>
         <td>{{ item.url}}</td>
         </tr>
       </template>
@@ -40,18 +41,18 @@
           </v-card-title>
           <v-card-text>
             <v-form ref="appForm" v-model="valid" lazy-validation>
-              <v-text-field v-model="editedItem.name" label="Name" required></v-text-field>
-              <v-text-field v-model="editedItem.applicationId" label="Application Id" required></v-text-field>
+              <v-text-field v-model="editedItem.name" label="Name" required :rules="[rules.required]"></v-text-field>
+              <v-text-field v-model="editedItem.applicationId" label="Application Id" required :rules="[rules.required]"></v-text-field>
               <v-radio-group v-model="editedItem.source" row label="Source">
                 <v-radio label='App Server' value='App Server'></v-radio>
                 <v-radio label='CloudHaven' value='CloudHaven'></v-radio>
               </v-radio-group>
-              <v-text-field v-model="editedItem.url" label="URL" required ></v-text-field>
+              <v-text-field v-model="editedItem.url" label="URL" required :rules="editedItem.source=='App Server'?[rules.required]:[]"></v-text-field>
               <v-tabs dark fixed-tabs background-color="#1E5AC8" color="#FFF10E" >
               <v-tab>Pages</v-tab>
               <v-tab>Logo</v-tab>
               <v-tab-item>
-                <AppPagesSublist :organizationId="organization._id" :application="editedItem" @ pagesChanged="pagesChanged"/>
+                <AppPagesSublist :organizationId="organization._id" :application="editedItem" @pagesChanged="pagesChanged"/>
               </v-tab-item>
               <v-tab-item>
               <v-row fill-height wrap class="pt-4" >
@@ -104,8 +105,21 @@
         { text: 'Name', align: 'left', sortable: true, value: 'name' },
         { text: 'Application Id', align: 'left', sortable: true, value: 'applicationId' },
         { text: 'Logo', align:'left', sortable:true, name:'logo'},
+        { text: 'Source', align: 'left', sortable:true, name: 'source'},
         { text: 'URL', align: 'left', sortable: true, name:'url'}
       ],
+      rules: {
+          required: value => !!value || 'Required.',
+          url: (v) => {
+            if (!v) return true;
+            try {
+              new URL(v);
+              return true;
+            } catch (e) {
+              return 'Please enter a valid URL.'
+            }
+          } 
+      },
       editedIndex: -1,
       editedItem: {
         name: '',
@@ -144,7 +158,9 @@
 
     methods: {
        pagesChanged( pages ) {
+        debugger;
         this.editedItem.pages = [].concat(pages);
+        this.$emit("orgAppsChanged");
       },
       prepDragNDrop() {
         //File drag-n-drop logic
@@ -194,6 +210,7 @@
         return formData;
       },
       editItem (item) {
+        debugger;
         if (!this.organization.applications) this.organization.applications = [];
         this.editedIndex = this.organization.applications.findIndex((application) => {return application.name === item.name;});
         this.editedItem = Object.assign({
@@ -217,6 +234,7 @@
           if (item._id) {
             (async () => {
               var response = await Api().delete('/organizationapplication/'+this.organization._id+'/'+item._id);
+              debugger;
               if (response.data.success) {
                 EventBus.$emit('global success alert', `${item.name} deleted.`);
                 vm.$emit('orgAppsChanged', response.data.apps);
@@ -258,6 +276,7 @@
 
             var response = await MultipartPostApi().post('/organizationapplication/upsert', this.createFormData(operation));
             if (response.data.success) {
+              debugger;
               this.$store.commit('SET_SUCCESS', `${this.editedItem.name} ${operation=='update'?'updated':'added'}.`);
               vm.$emit('orgAppsChanged', response.data.applications );
               this.dialog = false;

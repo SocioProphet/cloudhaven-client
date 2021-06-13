@@ -3,7 +3,7 @@
     <v-container>
     <v-toolbar flat color="white">
       <v-toolbar-title>Organizations</v-toolbar-title>
-      <v-divider
+      <!--v-divider
         class="mx-3"
         inset
         vertical
@@ -25,7 +25,7 @@
               <v-text-field v-if="editedOrg.organization.organizationId!='cloudhaven'" v-model="editedOrg.organization.componentsUrl" label="Components URL" :rules="[rules.url]"></v-text-field>
             </v-form>
           </v-card-text>
-              <v-tabs dark fixed-tabs background-color="#1E5AC8" color="#FFF10E" >
+              <v-tabs v-if="editedOrgId" dark fixed-tabs background-color="#1E5AC8" color="#FFF10E" >
               <v-tab v-if="editedOrg.organization.organizationId!='cloudhaven'" >Applications</v-tab>
               <v-tab v-if="editedOrg.organization.organizationId!='cloudhaven'" >Components</v-tab>
               <v-tab>Groups</v-tab>
@@ -50,7 +50,7 @@
             <v-btn elevation="2" color="blue darken-1" text @click.native="save"><v-icon left dark>mdi-content-save</v-icon>Save</v-btn>
           </v-card-actions>
         </v-card>
-      </v-dialog>
+      </v-dialog-->
     </v-toolbar>
     <v-data-table id="organization-table"
       :headers="headers"
@@ -69,14 +69,14 @@
             mdi-pencil
           </v-icon>
           </v-btn>
-          <v-btn icon >
+          <!--v-btn icon >
           <v-icon v-if="item.organization.organizationId!='cloudhaven'"
             medium
             @click.stop="deleteItem(item)"
           >
             mdi-trash-can
           </v-icon>
-          </v-btn>
+          </v-btn-->
         </td>
         <td>{{item.organization.isAdmin?'Yes':'No'}}
         <td>{{item.organization.name}}</td>
@@ -85,6 +85,47 @@
        </tr>
       </template>
     </v-data-table>
+    <v-tabs dark fixed-tabs background-color="#1E5AC8" color="#FFF10E" class="mt-5">
+    <v-tab v-if="editedOrg.organization.organizationId!='cloudhaven'" >Applications</v-tab>
+    <v-tab v-if="editedOrg.organization.organizationId!='cloudhaven'" >Components</v-tab>
+    <v-tab>Groups</v-tab>
+    <v-tab>Contacts</v-tab>
+    <v-tab-item v-if="editedOrg.organization.organizationId!='cloudhaven'">
+      <OrganizationAppsSublist :organization="editedOrg.organization" @orgAppsChanged="orgAppsChanged"/>
+    </v-tab-item>
+    <v-tab-item v-if="editedOrg.organization.organizationId!='cloudhaven'">
+      <OrganizationComponentsSublist :organization="editedOrg.organization"/>
+    </v-tab-item>
+    <v-tab-item>
+      <OrganizationGroups :organization="editedOrg.organization" />
+    </v-tab-item>
+    <v-tab-item>
+      <OrganizationContactsSublist :organization="editedOrg.organization"  :contactTypeOptions="contactTypeOptions"/>
+    </v-tab-item>
+  </v-tabs>
+
+  <v-dialog v-model="dialog" max-width="900px" overlay-opacity="0.2">
+    <v-card>
+      <v-card-title>
+        <span class="text-h5">Edit {{editedOrg.name}}</span>
+      </v-card-title>
+
+      <v-card-text>
+        <v-form ref="theForm" v-model="valid" lazy-validation>
+          <v-text-field :readonly="editedOrg.organization.organizationId=='cloudhaven'" v-model="editedOrg.organization.name" label="Name" required :rules="[rules.required]"></v-text-field>
+          <v-text-field :readonly="editedOrg.organization.organizationId=='cloudhaven'" v-model="editedOrg.organization.organizationId" label="Id" required :rules="[rules.required]"></v-text-field>
+          <v-text-field v-if="editedOrg.organization.organizationId!='cloudhaven'" v-model="editedOrg.organization.componentsUrl" label="Components URL" :rules="[rules.url]"></v-text-field>
+        </v-form>
+      </v-card-text>
+
+      <v-card-actions>
+        <v-btn elevation="2" color="blue darken-1" text @click.native="cancel">Cancel</v-btn>
+        <v-spacer></v-spacer>
+        <v-btn elevation="2" color="blue darken-1" text @click.native="save"><v-icon left dark>mdi-content-save</v-icon>Save</v-btn>
+      </v-card-actions>
+    </v-card>
+  </v-dialog>
+
     </v-container>
   </div>
 </template>
@@ -129,7 +170,7 @@ import OrganizationGroups from './OrganizationGroups.vue'
         { text: 'Organization Id', align:'left', sortable:true, value: 'organization.organizationId' },
         { text: 'Comonents URL', align:'left', sortable:true, value: 'organization.componentsUrl' }
       ],
-      editedOrgId: '',
+/*      editedOrgId: '',
       editedOrg: {
         isAdmin: false,
         organization: {
@@ -138,16 +179,20 @@ import OrganizationGroups from './OrganizationGroups.vue'
           contacts: [],
           applications: []
         }
-      },
+      },*/
       myOrgMemberships: []
 
     }),
 
     computed: {
-      formTitle () {
-        return this.editedIndex === -1 ? 'New Organization' : 'Edit Organization'
+      editedOrg() {
+        debugger;
+        return this.myOrgMemberships.length>0?this.myOrgMemberships[0]:{organization:{}};
       },
-      ...mapState(['organizations', 'user'])
+/*      formTitle () {
+        return this.editedIndex === -1 ? 'New Organization' : 'Edit Organization'
+      },*/
+      ...mapState([/*'organizations',*/ 'user'])
     },
 
     watch: {
@@ -161,23 +206,27 @@ import OrganizationGroups from './OrganizationGroups.vue'
       this.loadRecords();
     },
     mounted () {
-      EventBus.$on('organizations data refresh', () =>{
+/*      EventBus.$on('organizations data refresh', () =>{
         this.loadRecords();
-      })
+      })*/
     },
 
     methods: {
       orgAppsChanged(apps) {
-        this.editedItem.applications = [].concat(apps);
+        debugger;
+/*        if (apps) {
+          this.editedOrg.organization.applications = [].concat(apps);
+        }*/
         this.loadRecords();
       },
       loadRecords() {
         if (this.user.rolesMap['SYSADMIN']) {
-          this.$store.commit('SET_CRUDAPISERVCE', 'organizations');
-          this.$store.dispatch('loadRecords', 'organizations');
+//          this.$store.commit('SET_CRUDAPISERVCE', 'organizations');
+//          this.$store.dispatch('loadRecords', 'organizations');
         } else {
           (async () => {
               var response = await Api().get('/organizationuser/currentuserorgs');
+              debugger;
               if (response.data.success) {
                 this.myOrgMemberships = [].concat(response.data.orgMemberships);
               } else if (response.data.errMsg) {
@@ -186,28 +235,25 @@ import OrganizationGroups from './OrganizationGroups.vue'
           })();
         }
       },
-      displayItemToEdit() {
-        this.dialog = true;
-      },
       editItem (item) {
         this.$store.commit('SET_RESULTNOTIFICATION', '');
-        this.editedOrgId = item._id;
-        this.editedOrg = Object.assign({}, item);
-        this.displayItemToEdit()
+//        this.editedOrgId = item._id;
+//        this.editedOrg = Object.assign({}, item);
+        this.dialog = true;
       },
 
-      deleteItem (item) {
+/*      deleteItem (item) {
         if (confirm('Are you sure you want to delete '+item.organization.name+'?')) {
           //        } && this.$store.dispatch('deleteRecord', {model:'organizations', dbObject:item, label:item.name});
           alert('Delete not currently implemented.');
         }
-      },
+      },*/
 
       cancel() {
         this.dialog = false;
       },
       close () {
-        setTimeout(() => {
+/*        setTimeout(() => {
           this.editedOrg = {
             isAdmin: false,
             organization: {
@@ -218,20 +264,22 @@ import OrganizationGroups from './OrganizationGroups.vue'
             }
           }
           this.editedOrgId = '';
-        }, 300)
+        }, 300)*/
       },
 
       save () {
         if (this.$refs.theForm.validate()) {
-          ((this.editedOrgId)?
-            this.$store.dispatch('updateRecord', {model:'organizations', label: this.editedOrg.organization.name, dbObject:this.editedOrg}):
-            this.$store.dispatch('createRecord', {model:'organizations', label: this.editedOrg.organization.name, dbObject:this.editedOrg})).then((newRec)=> {
-              if (newRec) {
-                EventBus.$emit('global success alert', `${this.editedOrg.organization.name} ${this.editedOrgId?'updated':'added'}.`);
-                this.dialog = false;
+          (async () => {
+              var response = await Api().post('/organizationuser/updateOrg', this.editedOrg.organization);
+              debugger;
+              if (response.data.success) {
+                EventBus.$emit('global success alert', `Organization ${this.editedOrg.organization.name} updated.`);
                 this.loadRecords();
+              } else if (response.data.errMsg) {
+                EventBus.$emit('global error alert', response.data.errMsg);
               }
-            })
+          this.dialog = false;
+          })();
         }
       }
     }
