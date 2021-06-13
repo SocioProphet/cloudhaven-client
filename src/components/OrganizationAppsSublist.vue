@@ -51,7 +51,7 @@
               <v-tab>Pages</v-tab>
               <v-tab>Logo</v-tab>
               <v-tab-item>
-                <AppPagesSublist :organizationId="organization._id" :application="editedItem" @appPagesChanged="appPagesChanged"/>
+                <AppPagesSublist :organizationId="organization._id" :application="editedItem" @ pagesChanged="pagesChanged"/>
               </v-tab-item>
               <v-tab-item>
               <v-row fill-height wrap class="pt-4" >
@@ -143,7 +143,7 @@
     },
 
     methods: {
-      appPagesChanged( pages ) {
+       pagesChanged( pages ) {
         this.editedItem.pages = [].concat(pages);
       },
       prepDragNDrop() {

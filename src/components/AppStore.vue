@@ -7,6 +7,7 @@
       <v-row no-gutters>
           <v-card class="pa-2 ma-2" elevation="4" v-for="app in applications" :key="app.key" >
             <v-card-title>{{app.name}}</v-card-title>
+            <v-card-subtitle>{{app.organizationName}}</v-card-subtitle>
             <v-card-text>
               <v-img width="150px" :src="app.logoSrc"></v-img>
             </v-card-text>

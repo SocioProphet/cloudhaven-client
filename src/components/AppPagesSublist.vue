@@ -116,7 +116,7 @@
               var response = await Api().delete(path);
               if (response.data.success) {
                 EventBus.$emit('global success alert', `${item.name} deleted.`);
-                vm.$emit('appPagesChanged', response.data.pages );
+                vm.$emit('pagesChanged', response.data.pages );
               } else if (response.data.errMsg) {
                 EventBus.$emit('global error alert', response.data.errMsg );
               }
@@ -157,7 +157,7 @@
               {organizationId: this.organizationId, applicationId:this.application._id, pageName:this.page.name, content: this.page.content});
             if (response.data.success) {
               this.$store.commit('SET_SUCCESS', `${this.page.name} ${operation=='update'?'updated':'added'}.`);
-              vm.$emit('appPagesChanged', response.data.pages );
+              vm.$emit('pagesChanged', response.data.pages );
               if (errors.length==0) {
                 this.dialog = false;
               }
@@ -169,7 +169,7 @@
         } else {
           var pages = [].concat(this.application.pages);
           pages.push(this.page);
-          vm.$emit('appPagesChanged', pages );
+          vm.$emit('pagesChanged', pages );
           this.dialog = false;
         }
       }
@@ -188,7 +188,7 @@
         content: ''
       },
       errors: [],
-      defaultPage: `{
+      defaultPage: `var uiConfig ={
   requiredUserData: ['firstName', 'lastName'],
   dataModel:{
     displayString:''
@@ -227,7 +227,8 @@
         ]}
     ]
   }
-}
+};
+uiConfig;
       `
     })
   }
