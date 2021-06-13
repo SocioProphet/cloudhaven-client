@@ -4,7 +4,7 @@ import vuetify from '@/plugins/vuetify'
 import PdfApi from '@/services/PdfApi'
 import Api from '@/services/Api'
 import MultipartPostApi from '@/services/MultipartPostApi'
-import { uiElementToVueCompMap } from '../_helpers/vcdnutils.js'
+import vcdnUtils from '../_helpers/vcdnutils.js'
 import prepScriptletScope from '../_helpers/scopeprep.js'
 import { deepGet, deepSet } from '../_helpers/deep.js'
 import router from '../router'
@@ -133,7 +133,7 @@ function makeComponent( h, metaData, ctx, pScopedProps ) {
     }
     contents = metaData.contents;
     var component = metaData.component;
-    var vueComponent = uiElementToVueCompMap[component] || component;
+    var vueComponent = vcdnUtils.uiElementToVueCompMap[component] || component;
     var dataObj = ['class', 'style', 'attrs', 'props', 'domProps', 'key', 'ref'].reduce((o,k)=>{
       var kk = (k in metaData)?k:(metaData[':'+k]?(':'+k):null);
       if (kk) {
@@ -765,7 +765,6 @@ function makeFilters( ctx, filters ) {
   },{}):{};
 }
 function makeComputed( computed ) {
-  debugger;
   return computed?Object.keys(computed).reduce((o,m)=>{
     try {
       var func = makeFunction( computed[m], m );

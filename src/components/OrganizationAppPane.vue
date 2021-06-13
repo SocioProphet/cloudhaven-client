@@ -9,7 +9,6 @@ import DynamicUI from './DynamicUI.js'
 import Api from '@/services/Api'
 import { VSheet } from 'vuetify/lib'
 import { EventBus } from '../event-bus.js';
-import JSON5 from 'json5'
 
 export default {
   components: {
@@ -39,7 +38,7 @@ export default {
         EventBus.$emit('global error alert', 'No home page found.');
         return;
       }
-      this.uiConfig = JSON5.parse(homePage.content);
+      this.uiConfig = eval(homePage.content);
       this.getComponents();
     } else {
       (async () => {

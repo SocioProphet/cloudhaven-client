@@ -7,6 +7,17 @@ import _ from 'lodash';
 function isObject( obj ) {
   return (((typeof obj)==='object') && !Array.isArray(obj));
 }
+var validHtmlTags = [
+  'a', 'abbr', 'address', 'area', 'article', 'aside', 'audio', 'b', 'base', 'bdi', 'bdo', 'blockquote', 'body', 
+  'br', 'button', 'canvas', 'caption', 'cite', 'code', 'col', 'colgroup', 'data', 'datalist', 'dd', 'del', 'details', 
+  'dfn', 'dialog', 'div', 'dl', 'dt', 'em', 'embed', 'fieldset', 'figcaption', 'figure', 'footer', 'form', 
+  'h1, h2, h3, h4, h5, h6', 'head', 'header', 'hgroup', 'hr', 'html', 'i', 'iframe', 'img', 'input', 'ins', 'kbd', 
+  'label', 'legend', 'li', 'link', 'main', 'map', 'mark', 'MathML math', 'menu', 'meta', 'meter', 'nav', 'noscript', 
+  'object', 'ol', 'optgroup', 'option', 'output', 'p', 'param', 'picture', 'pre', 'progress', 'q', 'rp', 'rt', 'ruby', 
+  's', 'samp', 'script', 'section', 'select', 'slot', 'small', 'source', 'span', 'strong', 'style', 'sub', 'summary', 
+  'sup', 'SVG svg', 'table', 'tbody', 'td', 'template', 'textarea', 'tfoot', 'th', 'thead', 'time', 'title', 'tr', 
+  'track', 'u', 'ul', 'var', 'video', 'wbr', 'autonomous custom elements'
+]
 
 var obj = {};
 obj.uiElementToVueCompMap = {
@@ -130,7 +141,7 @@ obj.uiElementToVueCompMap = {
 }
 
 
-obj.checkSyntax = ( vcdn ) => {
+obj.checkSyntax = ( vcdn, isComponent ) => {
   var errors = [];
   function makeFunction( funcType, funcSpec, name ) {
     try {
@@ -184,11 +195,11 @@ obj.checkSyntax = ( vcdn ) => {
             }
           }
         })
-      } else if (_.isString(methodObj)) {
+      } else if (!_.isString(methodObj)) {
         methodErrors.push(`${funcType} ${methodName} type is invalid (must be string or JSON object)`);
       }
       if (methodErrors.length==0) {
-        makeFunction(funcType, methodObj);
+        makeFunction(funcType, methodObj, methodName);
       }
       errors = errors.concat(methodErrors);
     })
@@ -244,14 +255,12 @@ obj.checkSyntax = ( vcdn ) => {
     })
   }
   function validateUISchema( uiSchema ) {
+    if (_.isString(uiSchema)) return;
     if (!uiSchema.component) {
-      errors.push('Missing component property.');
+      errors.push(`Missing component property (near ${JSON.stringify(uiSchema).substring(0,60)}).`);
     }
-    if (!uiSchema.contents && !uiSchema.template) {
-      errors.push(`Missing contents or template property for component ${uiSchema.component}`);
-    }
-    var validComponents = Object.keys(obj.uiElementToVueCompMap).concat(["template", "dynamicComponent", "loop"]);
-    var validProps = [
+    var validComponents = Object.keys(obj.uiElementToVueCompMap).concat(["template", "dynamicComponent", "loop"].concat(validHtmlTags));
+    var defaultValidProps = [
       'component',
       'class',
       'style',
@@ -277,12 +286,21 @@ obj.checkSyntax = ( vcdn ) => {
       'omit',
       'show',
       'scopedSlots',
-      'template'
+      'template',
+      'debug',
+      'mask',
+      'userData'
     ];
+    var compToValidProps = {
+      dynamicComponent: ["component", "name"],
+      loop: ["component", "dataList", "contents", "itemAlias", "indexIsKey", "key"],
+      template: ["component", "template"]
+    }
+    var validProps = compToValidProps[uiSchema.component] || defaultValidProps;
     var validPropsMap = validProps.reduce((mp,p)=>{ mp[p] = true; return mp; },{});
     Object.keys(uiSchema).forEach(prop =>{
       if (!validPropsMap[prop]) {
-        errors.push(`Unrecognized uiSchema component ${uiSchema.component} property ${prop} (${validProps.join(', ')})`);
+        errors.push(`Unrecognized uiSchema component "${uiSchema.component}" property ${prop} (${validProps.join(', ')})`);
       }
       if (prop == 'component') {
         if (validComponents.indexOf(uiSchema.component)<0) {
@@ -315,7 +333,7 @@ obj.checkSyntax = ( vcdn ) => {
   Object.keys(vcdn).forEach(p=>{
     var obj = vcdn[p];
     var objType = validPropertiesMap[p];
-    if (!objType) {
+    if (!objType && !(isComponent && (p=='name' || p=='props')) ) {
       errors.push(`Invalid root property "${p}" - (${Object.keys(validPropertiesMap).join(', ')})`);
     }
     if (((objType=='array') && !Array.isArray(obj)) || ((objType=='object') && !isObject(obj))) {

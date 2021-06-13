@@ -48,8 +48,11 @@
               </v-radio-group>
               <v-text-field v-model="editedItem.url" label="URL" required ></v-text-field>
               <v-tabs dark fixed-tabs background-color="#1E5AC8" color="#FFF10E" >
-              <v-tab>Logo</v-tab>
               <v-tab>Pages</v-tab>
+              <v-tab>Logo</v-tab>
+              <v-tab-item>
+                <AppPagesSublist :organizationId="organization._id" :application="editedItem" @appPagesChanged="appPagesChanged"/>
+              </v-tab-item>
               <v-tab-item>
               <v-row fill-height wrap class="pt-4" >
                 <div style="width:100%" >
@@ -68,9 +71,6 @@
                   </v-sheet>
                 </v-col>
               </v-row>
-              </v-tab-item>
-              <v-tab-item>
-                <AppPagesSublist :organizationId="organization._id" :application="editedItem" @appPagesChanged="appPagesChanged"/>
               </v-tab-item>
             </v-tabs>
             </v-form>

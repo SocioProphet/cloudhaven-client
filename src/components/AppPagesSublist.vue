@@ -62,7 +62,7 @@
   import { EventBus } from '../event-bus.js';
   import Api from '@/services/Api'
   import { PrismEditor } from 'vue-prism-editor';
-  import JSON5 from 'json5'
+//  import JSON5 from 'json5'
   import vcdnUtils from '../_helpers/vcdnutils.js'
   import 'vue-prism-editor/dist/prismeditor.min.css'; // import the styles somewhere
  
@@ -145,7 +145,7 @@
         var operation = this.editedIndex > -1 ? 'update' : 'add';
         var errors = [];
         try {
-          var uiConfig = JSON5.parse(this.page.content);
+          var uiConfig = /*JSON5.parse*/eval(this.page.content);
           errors = vcdnUtils.checkSyntax(uiConfig) || [];
         } catch (e) {
           errors.push(e+'');
@@ -161,7 +161,7 @@
               if (errors.length==0) {
                 this.dialog = false;
               }
-              EventBus.$emit('global success alert', `${this.page.name} passed syntax cgecj${this.editedIndex > -1?'updated':'added'}${errors.length>0?' with errors':''}.`);
+              EventBus.$emit('global success alert', `${this.page.name} ${this.editedIndex > -1?'updated':'added'}${errors.length>0?' with errors':''}.`);
             } else if (response.data.errMsg) {
               EventBus.$emit('global error alert',  response.data.errMsg );
             }
