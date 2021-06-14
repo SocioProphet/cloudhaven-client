@@ -167,7 +167,7 @@ var defaultPage = `var uiConfig = {
     }
   },
   components: [],
-  externalComponents: [{organizationId:'some-org', componentId:'some-component-id'}],
+  externalComponents: [{organizationId:'widget-co', componentId:'test-comp-x'}],
   appFrame: {
     name: 'Skeleton App',
     appBarStyle: {background: 'linear-gradient(rgb(40, 54, 102) 0%, rgb(37, 114, 210) 100%)'},
@@ -193,7 +193,7 @@ var defaultPage = `var uiConfig = {
 uiConfig;
       `;
 var defaultComponent = `var uiConfig = {
-  name: "Component X",
+  name: "Component X", //This is just a comment and is overwritten by the componentId used to fetch this component
   props: {
     exampleString: {type: "String"},
     exampleBoolean: {type: "Boolean"},
@@ -207,7 +207,7 @@ var defaultComponent = `var uiConfig = {
   methods: {
     mounted: {
       args:[],
-      body: 'this.displayString = "CloudHaven skeleton application";'
+      body: 'this.displayString = "CloudHaven skeleton component";'
     }
   },
   computed: {
@@ -219,7 +219,7 @@ var defaultComponent = `var uiConfig = {
   watch: {
     displayString: {
       args: ["val"],
-      body: "alert(val);"
+      body: "console.log(val);"
     }
   },
   filters: {
@@ -229,9 +229,9 @@ var defaultComponent = `var uiConfig = {
     }
   },
   components: [],
-  externalComponents: [{organizationId:'some-org', componentId:'some-component-id'}],
+  externalComponents: [],
   uiSchema: {
-    component: 'container',
+    component: 'vsheet',
     contents: [
       {component: 'card', props: { elevation: 2 }, contents: [
         {component: 'cardTitle', contents: 'This is the title' },
@@ -403,7 +403,7 @@ obj.checkSyntax = ( vcdn, isComponent ) => {
       'userData'
     ];
     var compToValidProps = {
-      dynamicComponent: ["component", "name"],
+      dynamicComponent: ["component", "organizationId", "componentId"],
       loop: ["component", "dataList", "contents", "itemAlias", "indexIsKey", "key"],
       template: ["component", "template"]
     }
@@ -415,7 +415,7 @@ obj.checkSyntax = ( vcdn, isComponent ) => {
       }
       if (prop == 'component') {
         if (validComponents.indexOf(uiSchema.component)<0) {
-          errors.push(`Unrecognized uiSchema component ${uiSchema.component}`);
+          errors.push(`Unrecognized uiSchema component ${uiSchema.component} (${validComps.join(', ')})`);
         }
       }
     });

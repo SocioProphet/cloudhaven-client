@@ -45,6 +45,10 @@
                 <v-radio label='App Server' value='App Server'></v-radio>
                 <v-radio label='CloudHaven' value='CloudHaven'></v-radio>
               </v-radio-group>
+              <v-radio-group v-model="editedItem.status" row label="Status">
+                <v-radio label='Draft' value='Draft'></v-radio>
+                <v-radio label='Published' value='Published'></v-radio>
+              </v-radio-group>
               <prism-editor class="my-editor" v-model="editedItem.content" :highlight="highlighter" line-numbers :rules="[rules.required]"></prism-editor>
             </v-form>
           </v-card-text>
@@ -95,6 +99,7 @@
         name: '',
         componentId: '',
         source: 'App Server',
+        status: 'Draft',
         content: vcdnUtils.getDefaultComponent()
       },
       errors: []
@@ -124,6 +129,7 @@
           componentId: this.editedItem.componentId,
           name: this.editedItem.name,
           source: this.editedItem.source,
+          status: this.editedItem.status,
           content: this.editedItem.content
         };
       },
@@ -136,7 +142,9 @@
         this.editedItem = Object.assign({
           name: '',
           componentId:'',
-          source: 'App Server'
+          source: 'App Server',
+          status: 'Draft',
+          content: ''
         }, item);
         this.dialog = true;
       },

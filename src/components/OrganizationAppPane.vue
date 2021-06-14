@@ -59,7 +59,8 @@ export default {
     getComponents() {
       (async () => {
         if (this.uiConfig.externalComponents) {
-          var response = await Api().post('/organizationcomponent/getcomponents', {organizationComps:this.uiConfig.externalComponents});
+          var extComps = this.uiConfig.externalComponents;
+          var response = await Api().post('/organizationcomponent/getcomponents', {status: 'Published', organizationComps:this.uiConfig.externalComponents});
           if (response.status==200 && response.data.success) {
             this.uiConfig.components = (this.uiConfig.components || []).concat(response.data.components);
           }

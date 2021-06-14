@@ -112,7 +112,7 @@ function makeComponent( h, metaData, ctx, pScopedProps ) {
       return Vue.compile(metaData.template).render.call( context, h);
     }
     if (metaData.component == 'dynamicComponent') {
-      return h( ctx.components[metaData.name], {props:metaData.props?propValsFromModel( ctx, metaData.props):{}});
+      return h( ctx.components[metaData.organizationId+'-'+metaData.componentId], {props:metaData.props?propValsFromModel( ctx, metaData.props):{}});
     }
     if (metaData.component == "loop") {
       var index = 0;
@@ -902,7 +902,7 @@ function makeDynamicComponent( pCtx, cCfg ) {
 }
 function makeDynamicComponents( pCtx, components ) {
   return components.reduce((mp,cCfg)=>{
-    mp[cCfg.name] = makeDynamicComponent( pCtx, cCfg );
+    mp[(cCfg.organizationId||'')+'-'+cCfg.componentId] = makeDynamicComponent( pCtx, cCfg );
     return mp;
   },{})
 }

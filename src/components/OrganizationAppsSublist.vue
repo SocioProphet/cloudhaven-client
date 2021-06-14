@@ -27,6 +27,7 @@
         <td>{{ item.applicationId }}</td>
         <td><v-img max-width="30" max-height="30" :src="item.logo" /></td>
         <td>{{ item.source}}</td>
+        <td>{{ item.status}}</td>
         <td>{{ item.url}}</td>
         </tr>
       </template>
@@ -48,6 +49,10 @@
                 <v-radio label='CloudHaven' value='CloudHaven'></v-radio>
               </v-radio-group>
               <v-text-field v-model="editedItem.url" label="URL" required :rules="editedItem.source=='App Server'?[rules.required]:[]"></v-text-field>
+              <v-radio-group v-model="editedItem.status" row label="Status">
+                <v-radio label='Draft' value='Draft'></v-radio>
+                <v-radio label='Published' value='Published'></v-radio>
+              </v-radio-group>
               <v-tabs dark fixed-tabs background-color="#1E5AC8" color="#FFF10E" >
               <v-tab>Pages</v-tab>
               <v-tab>Logo</v-tab>
@@ -106,6 +111,7 @@
         { text: 'Application Id', align: 'left', sortable: true, value: 'applicationId' },
         { text: 'Logo', align:'left', sortable:true, name:'logo'},
         { text: 'Source', align: 'left', sortable:true, name: 'source'},
+        { text: 'Status', align: 'left', sortable:true, name: 'status'},
         { text: 'URL', align: 'left', sortable: true, name:'url'}
       ],
       rules: {
@@ -127,6 +133,7 @@
         source: 'CloudHaven',
         logo:null,
         url: '',
+        status: 'Draft',
         pages: []
       },
       logoUpdated: false,
@@ -206,6 +213,7 @@
         formData.append('logoUpdated', this.logoUpdated)
         formData.append('name', this.editedItem.name);
         formData.append('url', this.editedItem.url);
+        formData.append('status', this.editedItem.status);
         return formData;
       },
       editItem (item) {
@@ -217,7 +225,9 @@
           applicationId: '',
           source: 'CloudHaven',
           logo:'',
-          url: ''
+          url: '',
+          status: 'Draft',
+          pages: []
         }, item);
         this.dialog = true;
         setTimeout(()=>{
@@ -258,6 +268,7 @@
             source: 'CloudHaven',
             logo:'',
             url:'',
+            status: 'Draft',
             pages: []
           };
           this.editedIndex = -1
