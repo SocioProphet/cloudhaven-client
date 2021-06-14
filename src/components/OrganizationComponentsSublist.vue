@@ -128,7 +128,6 @@
         };
       },
       editItem (item) {
-        debugger;
         if (!this.organization.components) this.organization.components = [];
         this.editedIndex = this.organization.components.findIndex((component) => {return component.name === item.name;});
         if (!this.content) {
@@ -149,7 +148,6 @@
           if (item._id) {
             (async () => {
               var response = await Api().delete('/organizationcomponent/'+this.organization._id+'/'+item._id);
-              debugger;
               if (response.data.success) {
                 this.$store.commit('SET_SUCCESS', `${item.name} deleted.`);
                 vm.$emit('orgCompsChanged', response.data.components);

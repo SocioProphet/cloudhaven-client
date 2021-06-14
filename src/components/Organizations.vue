@@ -186,7 +186,6 @@ import OrganizationGroups from './OrganizationGroups.vue'
 
     computed: {
       editedOrg() {
-        debugger;
         return this.myOrgMemberships.length>0?this.myOrgMemberships[0]:{organization:{}};
       },
 /*      formTitle () {
@@ -225,10 +224,8 @@ import OrganizationGroups from './OrganizationGroups.vue'
         } else {
           (async () => {
               var response = await Api().get('/organizationuser/currentuserorgs');
-              debugger;
               if (response.data.success) {
                 this.myOrgMemberships = [].concat(response.data.orgMemberships);
-                debugger;
               } else if (response.data.errMsg) {
                 EventBus.$emit('global error alert', response.data.errMsg);
               }
@@ -271,7 +268,6 @@ import OrganizationGroups from './OrganizationGroups.vue'
         if (this.$refs.theForm.validate()) {
           (async () => {
               var response = await Api().post('/organizationuser/updateOrg', this.editedOrg.organization);
-              debugger;
               if (response.data.success) {
                 EventBus.$emit('global success alert', `Organization ${this.editedOrg.organization.name} updated.`);
                 this.loadRecords();
