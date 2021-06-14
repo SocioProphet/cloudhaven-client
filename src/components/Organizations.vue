@@ -94,7 +94,7 @@
       <OrganizationAppsSublist :organization="editedOrg.organization" @orgAppsChanged="orgAppsChanged"/>
     </v-tab-item>
     <v-tab-item v-if="editedOrg.organization.organizationId!='cloudhaven'">
-      <OrganizationComponentsSublist :organization="editedOrg.organization"/>
+      <OrganizationComponentsSublist :organization="editedOrg.organization" @orgCompsChanged="orgCompsChanged"/>
     </v-tab-item>
     <v-tab-item>
       <OrganizationGroups :organization="editedOrg.organization" />
@@ -212,11 +212,10 @@ import OrganizationGroups from './OrganizationGroups.vue'
     },
 
     methods: {
-      orgAppsChanged(apps) {
-        debugger;
-/*        if (apps) {
-          this.editedOrg.organization.applications = [].concat(apps);
-        }*/
+      orgAppsChanged() {
+        this.loadRecords();
+      },
+      orgCompsChanged() {
         this.loadRecords();
       },
       loadRecords() {
@@ -229,6 +228,7 @@ import OrganizationGroups from './OrganizationGroups.vue'
               debugger;
               if (response.data.success) {
                 this.myOrgMemberships = [].concat(response.data.orgMemberships);
+                debugger;
               } else if (response.data.errMsg) {
                 EventBus.$emit('global error alert', response.data.errMsg);
               }

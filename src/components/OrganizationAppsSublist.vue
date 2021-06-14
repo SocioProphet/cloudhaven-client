@@ -158,7 +158,6 @@
 
     methods: {
        pagesChanged( pages ) {
-        debugger;
         this.editedItem.pages = [].concat(pages);
         this.$emit("orgAppsChanged");
       },
@@ -210,7 +209,6 @@
         return formData;
       },
       editItem (item) {
-        debugger;
         if (!this.organization.applications) this.organization.applications = [];
         this.editedIndex = this.organization.applications.findIndex((application) => {return application.name === item.name;});
         this.editedItem = Object.assign({
@@ -234,7 +232,6 @@
           if (item._id) {
             (async () => {
               var response = await Api().delete('/organizationapplication/'+this.organization._id+'/'+item._id);
-              debugger;
               if (response.data.success) {
                 EventBus.$emit('global success alert', `${item.name} deleted.`);
                 vm.$emit('orgAppsChanged', response.data.apps);
@@ -276,7 +273,6 @@
 
             var response = await MultipartPostApi().post('/organizationapplication/upsert', this.createFormData(operation));
             if (response.data.success) {
-              debugger;
               this.$store.commit('SET_SUCCESS', `${this.editedItem.name} ${operation=='update'?'updated':'added'}.`);
               vm.$emit('orgAppsChanged', response.data.applications );
               this.dialog = false;
