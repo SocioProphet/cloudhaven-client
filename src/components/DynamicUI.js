@@ -388,9 +388,15 @@ function makeMethods( ctx, uiMethods ) {
       }
     })();
   }
-  methods._readAppData = (table, key, cb) => {
+  //key is optional - omitting returns all table contents
+  //searchOperator is optionsa - Valid search oerators are 'startsWith' or 'contains'
+
+  methods._readAppData = (table, key, searchOperator, cb) => {
+    var body = {organizationId: app.organizationId, table:table};
+    if (key) body.key = key;
+    if (searchOperator) body.searchOperator = searchOperator;
     (async () => {
-      var response = await Api().get(`/appstoremgr/get/${app.organizationId}/${encodeURIComponent(table)}/${encodeURIComponent(key)}`);
+      var response = await Api().post('/appstoremgr/read', body);
       if (cb) {
         (cb).call(ctx.rootThis, response.data);
       }

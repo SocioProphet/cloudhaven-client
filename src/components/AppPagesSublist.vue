@@ -38,9 +38,15 @@
           </v-card-title>
           <v-card-text>
             <v-form ref="pageForm" v-model="valid" lazy-validation>
+              <v-row><v-col col2="3">
               <v-text-field v-model="page.name" label="Name" required :rules="[rules.required]"></v-text-field>
+              </v-col>
+              <v-col class="d-flex justify-end align-end">
+                <div class="mb-1 black--text">(Typing "<b>%%%</b>" in the page content pops up a list of client functions and components to insert)</div>
+              </v-col>
+              </v-row>
               <!--v-textarea rows="20" v-model="page.content" label="Contents" required></v-textarea-->
-              <prism-editor class="my-editor" v-model="page.content" :highlight="highlighter" line-numbers :rules="[rules.required]"></prism-editor>
+              <prism-editor class="my-editor" v-model="page.content" :highlight="highlighter" line-numbers :rules="[rules.required]" @input="onPageChange"></prism-editor>
             </v-form>
           </v-card-text>
 
@@ -55,6 +61,16 @@
       </v-dialog>
       </template>
     </v-data-table>
+    <v-dialog v-model="macroDialog" @keydown.esc.prevent="macroDialog = false" max-width="500px" scrollable overlay-opacity="0.2">
+      <v-card>
+        <v-card-title>Macros</v-card-title>
+        <v-card-text>
+      <v-form ref="insertableForm">
+        <v-select v-model="clientFunction" label="Selection " :items="clientFunctions" @change="onClientFunctionSelect" persistent-hint hint="Select a client function or component to insert."></v-select>
+      </v-form>
+        </v-card-text>
+      </v-card>
+    </v-dialog>
   </div>
 </template>
 
@@ -91,9 +107,29 @@
 
     mounted () {
       this.page.content = this.defaultPage;
+      this.clientFunctions = Object.keys(vcdnUtils.clientFunctionMap);
+      this.clientFunctions.unshift('[component]');
     },
 
     methods: {
+      onClientFunctionSelect( clientFunction ) {
+        if (clientFunction) {
+          var script = vcdnUtils.clientFunctionMap[clientFunction];
+          if (script) {
+            this.page.content = this.page.content.replace('%%%', script);
+            this.clientFunction = '';
+          }
+        }
+        this.macroDialog = false;
+      },
+      onPageChange( value ) {
+        var found = value.indexOf('%%%')>=0;
+        if (found) {
+          setTimeout(() =>{
+            this.macroDialog = true;
+          }, 200)
+        }
+      },
       highlighter( code ) {
         return highlight(code, languages.js);
       },
@@ -176,6 +212,7 @@
     },
     data: () => ({
       dialog: false,
+      macroDialog: false,
       valid: true,
       headers: [
         { text: 'Actions', value: 'name', sortable: false, align:'center' },
@@ -191,7 +228,9 @@
         content: ''
       },
       errors: [],
-      defaultPage: vcdnUtils.getDefaultPage()
+      defaultPage: vcdnUtils.getDefaultPage(),
+      clientFunctions: [],
+      clientFunction:''
     })
   }
 </script>

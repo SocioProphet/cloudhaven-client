@@ -20,6 +20,28 @@ var validHtmlTags = [
 ]
 
 var obj = {};
+obj.clientFunctionMap = {
+  _writeAppData:'_writeAppData(table, key, dataString, function(results) {});',
+  _readAppData :'_readAppData (table, key, searchOpeartor, function(data) {});',
+  _pdfGet:'_pdfGet(postId, function(data) {});',
+  _appGet:'_appGet(postId, function(data) {});',
+  _appGetFile:'_appGetFile(postId, fileId, function(blob) {});',
+  _appPost:'_appPost(postId, postData, function(results) {});',
+  _lookupCloudHavenUser:'_lookupCloudHavenUser(searchSpec, function(user) {});',
+  _userSearch:'_userSearch(searchCriteria, function(users) {});',
+  _getUserData:'_getUserData(userId,pTarget, pModelToUserDataMap, function() {});',
+  _writeUserData:'_writeUserData(userId, pSource, pModelToUserDataMap, function(results) {});',
+  _getUserDataForList:'_getUserDataForList(pUserIds, list, userIdField, fieldMap, function() {});',
+  _getUserFile:'_getUserFile(userId, fileId, function(blob) {});',
+  _userFileOperation:'_userFileOperation(params, function(results) {});',
+  _gotoAppPage:'_gotoAppPage(page, appParams );',
+  _queueUserMessageOrTask:'_queueUserMessageOrTask(params, function(queueItemId ) {});',
+  _setUserTaskDisposition:'_setUserTaskDisposition(queueItemId, params, function(results) {});',
+  _deleteUserMessageOrTask:'_deleteUserMessageOrTask(queueItemId, function(results) {});',
+  _addCalendarEntry:'_addCalendarEntry(params, function(calEntryId ) {});',
+  _showNotification:'_showNotification(msg );'
+  };
+  
 obj.uiElementToVueCompMap = {
   alert: VueLib['VAlert'],
   autocomplete: VueLib['VAutocomplete'],

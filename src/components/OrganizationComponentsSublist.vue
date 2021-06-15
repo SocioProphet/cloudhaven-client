@@ -49,7 +49,25 @@
                 <v-radio label='Draft' value='Draft'></v-radio>
                 <v-radio label='Published' value='Published'></v-radio>
               </v-radio-group>
-              <prism-editor class="my-editor" v-model="editedItem.content" :highlight="highlighter" line-numbers :rules="[rules.required]"></prism-editor>
+              <v-tabs dark fixed-tabs background-color="#1E5AC8" color="#FFF10E" >
+              <v-tab>Source</v-tab>
+              <v-tab>Documentation</v-tab>
+              <v-tab-item>
+                <prism-editor class="my-editor" v-model="editedItem.content" :highlight="highlighter" line-numbers :rules="[rules.required]"></prism-editor>
+              </v-tab-item>
+              <v-tab-item>
+                <v-row class="mt-1 mb-2">
+                  <v-col cols="2" class="d-flex align-start">
+                    <v-text-field label="Enter a keyword" v-model="keyword" @keydown.enter="addKeyword"
+                      persistent-hint hint="type keyword and press enter"></v-text-field>
+                  </v-col>
+                  <v-col class="d-flex justify-left">
+                      <v-chip outlined class="ma-1" v-for="(kw, index) in editedItem.keywords" :key="index" close @click:close="removeKeyword(index)">{{ kw }}</v-chip>
+                  </v-col>
+                </v-row>
+              <tiptap-vuetify v-model="editedItem.documentation" :extensions="extensions" />
+              </v-tab-item>
+            </v-tabs>
             </v-form>
           </v-card-text>
 
@@ -68,7 +86,8 @@
 </template>
 
 <script>
-  import Api from '@/services/Api'
+  import Api from '@/services/Api';
+  import _ from 'lodash';
   import { PrismEditor } from 'vue-prism-editor';
   import { EventBus } from '../event-bus.js';
   import vcdnUtils from '../_helpers/vcdnutils.js'
@@ -79,8 +98,13 @@
   import 'prismjs/components/prism-clike';
   import 'prismjs/components/prism-javascript';
   import 'prismjs/themes/prism-funky.css'; // import syntax highlighting styles
+
+  import { TiptapVuetify, Heading, Bold, Italic, Strike, Underline, Code, Paragraph, BulletList, OrderedList, ListItem, Link, Blockquote, HardBreak, HorizontalRule, History } from 'tiptap-vuetify';
+
+  const defaultDocumentation = "<h2>Description</h2><p>Add a description of this component here...</p><h2>Properties (props)</h2><ul><li><p>prop1 (String)<br>prop1 is for ...</p></li><li><p>prop2 (Object)<br>prop2 is for ...</p></li></ul><h2>Events</h2><ul><li><p>input<br>parameter: the parameter for this event contains...<br>input event occurs when... </p></li><li><p>event2<br>parameter: the parameter for this event contains...<br>event2 occurs when... <br></p></li></ul>";
+
   export default {
-    components: { PrismEditor },
+    components: { PrismEditor, TiptapVuetify },
     props: ['organization'],
     data: () => ({
       dialog: false,
@@ -95,14 +119,39 @@
           required: value => !!value || 'Required.'
       },
       editedIndex: -1,
-      editedItem: {
+      keyword: '',
+      defaultPage: {
         name: '',
         componentId: '',
         source: 'App Server',
         status: 'Draft',
+        keywords: [],
+        documentation: defaultDocumentation,
         content: vcdnUtils.getDefaultComponent()
       },
-      errors: []
+      editedItem: {},
+      errors: [],
+      extensions: [
+        History,
+        Blockquote,
+        Link,
+        Underline,
+        Strike,
+        Italic,
+        ListItem,
+        BulletList,
+        OrderedList,
+        [Heading, {
+          options: {
+            levels: [1, 2, 3]
+          }
+        }],
+        Bold,
+        Code,
+        HorizontalRule,
+        Paragraph,
+        HardBreak
+      ]
 
     }),
     computed: {
@@ -118,6 +167,16 @@
     },
 
     methods: {
+      addKeyword() {
+        this.editedItem.keywords.push(this.keyword);
+        this.keyword = '';
+      },
+      removeKeyword( index ) {
+        this.editedItem.keywords.splice(index, 1);
+      },
+      resetPage() {
+        this.editedItem = Object.assign({}, _.clone(this.defaultPage));
+      },
       highlighter( code ) {
         return highlight(code, languages.js);
       },
@@ -130,6 +189,8 @@
           name: this.editedItem.name,
           source: this.editedItem.source,
           status: this.editedItem.status,
+          keywords: this.editedItem.keywords,
+          documentation: this.editedItem.documentation,
           content: this.editedItem.content
         };
       },
@@ -139,13 +200,20 @@
         if (!this.content) {
           this.content = vcdnUtils.getDefaultComponent();
         }
+        if (!Array.isArray(item.keywords)) item.keywords = [];
         this.editedItem = Object.assign({
           name: '',
           componentId:'',
           source: 'App Server',
           status: 'Draft',
+          keywords: [],
+          documentation: '',
           content: ''
         }, item);
+        if (!this.editedItem.documentation) {
+          this.editedItem.documentation = defaultDocumentation;
+        }
+
         this.dialog = true;
       },
 
@@ -174,11 +242,7 @@
       close () {
         this.dialog = false;
         setTimeout(() => {
-          this.editedItem = {
-            name: '',
-            componentId: '',
-            source: 'App Server'
-          };
+          this.resetPage();
           this.editedIndex = -1
         }, 300)
       },
