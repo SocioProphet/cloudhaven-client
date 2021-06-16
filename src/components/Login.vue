@@ -1,18 +1,15 @@
 <template>
 <div>
   <v-container class="justify-center">
-    <v-row class="text-center justify-space-around" >
-      <v-spacer/>
-      <v-col cols="4" class="px-1">
-        <v-card height="650px" style="background: linear-gradient(to bottom, #FFFFFF -10%, #00528d 100%);" class="pt-9 ">
-          <div class="pa-6"><v-img  :src="logoDataURI" /></div>
+    <v-row class="d-flex text-center justify-center wrap" >
+        <v-card height="650px" style="background: linear-gradient(to bottom, #FFFFFF -10%, #00528d 100%);" class="pt-9 justify-space-around">
+          <div class="pa-6"><v-img class="ml-auto mr-auto" max-width="340px" :src="logoDataURI" /></div>
           <div>
-            <span class='text-h2'><b>CloudHaven</b></span>
+            <span class='text-h3'><b>CloudHaven</b></span>
           </div>
         </v-card>
-      </v-col>
-      <v-col cols="4" class="px-1">
-        <v-card height="650px" :style="{'background-color':'#00b397'}" class="d-flex justify-space-around">
+        <div style="width:380px">
+        <v-card height="650px" :style="{'background-color':'#00b397'}" class="pa-3 d-flex justify-space-around">
           <v-tabs v-if="!showNeedEmailConf" v-model="tab" background-color="#00528d" show-arrows icons-and-text dark grow class="mt-auto mb-auto mx-2" style="width:95%">
             <v-tabs-slider color="#00528d"></v-tabs-slider>
               <v-tab v-for="(i,index) in tabs" :key="index">
@@ -73,8 +70,7 @@
             
           </v-sheet>
         </v-card>
-      </v-col>
-      <v-spacer/>
+        </div>
     </v-row>
   </v-container>
 </div>

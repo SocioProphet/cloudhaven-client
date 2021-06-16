@@ -21,24 +21,33 @@ var validHtmlTags = [
 
 var obj = {};
 obj.clientFunctionMap = {
-  _writeAppData:'_writeAppData(table, key, dataString, function(results) {});',
-  _readAppData :'_readAppData (table, key, searchOpeartor, function(data) {});',
-  _pdfGet:'_pdfGet(postId, function(data) {});',
-  _appGet:'_appGet(postId, function(data) {});',
-  _appGetFile:'_appGetFile(postId, fileId, function(blob) {});',
-  _appPost:'_appPost(postId, postData, function(results) {});',
+  _writeAppData:`  //params: table, key, dataString
+    _writeAppData(params, function(results) {});`,
+  _readAppData :`  //params: table, key, searchOperator(startswith, contains)
+    _readAppData (params, function(data) {});`,
+  _pdfGet:`  //params: operationId
+    _pdfGet(params, function(data) {});`,
+  _appGet:`  //params: operationId
+    _appGet(params, function(data) {});`,
+  _appGetFile:`  //params: postId, fileId
+    _appGetFile(params, function(blob) {});`,
+  _appPost:`  //params: operationId, postData
+    _appPost(params, function(results) {});`,
   _lookupCloudHavenUser:'_lookupCloudHavenUser(searchSpec, function(user) {});',
-  _userSearch:'_userSearch(searchCriteria, function(users) {});',
-  _getUserData:'_getUserData(userId,pTarget, pModelToUserDataMap, function() {});',
-  _writeUserData:'_writeUserData(userId, pSource, pModelToUserDataMap, function(results) {});',
-  _getUserDataForList:'_getUserDataForList(pUserIds, list, userIdField, fieldMap, function() {});',
+  _usersSearch:`  //searchCriteria: phrase, dateOfBirth
+    _usersSearch(searchCriteria, function(users) {});`,
+  _getUserData:'_getUserData(pUserIds[], userDataIds, function() {});',
+  _writeUserData:'_writeUserData(userId, userDataIdToValueMap, function(results) {});',
   _getUserFile:'_getUserFile(userId, fileId, function(blob) {});',
-  _userFileOperation:'_userFileOperation(params, function(results) {});',
+  _userFileOperation:` //params: operation, userId, fileType, name, fileName, fileId, file
+    _userFileOperation(params, function(results) {});`,
   _gotoAppPage:'_gotoAppPage(page, appParams );',
-  _queueUserMessageOrTask:'_queueUserMessageOrTask(params, function(queueItemId ) {});',
+  _queueUserMessageOrTask:`  //params: senderId, senderEmail, recipients[{to:[],cc:[],bcc:[]], subject, message, application{organizationId, applicationId, componentId, appCongigData}
+    _queueUserMessageOrTask(params, function(queueItemId ) {});`,
   _setUserTaskDisposition:'_setUserTaskDisposition(queueItemId, params, function(results) {});',
   _deleteUserMessageOrTask:'_deleteUserMessageOrTask(queueItemId, function(results) {});',
-  _addCalendarEntry:'_addCalendarEntry(params, function(calEntryId ) {});',
+  _addCalendarEntry:` //params: title, content, start, durationType('allday' or 'timed'), applicationId, componentId, appConfigData
+    _addCalendarEntry(params, function(calEntryId ) {});`,
   _showNotification:'_showNotification(msg );'
   };
   

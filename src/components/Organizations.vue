@@ -3,56 +3,8 @@
     <v-container>
     <v-toolbar flat color="white">
       <v-toolbar-title>Organizations</v-toolbar-title>
-      <!--v-divider
-        class="mx-3"
-        inset
-        vertical
-      ></v-divider>
-      <v-spacer></v-spacer>
-      <v-dialog v-model="dialog" max-width="900px" overlay-opacity="0.2">
-        <template v-slot:activator="{ on, attrs }">
-          <v-btn v-bind="attrs" v-on="on" color="primary" dark class="mb-3">New Organization</v-btn>
-        </template>
-        <v-card>
-          <v-card-title>
-            <span class="text-h5">{{ formTitle }}</span>
-          </v-card-title>
-
-          <v-card-text>
-            <v-form ref="theForm" v-model="valid" lazy-validation>
-              <v-text-field :readonly="editedOrg.organization.organizationId=='cloudhaven'" v-model="editedOrg.organization.name" label="Name" required :rules="[rules.required]"></v-text-field>
-              <v-text-field :readonly="editedOrg.organization.organizationId=='cloudhaven'" v-model="editedOrg.organization.organizationId" label="Id" required :rules="[rules.required]"></v-text-field>
-              <v-text-field v-if="editedOrg.organization.organizationId!='cloudhaven'" v-model="editedOrg.organization.componentsUrl" label="Components URL" :rules="[rules.url]"></v-text-field>
-            </v-form>
-          </v-card-text>
-              <v-tabs v-if="editedOrgId" dark fixed-tabs background-color="#1E5AC8" color="#FFF10E" >
-              <v-tab v-if="editedOrg.organization.organizationId!='cloudhaven'" >Applications</v-tab>
-              <v-tab v-if="editedOrg.organization.organizationId!='cloudhaven'" >Components</v-tab>
-              <v-tab>Groups</v-tab>
-              <v-tab>Contacts</v-tab>
-              <v-tab-item v-if="editedOrg.organization.organizationId!='cloudhaven'">
-                <OrganizationAppsSublist :organization="editedOrg.organization" @orgAppsChanged="orgAppsChanged"/>
-              </v-tab-item>
-              <v-tab-item v-if="editedOrg.organization.organizationId!='cloudhaven'">
-                <OrganizationComponentsSublist :organization="editedOrg.organization"/>
-              </v-tab-item>
-              <v-tab-item>
-                <OrganizationGroups :organization="editedOrg.organization" />
-              </v-tab-item>
-              <v-tab-item>
-                <OrganizationContactsSublist :organization="editedOrg.organization"  :contactTypeOptions="contactTypeOptions"/>
-              </v-tab-item>
-            </v-tabs>
-
-          <v-card-actions>
-            <v-btn elevation="2" color="blue darken-1" text @click.native="cancel">Cancel</v-btn>
-            <v-spacer></v-spacer>
-            <v-btn elevation="2" color="blue darken-1" text @click.native="save"><v-icon left dark>mdi-content-save</v-icon>Save</v-btn>
-          </v-card-actions>
-        </v-card>
-      </v-dialog-->
     </v-toolbar>
-    <v-data-table id="organization-table"
+    <v-data-table v-if="!user.rolesMap['SYSADMIN']" id="organization-table"
       :headers="headers"
       :items="myOrgMemberships"
       hide-default-footer disable-pagination

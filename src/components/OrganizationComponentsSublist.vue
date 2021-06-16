@@ -2,7 +2,7 @@
   <div>
     <v-data-table
       :headers="headers"
-      :items="organization.components"
+      :items="components"
       hide-default-footer disable-pagination
       class="elevation-1"
     >
@@ -10,22 +10,23 @@
         <tr @click="editItem(item)">
         <td class="d-flex justify-center align-center px-0">
           <v-icon
-            small
             class="mr-3"
             @click.stop="editItem(item)"
           >
             mdi-pencil
           </v-icon>
           <v-icon
-            small
             @click.stop="deleteItem(item)"
           >
             mdi-trash-can
           </v-icon>
         </td>
+        <td v-if="isAdmin">{{item.organizationName}}</td>
         <td>{{ item.name }}</td>
         <td>{{ item.componentId }}</td>
         <td>{{ item.source}}</td>
+        <td>{{ item.status}}</td>
+        <td v-if="isAdmin">{{item.isApproved?'APPROVED':''}}</td>
         </tr>
       </template>
       <template v-slot:[`body.append`]>
@@ -87,6 +88,7 @@
 
 <script>
   import Api from '@/services/Api';
+import { mapState } from 'vuex'
   import _ from 'lodash';
   import { PrismEditor } from 'vue-prism-editor';
   import { EventBus } from '../event-bus.js';
@@ -109,11 +111,12 @@
     data: () => ({
       dialog: false,
       valid: true,
-      headers: [
-        { text: 'Actions', value: 'name', sortable: false, align:'center' },
+      rawHeaders: [
+        { text: 'Actions', value: 'name', sortable: false, align:'center', width:"80px" },
         { text: 'Name', align: 'left', sortable: true, value: 'name' },
         { text: 'Id', align: 'left', sortable: true, value: 'componentId' },
-        { text: 'Source', align: 'left', sortable: true, value: 'source' }
+        { text: 'Source', align: 'left', sortable: true, value: 'source' },
+        { text: 'Status', align: 'left', sortable:true, name: 'status'}
       ],
       rules: {
           required: value => !!value || 'Required.'
@@ -155,6 +158,39 @@
 
     }),
     computed: {
+      headers() {
+        if (this.isAdmin) {
+          var hdrs = [].concat(this.rawHeaders);
+          hdrs.splice(1,0, { text: 'Organization', align: 'left', sortable: true, value: 'organizationName' });
+          hdrs.push({ text: 'Approved', align:'left', sortable:true, value: 'isApproved'});
+          return hdrs;
+        } else {
+          return rawHeaders;
+        }
+      },
+      components() {
+        if (this.isAdmin) {
+          var comps = this.organizations.reduce((ar,org)=>{
+            org.components.forEach(c=>{
+              var comp = Object.assign({organizationName:org.name}, c);
+              ar.push(comp);
+            })
+            return ar;
+          },[]);
+          comps = comps.sort((a,b)=>{
+            var aKey = a.organizationName+'-'+a.name;
+            var bKey = b.organizationName+'-'+b.name;
+            return aKey<bKey?-1:(aKey>bKey?1:0);
+          });
+          return comps;
+        } else {
+          return this.organization.components;
+        }
+      },
+      isAdmin() {
+        return this.user.rolesMap['SYSADMIN'];
+      },
+      ...mapState(['organizations','user'])
     },
     watch: {
       dialog (val) {
@@ -164,9 +200,16 @@
 
     mounted () {
       this.content = vcdnUtils.getDefaultComponent();
+      if (this.isAdmin) {
+        this.$store.commit('SET_CRUDAPISERVCE', 'organizations');
+        this.loadOrganizations();
+      }
     },
 
     methods: {
+      loadOrganizations() {
+        this.$store.dispatch('loadRecords', 'organizations');
+      },
       addKeyword() {
         this.editedItem.keywords.push(this.keyword);
         this.keyword = '';

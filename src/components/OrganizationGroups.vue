@@ -57,6 +57,7 @@
 
 <script>
   import Api from '@/services/Api'
+  import { mapState } from 'vuex'
   export default {
     props: ['organization'],
     data: () => ({
@@ -76,6 +77,9 @@
       }
     }),
 
+    computed: {
+      ...mapState(['user'])
+    },
     watch: {
       dialog (val) {
         val || this.close()

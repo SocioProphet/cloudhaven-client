@@ -86,18 +86,20 @@ import moment from 'moment';
       (async () => {
         var dummy = await this.$store.dispatch('reloadUser');
         var response = await Api().post('/userdata/batchget', {userIds: [this.user._id]});
-        var userDataMap = response.data || {};
-        var userDataList = userDataMap[this.user._id];
-        if (userDataList) {
-          userDataList.forEach(e=>{
-            this.userData[e.name] = e.content;
+        if (response.data.success) {
+          var userDataMap = response.data.userDataMap || {};
+          var userDataList = userDataMap[this.user._id];
+          if (userDataList) {
+            userDataList.forEach(e=>{
+              this.userData[e.name] = e.content;
+            })
+          }
+          UserDataDictionary.forEach(de=>{
+            if (de.coreData) {
+              this.userData[de.id] = de.id=='dateOfBirth'? moment(this.user[de.id]).format('l'):this.user[de.id];
+            }
           })
         }
-        UserDataDictionary.forEach(de=>{
-          if (de.coreData) {
-            this.userData[de.id] = de.id=='dateOfBirth'? moment(this.user[de.id]).format('l'):this.user[de.id];
-          }
-        })
       })();
     },
     beforeCreate() {

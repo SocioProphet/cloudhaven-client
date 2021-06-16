@@ -11,8 +11,9 @@ import router from '../router'
 import { EventBus } from '../event-bus.js';
 import moment from 'moment'
 import { mapState } from 'vuex'
+import { parseComponent } from 'vue-template-compiler'
 
-var coreUserFields = ["email", "name", "firstName", "middleName", "lastName", "dateOfBirth", "ssn", "language"];
+//var coreUserFields = ["email", "name", "firstName", "middleName", "lastName", "dateOfBirth", "ssn", "language"];
 
 function ensureDate( val ) {
   if (!val) return null;
@@ -370,22 +371,75 @@ function makeMethods( ctx, uiMethods ) {
     },{});
   }
   methods._merge = _.merge;
-  methods._writeAppData = (table, key, dataString, cb) => {
+  function checkArguments( funcName, params, cb, validations) {
+    var errors = [];
+    if ((typeof params)!=='object' || Array.isArray(params)) {
+      console.log(`${funcName}: missing parameters object.`);
+      return;
+    }
+    validations.forEach(fldObj=>{
+      fldObj.rules = fldObj.rules || [];
+      var prop = fldObj.name;
+      var isRequired = fldObj.rules.indexOf('required');
+      if (isRequired>=0 && params[prop]===undefined) {
+        errors.push(`${funcName}: missing required parameter "${prop}".`);
+      }
+      if (params[prop]!==undefined) {
+        if (fldObj.rules.indexOf('notblank')>=0 && !params[prop]) {
+          errors.push(`${funcName}: parameter "${prop}" cannot be blank.`);
+        }
+        var dataType = (typeof params[prop]);
+        if (fldObj.type=='array' && !Array.isArray(params[prop])) {
+          errors.push(`${funcName}: parameter "${prop}" must be an array.`)
+        } else if (fldObj.type=='date' && !_,isDate(params[prop])) {
+            errors.push(`${funcName}: parameter "${prop}" must be a date.`)
+        } else if (dataType != fldObj.type) {
+          errors.push(`${funcName}: parameter "${prop}" must be type ${fldObj.type}.`)
+        }
+        if (fldObj.enum) {
+          if (fldObj.enum.indexOf(params[prop])<0) {
+            errors.push(`${funcName}: parameter "${prop}" must be one of [${fldObj.enum.join(', ')}].`)
+          }
+        }
+      }
+    });
+    if (cb && (typeof cb)!=='function') {
+      errors.push(`${funcName} callback parameter must be a function.`);
+    }
+    errors.forEach(e=>{
+      console.log(e);
+    })
+    return errors.length==0;
+  }
+  methods._writeAppData = (params, cb) => {
+    var argValidations = [
+      {name:'table', rules:['required', 'notblank'], type:'string'},
+      {name: 'key', rules:['required','notblank'], type:'string'},
+      {name: 'dataString', rules:['required'], type:'string'}
+    ];
+    if (!checkArguments('_writeAppData', params, cb, argValidations)) return;
     (async () => {
       var response = await Api().post('/appstoremgr/upsert', 
-          {organizationId: app.organizationId, table:table, key:key, jsonData:dataString});
+          {organizationId: app.organizationId, table:params.table, key:params.key, jsonData:params.dataString||''});
       if (cb) {
         (cb).call(ctx.rootThis, response.data);
       }
     })();
   }
+  
   //key is optional - omitting returns all table contents
-  //searchOperator is optionsa - Valid search oerators are 'startsWith' or 'contains'
-
-  methods._readAppData = (table, key, searchOperator, cb) => {
-    var body = {organizationId: app.organizationId, table:table};
-    if (key) body.key = key;
-    if (searchOperator) body.searchOperator = searchOperator;
+  //searchOperator is optional - Valid search oerators are 'startsWith' or 'contains'
+  methods._readAppData = (params, cb) => {
+    if (params && params.searchOperator) params.searchOperator = params.searchOperator.toLowerCase();
+    var argValidations = [
+      {name: 'table', rules:['required', 'notblank'], type:'string'},
+      {name: 'key', type:'string'},
+      {name: 'searchOperator', type:'string', enum:['startswith', 'contains']}
+    ];
+    if (!checkArguments('_readAppData', params, cb, argValidations)) return;
+    var body = {organizationId: app.organizationId, table:params.table};
+    if (params.key) body.key = params.key;
+    if (params.searchOperator) body.searchOperator = params.searchOperator;
     (async () => {
       var response = await Api().post('/appstoremgr/read', body);
       if (cb) {
@@ -393,18 +447,27 @@ function makeMethods( ctx, uiMethods ) {
       }
     })();
   }
-  methods._pdfGet = (postId, cb) => {
+
+  methods._pdfGet = (params, cb) => {
+    var argValidations = [
+      {name: 'operationId', rules:['required', 'notblank'], type:'string'}
+    ];
+    if (!checkArguments('_pdfGet', params, cb, argValidations)) return;
     (async () => {
-      var response = await PdfApi().post('/organizationapplication/apppost', {app:app, httpMethod: 'GET', postId:postId});
+      var response = await PdfApi().post('/organizationapplication/apppost', {app:app, httpMethod: 'GET', operationId:params.operationId});
       if (cb) {
         (cb).call(ctx.rootThis, response.data);
       }
     })();
   };
-  methods._appGet = (postId, cb) => {
+  methods._appGet = (params, cb) => {
+    var argValidations = [
+      {name: 'operationId', rules:['required', 'notblank'], type:'string'}
+    ];
+    if (!checkArguments('_appGet', params, cb, argValidations)) return;
     (async () => {
       try {
-        var response = await Api().post('/organizationapplication/apppost', {app:app, httpMethod: 'GET', postId:postId});
+        var response = await Api().post('/organizationapplication/apppost', {app:app, httpMethod: 'GET', operationId:params.operationId});
         if (cb) {
           (cb).call(ctx.rootThis, response.data);
         }
@@ -415,10 +478,15 @@ function makeMethods( ctx, uiMethods ) {
   };
 
   //postId = getFile for sandboxapp demo app
-  methods._appGetFile = (postId, fileId, cb) => {
+  methods._appGetFile = (params, cb) => {
+    var argValidations = [
+      {name: 'operationId', rules:['required', 'notblank'], type:'string'},
+      {name: 'fileId', rules:['required', 'notblank'], type:'string'}
+    ];
+    if (!checkArguments('_appGetFile', params, cb, argValidations)) return;
     (async () => {
       var URL = `/organizationapplication/appgetfile`;
-      var body = {appUrl:app.url, postId:postId, fileId:fileId}
+      var body = {appUrl:app.url, operationId:operationId, fileId:params.fileId}
       try {
         var response = await Api().post(URL, body, {responseType: 'blob', timeout: 30000 });
         var cd = response.headers["content-disposition"];
@@ -431,35 +499,45 @@ function makeMethods( ctx, uiMethods ) {
       }
     })();
   }
-  methods._appDelete = (postId, cb) => {
+/* Not currentlt implemented
+  methods._appDelete = (params, cb) => {
+    var argValidations = [
+      {name: 'operationId', rules:['required', 'notblank'], type:'string'}
+    ];
+    if (!checkArguments('_appGet', params, cb, argValidations)) return;
     (async () => {
-      var response = await Api().post('/organizationapplication/apppost', {app:app, httpMethod: 'DELETE', postId:postId});
+      var response = await Api().post('/organizationapplication/apppost', {app:app, httpMethod: 'DELETE', operationId:params.operationId});
       if (cb) {
         (cb).call(ctx.rootThis, response.data);
       }
     })();
-  };
-  methods._appPost = (postId, postData, cb) => {
+  };*/
+  methods._appPost = (params, cb) => {
+    var argValidations = [
+      {name: 'operationId', rules:['required', 'notblank'], type:'string'},
+      {name: 'postData', rules:['required', 'notblank'], type:'object'}
+    ];
+    if (!checkArguments('_appPost', params, cb, argValidations)) return;
     var vm = ctx.rootThis;
     if (!vm.$store.state.user) return;
     (async () => {
       var response = null;
-      if (postData.files) {
-        var formData = Object.keys(postData).reduce((fd,key)=>{
+      if (params.postData.files) {
+        var formData = Object.keys(params.postData).reduce((fd,key)=>{
           if (key == 'files') {
-            Object.keys(postData.files).forEach(fileName=>{
-              fd.append('files.'+fileName, postData.files[fileName]);
+            Object.keys(params.postData.files).forEach(fileName=>{
+              fd.append('files.'+fileName, params.postData.files[fileName]);
             })
           } else {
-            fd.append(key, postData[key]);
+            fd.append(key, params.postData[key]);
           }
           return fd;
         },new FormData());
         formData.append("_appUrl", app.url);
-        formData.append("_postId", postId);
+        formData.append("_operationId", params.operationId);
         response = await Api().post('/organizationapplication/appmultipartpost', formData );
       } else {
-        response = await MultipartPostApi().post('/organizationapplication/apppost', {app:app, httpMethod: 'POST', postId:postId, postData:postData});
+        response = await MultipartPostApi().post('/organizationapplication/apppost', {app:app, httpMethod: 'POST', operationId:params.operationId, postData:params.postData});
       }
       if (cb) {
         vm.$nextTick(() =>{
@@ -473,7 +551,11 @@ function makeMethods( ctx, uiMethods ) {
   methods._deepGet = deepGet;
   methods._deepSet = deepSet;
   methods._gotoAppPage = (page, appParams) => {
-    console.log('gotoAppPage '+page+'; '+JSON.stringify(appParams))
+    var argValidations = [
+      {name: 'page', rules:['required', 'notblank'], type:'string'},
+      {name: 'appParams', type:'object'}
+    ];
+    if (!checkArguments('_gotoAppPage', {page:page, appParams:appParams}, null, argValidations)) return;
     setTimeout(() => {
       router.push({ name: 'AppPageReset', params: { app:app, page:page, appParams:appParams } });
     }, 300)
@@ -494,6 +576,10 @@ function makeMethods( ctx, uiMethods ) {
     router.go(-1);
   }
   methods._lookupCloudHavenUser = (searchSpec, cb) => { //currently only email supported
+    var argValidations = [
+      {name: 'searchSpec', rules:['required'], type:'object'}
+    ];
+    if (!checkArguments('_lookupCloudHavenUser', {searchSpec:searchSpec}, cb, argValidations)) return;
     (async () => {
       var response = await Api().post('/userinfo/lookup', searchSpec);
       if (cb) {
@@ -502,6 +588,11 @@ function makeMethods( ctx, uiMethods ) {
     })();
   }
   methods._usersSearch = (searchCriteria, cb) => {
+    var argValidations = [
+      {name: 'phrase', rules:['required', 'nonblank'], type:'string'},
+      {name: 'dateOfBirth', type: 'date'}
+    ];
+    if (!checkArguments('_usersSearch', searchCriteria, cb, argValidations)) return;
     var vm = ctx.rootThis;
     (async () => {
       var response = await Api().post("/usersearch", searchCriteria);
@@ -516,6 +607,11 @@ function makeMethods( ctx, uiMethods ) {
     })();
   }
   methods._getUserData = (pUserIds, userDataIds, cb) => {
+    var argValidations = [
+      {name: 'pUserIds', rules:['required'], type:'array'},
+      {name: 'userDataIds', rules:['required'], type:'array'}
+    ];
+    if (!checkArguments('_getUserData', {pUserIds:pUserIds, userDataIds:userDataIds}, cb, argValidations)) return;
     if (userDataIds.length==0) {
       if (cb) cb.call(ctx.rootThis, []);
       return;
@@ -540,7 +636,27 @@ function makeMethods( ctx, uiMethods ) {
       if (cb) cb.call(ctx.rootThis, userMap);
     })();
   };
+  methods._writeUserData = (userId, userDataIdToValueMap, cb) => {
+    var argValidations = [
+      {name: 'userId', rules:['required', 'nonblank'], type:'string'},
+      {name: 'userDataIdToValueMap', rules:['required'], type:'object'}
+    ];
+    if (!checkArguments('_writeUserData', {userId:userId, userDataIdToValueMap:userDataIdToValueMap}, cb, argValidations)) return;
+    (async () => {
+      var updates = Object.keys(userDataIdToValueMap).reduce((ar,fld)=>{
+        ar.push({name:fld, content:userDataIdToValueMap[fld]})
+        return ar;
+      },[]);
+      var response = await Api().post('/userdata/batchupsert', {userId:userId, updates:updates});
+      if (cb) cb.call(ctx.rootThis, response.data);
+    })();
+  }
   methods._getUserFile = (userId, userFileId, cb) => {
+    var argValidations = [
+      {name: 'userId', rules:['required', 'nonblank'], type:'string'},
+      {name: 'userFileId', rules:['required', 'nonblank'], type:'string'}
+    ];
+    if (!checkArguments('_getUserFile', {userId:userId, userFileId:userFileId}, cb, argValidations)) return;
     (async () => {
       var response = await Api().get(`/userdata/userfile/body/${userId}/${userFileId}`,
         {responseType: 'blob', timeout: 30000 });
@@ -554,22 +670,29 @@ function makeMethods( ctx, uiMethods ) {
       }
     })();
   }
-  methods._writeUserData = (userId, userDataIdToValueMap, cb) => {
-    (async () => {
-/*      FIXME - need to complete this...
-      //get core data
-      var response = await Api().post('/user/writecore data...');
-      var body = {}
-      var response = await Api().post('/userdata/write');
-      if (cb) cb.call(ctx.rootThis, response.data);*/
-    })();
-  }
   methods._userFileOperation = (params, cb) => {
-    var validOps = {add:1, update:1, delete:1};
-    if (!params && !validOps[params.operation]) {
-      throw "Invalid operation parameter";
-      return;
+    if (params.operation) params.operation = params.operation.toLowerCase();
+    if (params.fileType) params.fileType = params.fileType.toLowerCase();
+    var argValidations1 = [
+      {name: 'userId', rules:['required', 'nonblank'], type:'string'},
+      {name: 'operation', rules:['required', 'nonblank'], type:'string', enum:['add', 'update', 'delete']}
+    ];
+    if (!checkArguments('_userFileOperation', params, cb, argValidations1)) return;
+    var addValidations = [
+      {name: 'name', rules:['required', 'nonblank'], type:'string'},
+      {name: 'fileName', rules:['required', 'nonblank'], type:'string'},
+      {name: 'fileType', rules:['required', 'nonblank'], type:'string'/*, enum:['docx', 'text', 'pdf', 'apng', 'avif', 'gif', 'jpeg', 'png', 'svg', 'webp']*/},
+      {name: 'file', rules:['required'], type: 'object'}
+    ];
+    var updValidations = addValidations.concat([
+      {name: 'fileId', rules:['required', 'nonblank'], type:'string'}
+    ])
+    var argValidations = {
+      add:addValidations,
+      update:updValidations,
+      delete: [{name: 'fileId', rules:['required', 'nonblank'], type:'string'}]
     }
+    if (!checkArguments('_userFileOperation', params, cb, argValidations[params.operation])) return;
     var mimeType = '';
     if (params.fileType) {
       var fileType = params.fileType.toLowerCase();
@@ -585,13 +708,9 @@ function makeMethods( ctx, uiMethods ) {
         svg:'image/svg+xml',
         webp:'image/webp',
       }
-      mimeType = mimeTypeMap[fileType];
+      mimeType = mimeTypeMap[fileType] || fileType;
     } else {
       mimeType = params.mimeType;
-    }
-    if (!mimeType) {
-      throw 'fileType must one of: '+Object.keys(mimeTypeMap).join(', ');
-      return;
     }
 
     (async () => {
@@ -627,17 +746,32 @@ function makeMethods( ctx, uiMethods ) {
   "appConfigData": {...}
 }
   */
-  methods._appCreateCalendarEntry = ( params ) => {
+  methods._addCalendarEntry = ( params, cb ) => {
+    if (!params || !_.isObject(params) || Array.isArray(params)) {
+      console.log('_addCalendarEntry: missing parameters object');
+      return;
+    }
+    if (!params.ownerId && !params.ownerEmail) {
+      console.log('_addCalendarEntry: either ownerId or ownerEmail parameter required.');
+      return;
+    }
+    var argValidations = [
+      {name: 'title', rules:['required', 'nonblank'], type:'string'},
+      {name: 'content', rules:['required', 'nonblank'], type:'string'},
+      {name: 'start', rules:['required'], type:'date'},
+      {name: 'durationType', rules:['required'], type: 'string', enum:['allday', 'timed']},      
+      {name: 'applicationId', type:'string'},
+      {name: 'componentId', type:'string'},
+      {name: 'appConfigData', type: 'object'},
+
+    ];
+    if (!checkArguments('_addCalendarEntry', params, cb, argValidations)) return;
     (async () => {
       params.organizationId = app.organizationId;
       var response = await Api().post("calendarmgr/appcreateevent", params);
 //      var result = response.data;
       if (cb) {
-        vm.$nextTick(() =>{
-          setTimeout(() => {
-            (cb).call(vm, response.data);
-          }, 100)
-        })
+        (cb).call(ctx.rootThis, response.data);
       }
     })();
   }
@@ -645,15 +779,23 @@ function makeMethods( ctx, uiMethods ) {
   //params: senderId||senderEmail, recipients, subject, message,
 	//        organization, applicationId, componentId, appConfigData
   //recipients = [{type:'[to|cc|bcc]', email:'jsmith@widget.com'}]
-  methods._appSendMessage = ( params ) => {
+  methods._queueUserMessageOrTask = ( params, cb ) => {
+    var argValidations = [
+      {name: 'senderId', type:'string'},
+      {name: 'senderEmail', type:'string'},
+      {name: 'recipients', rules:['required'], type:'array'},
+      {name: 'subject', rules:['required', 'nonblank'], type:'string'},
+      {name: 'message', rules:['required', 'nonblank'], type:'string'},
+      {name: 'application', type:'object'}
+    ];
+    if (!checkArguments('_queueUserMessageOrTask', params, cb, argValidations)) return;
     (async () => {
       if (!params.senderId && !params.senderEmail) {
         params.senderId = this.user._id;
       }
       var response = await Api().post('/messagemgr/send', params );
-      this.dialog = false;
-      if (response.data.success) {
-        EventBus.$emit('global success alert', this.message.subject+' sent.');
+      if (cb) {
+        (cb).call(ctx.rootThis, response.data);
       }
     })();
   }

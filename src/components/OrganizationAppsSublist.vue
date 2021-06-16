@@ -2,7 +2,7 @@
   <div>
     <v-data-table
       :headers="headers"
-      :items="organization.applications"
+      :items="applications"
       hide-default-footer disable-pagination
       class="elevation-1"
     >
@@ -10,25 +10,24 @@
         <tr @click="editItem(item)">
         <td class="d-flex justify-center align-center px-0">
           <v-icon
-            small
             class="mr-3"
             @click.stop="editItem(item)"
           >
             mdi-pencil
           </v-icon>
           <v-icon
-            small
             @click.stop="deleteItem(item)"
           >
             mdi-trash-can
           </v-icon>
         </td>
+        <td v-if="isAdmin">{{item.organizationName}}</td>
         <td>{{ item.name }}</td>
         <td>{{ item.applicationId }}</td>
-        <td><v-img max-width="30" max-height="30" :src="item.logo" /></td>
-        <td>{{ item.source}}</td>
+        <!--td><v-img max-width="30" max-height="30" :src="item.logo" /></td-->
+        <td>{{ item.source=='CloudHaven'?'CloudHaven':(item.url?item.url.substring(0,10)+'...':'')}}</td>
         <td>{{ item.status}}</td>
-        <td>{{ item.url}}</td>
+        <td v-if="isAdmin">{{item.isApproved?'APPROVED':''}}</td>
         </tr>
       </template>
       <template v-slot:[`body.append`]>
@@ -95,6 +94,7 @@
 </template>
 
 <script>
+  import { mapState } from 'vuex'
   import Api from '@/services/Api'
   import { EventBus } from '../event-bus.js';
   import MultipartPostApi from '@/services/MultipartPostApi'
@@ -105,14 +105,13 @@
     data: () => ({
       dialog: false,
       valid: true,
-      headers: [
-        { text: 'Actions', value: 'name', sortable: false, align:'center' },
+      rawHeaders: [
+        { text: 'Actions', value: 'name', sortable: false, align:'center', width:"80px" },
         { text: 'Name', align: 'left', sortable: true, value: 'name' },
         { text: 'Application Id', align: 'left', sortable: true, value: 'applicationId' },
-        { text: 'Logo', align:'left', sortable:true, name:'logo'},
+       // { text: 'Logo', align:'left', sortable:true, name:'logo'},
         { text: 'Source', align: 'left', sortable:true, name: 'source'},
-        { text: 'Status', align: 'left', sortable:true, name: 'status'},
-        { text: 'URL', align: 'left', sortable: true, name:'url'}
+        { text: 'Status', align: 'left', sortable:true, name: 'status'}
       ],
       rules: {
           required: value => !!value || 'Required.',
@@ -141,6 +140,38 @@
       currentLogoURI: null
     }),
     computed: {
+      headers() {
+        if (this.isAdmin) {
+          var hdrs = [].concat(this.rawHeaders);
+          hdrs.splice(1,0, { text: 'Organization', align: 'left', sortable: true, value: 'organizationName' });
+          hdrs.push({ text: 'Approved', align:'left', sortable:true, value: 'isApproved'});
+          return hdrs;
+        } else {
+          return rawHeaders;
+        }
+      },
+      applications() {
+        if (this.isAdmin) {
+          var apps = this.organizations.reduce((ar,org)=>{
+            org.applications.forEach(a=>{
+              var app = Object.assign({organizationName:org.name}, a);
+              ar.push(app);
+            })
+            return ar;
+          },[]);
+          apps = apps.sort((a,b)=>{
+            var aKey = a.organizationName+'-'+a.name;
+            var bKey = b.organizationName+'-'+b.name;
+            return aKey<bKey?-1:(aKey>bKey?1:0);
+          });
+          return apps;
+        } else {
+          return this.organization.applications;
+        }
+      },
+      isAdmin() {
+        return this.user.rolesMap['SYSADMIN'];
+      },
       dataURI() {
         if (this.currentLogoURI) {
           return this.currentLogoURI;
@@ -152,7 +183,8 @@
         } else {
           return "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7";
         }
-      }
+      },
+      ...mapState(['organizations','user'])
     },
     watch: {
       dialog (val) {
@@ -161,12 +193,22 @@
     },
 
     mounted () {
+      if (this.isAdmin) {
+        this.$store.commit('SET_CRUDAPISERVCE', 'organizations');
+        this.loadOrganizations();
+      }
     },
 
     methods: {
-       pagesChanged( pages ) {
+      loadOrganizations() {
+        this.$store.dispatch('loadRecords', 'organizations');
+      },
+      pagesChanged( pages ) {
         this.editedItem.pages = [].concat(pages);
         this.$emit("orgAppsChanged");
+        if (!this.isAdmin) {
+          this.loadOrganizations();
+        }
       },
       prepDragNDrop() {
         //File drag-n-drop logic
