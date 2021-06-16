@@ -222,7 +222,6 @@ var defaultComponent = `var uiConfig = {
     exampleArray: {type: "Array"},
     exampleObject: {type: "Object"}
   },
-  requiredUserData: ['firstName', 'lastName'],
   dataModel:{
     displayString:''
   },
@@ -413,7 +412,6 @@ obj.checkSyntax = ( vcdn, isComponent ) => {
       'nativeOn',
       'on',
       'vmodel',
-      'userData',
       'scopedSlots',
       'contents',
       'omit',
@@ -421,8 +419,7 @@ obj.checkSyntax = ( vcdn, isComponent ) => {
       'scopedSlots',
       'template',
       'debug',
-      'mask',
-      'userData'
+      'mask'
     ];
     var compToValidProps = {
       dynamicComponent: ["component", "organizationId", "componentId"],
@@ -454,7 +451,6 @@ obj.checkSyntax = ( vcdn, isComponent ) => {
   var validPropertiesMap = {
     components:'array',
     externalComponents:'array',
-    requiredUserData:'array',
     dataModel:'object',
     methods:'object',
     computed:'object',

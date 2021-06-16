@@ -89,7 +89,7 @@
     <v-tab v-if="editedOrg.organization.organizationId!='cloudhaven'" >Applications</v-tab>
     <v-tab v-if="editedOrg.organization.organizationId!='cloudhaven'" >Components</v-tab>
     <v-tab>Groups</v-tab>
-    <v-tab>Contacts</v-tab>
+    <v-tab>Members</v-tab>
     <v-tab-item v-if="editedOrg.organization.organizationId!='cloudhaven'">
       <OrganizationAppsSublist :organization="editedOrg.organization" @orgAppsChanged="orgAppsChanged"/>
     </v-tab-item>
@@ -100,7 +100,7 @@
       <OrganizationGroups :organization="editedOrg.organization" />
     </v-tab-item>
     <v-tab-item>
-      <OrganizationContactsSublist :organization="editedOrg.organization"  :contactTypeOptions="contactTypeOptions"/>
+      <OrganizationMembersSublist :organization="editedOrg.organization"/>
     </v-tab-item>
   </v-tabs>
 
@@ -134,13 +134,13 @@
 import { mapState } from 'vuex'
 import Api from '@/services/Api'
 import { EventBus } from '../event-bus.js';
-import OrganizationContactsSublist from './OrganizationContactsSublist.vue'
+import OrganizationMembersSublist from './OrganizationMembersSublist.vue'
 import OrganizationAppsSublist from './OrganizationAppsSublist.vue'
 import OrganizationComponentsSublist from './OrganizationComponentsSublist.vue'
 import OrganizationGroups from './OrganizationGroups.vue'
   export default {
     components: {
-      OrganizationContactsSublist,
+      OrganizationMembersSublist,
       OrganizationAppsSublist,
       OrganizationComponentsSublist,
       OrganizationGroups

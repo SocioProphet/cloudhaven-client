@@ -303,15 +303,6 @@ function makeComponent( h, metaData, ctx, pScopedProps ) {
         setModelValue( rootThis, pScopedProps, metaData.vmodel, val );
       }
     }
-    if (metaData.userData) {
-      var userDataId = deepGet(metaData, 'userData.id') || metaData.userData || '';
-      if (userDataId) {
-        var modelField = metaData.vmodel || deepGet(metaData.props,"value") || deepGet(metaData.props, ':value') || deepGet(metaData, 'userData.model') || userDataId;
-        dataObj.domProps = dataObj.domProps || {};
-        dataObj.domProps.tokenValue = ''; //To be filled by getUserData
-        rootThis.modelToTokenMap[modelField] = userDataId;
-      }
-    }
     if (metaData.scopedSlots) {
       dataObj.scopedSlots = {}
       var keys = Object.keys(metaData.scopedSlots);
@@ -413,13 +404,13 @@ function makeMethods( ctx, uiMethods ) {
   methods._appGet = (postId, cb) => {
     (async () => {
       try {
-      var response = await Api().post('/organizationapplication/apppost', {app:app, httpMethod: 'GET', postId:postId});
-      if (cb) {
-        (cb).call(ctx.rootThis, response.data);
+        var response = await Api().post('/organizationapplication/apppost', {app:app, httpMethod: 'GET', postId:postId});
+        if (cb) {
+          (cb).call(ctx.rootThis, response.data);
+        }
+      } catch(e) {
+        console.log(e);
       }
-    } catch(e) {
-      console.log(e);
-    }
     })();
   };
 
@@ -448,59 +439,10 @@ function makeMethods( ctx, uiMethods ) {
       }
     })();
   };
-  methods._userSearch = (searchCriteria, cb) => {
-    var vm = ctx.rootThis;
-    (async () => {
-      var response = await Api().post("/usersearch", searchCriteria);
-//      var result = response.data;
-      if (cb) {
-        vm.$nextTick(() =>{
-          setTimeout(() => {
-            (cb).call(vm, response.data);
-          }, 100)
-        })
-      }
-    })();
-
-  }
   methods._appPost = (postId, postData, cb) => {
     var vm = ctx.rootThis;
     if (!vm.$store.state.user) return;
-    var updates = [];
-    var user = {};
-    var savedUserData = Object.keys(vm.modelToTokenMap).reduce((o, m)=>{
-      if (m.indexOf('ch_userData.')<0) {
-        var token = vm.modelToTokenMap[m];
-        var content = deepGet(vm, m);
-        var isCoreField = coreUserFields.find(f=>(f==token))
-        if (isCoreField) {
-          user[token] = content;
-        } else {
-          updates.push({name: token, content: content})
-          o[m] = content;  
-        }
-        deepSet(vm, m, null);
-      }
-      return o;
-    },{});
     (async () => {
-      var userId = postData.userIdField?postData.data[postData.userIdField]:null;
-      var response = null;
-      if (postData.userIdField) {
-        if (!userId) {
-          response = await Api().post("/users", user);
-          if (response.data) {
-            userId = response.data._id;
-          }
-        } else {
-          user._id = userId;
-          response = await Api().put('/users'+userId, )
-        }
-      }
-      if (updates.length>0) {
-        response = await Api().post("/userdata/batchupsert", {userId: userId, updates: updates});
-        var result = response.data;
-      }
       var response = null;
       if (postData.files) {
         var formData = Object.keys(postData).reduce((fd,key)=>{
@@ -519,9 +461,6 @@ function makeMethods( ctx, uiMethods ) {
       } else {
         response = await MultipartPostApi().post('/organizationapplication/apppost', {app:app, httpMethod: 'POST', postId:postId, postData:postData});
       }
-      Object.keys(savedUserData).forEach(m=>{
-        deepSet( vm, m, savedUserData[m])
-      });
       if (cb) {
         vm.$nextTick(() =>{
           setTimeout(() => {
@@ -554,7 +493,7 @@ function makeMethods( ctx, uiMethods ) {
   methods._routerGoBack = () => {
     router.go(-1);
   }
-  methods._lookupCloudHavenUser = (searchSpec, cb) => { //currently on email supported
+  methods._lookupCloudHavenUser = (searchSpec, cb) => { //currently only email supported
     (async () => {
       var response = await Api().post('/userinfo/lookup', searchSpec);
       if (cb) {
@@ -562,89 +501,43 @@ function makeMethods( ctx, uiMethods ) {
       }
     })();
   }
-  methods._getUserData = (userId, pTarget, pModelToUserDataMap, cb) => {
+  methods._usersSearch = (searchCriteria, cb) => {
     var vm = ctx.rootThis;
-    var modelToUserDataMap = pModelToUserDataMap || vm.modelToTokenMap;
-    var target = pTarget || vm;
-    if (!userId) return;
-    var userDataIds = Object.keys(modelToUserDataMap).reduce((o,m)=>{
-      var userDataId = modelToUserDataMap[m];
-      if (!coreUserFields.find(f=>(f==userDataId))) {
-        o[userDataId] = userDataId
-      }
-      return o;
-    },{})
-
-    userDataIds = Object.keys(userDataIds);
     (async () => {
-      var user = {};
-      var tokenToModelMap = Object.keys(modelToUserDataMap).reduce((o,m)=>{
-        var models = o[modelToUserDataMap[m]] || (o[modelToUserDataMap[m]]=[])
-        models.push(m);
-        return o;
-      },{})
-      var response = await Api().get('/userinfo/'+userId);
-      if (response.data) {
-        user = response.data;
-        user.dateOfBirth = moment(user.dateOfBirth).toDate();
-      }
-      var userDataList = [];
-      if (userDataIds.length>0) {
-        response = await Api().post('/userdata/batchget', {userIds: [userId], userDataIds: userDataIds});
-        var userDataMap = response.data || {};
-        userDataList = userDataMap[userId] || [];
-      }
-      coreUserFields.forEach((f)=>{
-        var models = tokenToModelMap[f] || [];
-        models.forEach((m)=>{
-          deepSet( target, m, user[f])
-        })
-      })
-      userDataList.forEach(ud=>{
-        var models = tokenToModelMap[ud.name] || [];
-        models.forEach((model)=>{
-          if (model && ud.content) {
-            deepSet( target, model, ud.content );
-          }
-        });
-      })
+      var response = await Api().post("/usersearch", searchCriteria);
+//      var result = response.data;
       if (cb) {
-        (cb).call(ctx.rootThis, ctx.rootThis);
+        vm.$nextTick(() =>{
+          setTimeout(() => {
+            (cb).call(vm, response.data);
+          }, 100)
+        })
       }
     })();
   }
-  methods._getUserDataForList = (pUserIds, list, userIdField, fieldMap, cb) => {
-    fieldMap = fieldMap || {};
-    var userDataIds = Object.keys(fieldMap);
-    if (userDataIds.length==0) return;
+  methods._getUserData = (pUserIds, userDataIds, cb) => {
+    if (userDataIds.length==0) {
+      if (cb) cb.call(ctx.rootThis, []);
+      return;
+    };
     (async () => {
       var userMap = null;
       var response = await Api().post("/userinfo/getusers", {userIds:pUserIds})
       if (response.data) {
         userMap = response.data.reduce((mp,u)=>{
-          mp[u._id] = u;
+          mp[u._id] = Object.assign({},u);
           return mp;
         },{});
       }
       response = await Api().post('/userdata/batchget', {userIds: pUserIds, userDataIds: userDataIds});
-      var userDataMap = response.data || {};
-      list.forEach(e=>{
-        var userDataList = [];
-        var cloudHavenUserId = deepGet(e, userIdField);
-        if (cloudHavenUserId) {
-          var user = userMap[cloudHavenUserId];
-          if (user) {
-            userDataList = coreUserFields.map(f=>({name:f, content:user[f]}));
-          }
-          userDataList = userDataList.concat(userDataMap[cloudHavenUserId]||[]);
-        }
-        //user, name, content
-        userDataList.forEach(d=>{
-          var listField = fieldMap[d.name] || d.name;
-          deepSet(e, listField, d.content);
+      if (response.data.success) {
+        Object.keys(response.data.userDataMap).forEach(userId=>{
+          var userObj = userMap[userId] || (userMap[userId]={});
+          var userData = response.data.userDataMap[userId] || {};
+          userMap[userId] = Object.assign(userObj, userData);
         })
-      })
-      if (cb) cb.call(ctx.rootThis, ctx.rootThis);
+      }
+      if (cb) cb.call(ctx.rootThis, userMap);
     })();
   };
   methods._getUserFile = (userId, userFileId, cb) => {
@@ -659,6 +552,16 @@ function makeMethods( ctx, uiMethods ) {
       } else if (contentType == 'application/pdf'  || contentType.indexOf('image/')==0) {
         cb.call(ctx.rootThis, new File( [response.data], item.fileName, {type: mimeType}));
       }
+    })();
+  }
+  methods._writeUserData = (userId, userDataIdToValueMap, cb) => {
+    (async () => {
+/*      FIXME - need to complete this...
+      //get core data
+      var response = await Api().post('/user/writecore data...');
+      var body = {}
+      var response = await Api().post('/userdata/write');
+      if (cb) cb.call(ctx.rootThis, response.data);*/
     })();
   }
   methods._userFileOperation = (params, cb) => {
@@ -794,12 +697,7 @@ function makeProps( propsCfg) {
   },{}):{}
 }
 function makeDynamicComponent( pCtx, cCfg ) {
-  console.log('DYNAMIC COMPONENT '+cCfg.name);
   var ctx = {rootThis:null, route:pCtx.route, app:pCtx.app};
-  cCfg.dataModel.ch_userData = cCfg.requiredUserData?cCfg.requiredUserData.reduce((o,f)=>{
-    o[f] = '';
-    return o;
-  },{}):{}
   return Vue.component(cCfg.name, {
     props: makeProps( cCfg.props ),
     data() {
@@ -813,10 +711,6 @@ function makeDynamicComponent( pCtx, cCfg ) {
     filters: makeFilters( ctx, cCfg.filters ),
     watch: makeComputed( cCfg.watch ),
     render(h) {
-      ctx.rootThis.modelToTokenMap = Object.keys(cCfg.dataModel.ch_userData).reduce((o,p)=>{
-        o['ch_userData.'+p] = p;
-        return o;
-      },{});
       return makeComponent( h, cCfg.uiSchema, ctx );
     },
     beforeCreate() {
@@ -834,7 +728,6 @@ function makeDynamicComponent( pCtx, cCfg ) {
       ctx.rootThis._route = ctx.route;
       ctx.rootThis._appParams = deepGet(this.$route, "params.appParams")
       ctx.rootThis._moment = moment;
-      ctx.rootThis.modelToTokenMap = {};
     if (this['created']) {
         (this['created'])();
       }
@@ -915,7 +808,6 @@ function makeDynamicComponents( pCtx, components ) {
 const DynamicUI = Vue.component('DynamicUI', {
   props: {
     uiConfig: { type: Object, required: true },
-    //{ requiredUserData, uiSchema, dataModel, uiMethods }
     app: { type: Object, required: true },
     props: {type: Object}
   },
@@ -923,11 +815,6 @@ const DynamicUI = Vue.component('DynamicUI', {
   template: '<div id="dynamicUIDiv"></div>',
   mounted() {
     var ctx = {rootThis:null, route:this.$route, app: Object.assign({},this.app)};
-//    outerThis.uiConfig.dataModel.ch_userData = outerThis.uiConfig.requiredUserData?outerThis.uiConfig.requiredUserData.reduce((o,f)=>{
-    this.uiConfig.dataModel.ch_userData = this.uiConfig.requiredUserData?this.uiConfig.requiredUserData.reduce((o,f)=>{
-      o[f] = '';
-      return o;
-    },{}):{}
     var dataModel = this.uiConfig.dataModel;
     var uiSchema = this.uiConfig.uiSchema;
     var components = this.uiConfig.components;
@@ -947,10 +834,6 @@ const DynamicUI = Vue.component('DynamicUI', {
       filters: makeFilters( ctx, this.uiConfig.filters ),
       watch: makeComputed( this.uiConfig.watch ),
         render(h) {
-        ctx.rootThis.modelToTokenMap = Object.keys(dataModel.ch_userData).reduce((o,p)=>{
-          o['ch_userData.'+p] = p;
-          return o;
-        },{});
         return makeComponent( h, uiSchema, ctx );
       },
       beforeCreate() {
@@ -969,7 +852,6 @@ const DynamicUI = Vue.component('DynamicUI', {
         ctx.rootThis._app = ctx.app;
         ctx.rootThis._appParams = deepGet(this.$route, "params.appParams")
         ctx.rootThis._moment = moment;
-        ctx.rootThis.modelToTokenMap = {};
         if (this['created']) {
           (this['created'])();
         }

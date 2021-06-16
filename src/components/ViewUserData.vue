@@ -179,7 +179,7 @@ import moment from 'moment';
       loadUserData() {
         (async () => {
           var response = await Api().post('/userdata/batchget', {userIds: [this.user._id]});
-          var userDataMap = response.data || {};
+          var userDataMap = response.data.userDataMap || {};
           this.userDataList = userDataMap[this.user._id] || [];
           response = await Api().get('/userdata/getbulkdata/'+this.user._id);
           this.bulkList = response.data;

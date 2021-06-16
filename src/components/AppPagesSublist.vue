@@ -38,12 +38,16 @@
           </v-card-title>
           <v-card-text>
             <v-form ref="pageForm" v-model="valid" lazy-validation>
-              <v-row><v-col col2="3">
+              <v-row><v-col cols="3">
               <v-text-field v-model="page.name" label="Name" required :rules="[rules.required]"></v-text-field>
               </v-col>
-              <v-col class="d-flex justify-end align-end">
-                <div class="mb-1 black--text">(Typing "<b>%%%</b>" in the page content pops up a list of client functions and components to insert)</div>
-              </v-col>
+              <v-col cols="9" class="d-flex justify-right align-end">
+              <v-spacer></v-spacer>
+                <v-flex>
+                <div style="display:inline-block" class="mb-0 black--text">Type "<b>%%%</b>" in the page to select client function to insert.</div>
+                <div style="display:inline-block" class="mb-0 black--text">Type "<b>~~~</b>" in the page to select a component to insert.</div>
+                </v-flex>
+                </v-col>
               </v-row>
               <!--v-textarea rows="20" v-model="page.content" label="Contents" required></v-textarea-->
               <prism-editor class="my-editor" v-model="page.content" :highlight="highlighter" line-numbers :rules="[rules.required]" @input="onPageChange"></prism-editor>
@@ -61,14 +65,52 @@
       </v-dialog>
       </template>
     </v-data-table>
-    <v-dialog v-model="macroDialog" @keydown.esc.prevent="macroDialog = false" max-width="500px" scrollable overlay-opacity="0.2">
+    <v-dialog v-model="clientFuncSelectDialog" @keydown.esc.prevent="clientFuncSelectDialog = false" max-width="500px" scrollable overlay-opacity="0.2">
       <v-card>
-        <v-card-title>Macros</v-card-title>
+        <v-card-title>Available Functions</v-card-title>
         <v-card-text>
-      <v-form ref="insertableForm">
-        <v-select v-model="clientFunction" label="Selection " :items="clientFunctions" @change="onClientFunctionSelect" persistent-hint hint="Select a client function or component to insert."></v-select>
-      </v-form>
+          <v-form ref="clientFuncForm">
+            <v-select v-model="clientFunction" label="Selection " :items="clientFunctions" @change="onClientFunctionSelect" persistent-hint hint="Select a client function or component to insert."></v-select>
+          </v-form>
         </v-card-text>
+      </v-card>
+    </v-dialog>
+    <v-dialog v-model="componentSelectDialog" @keydown.esc.prevent="componentSelectDialog = false" max-width="800px" scrollable overlay-opacity="0.2">
+      <v-card>
+        <v-card-title>Insert a Component</v-card-title>
+        <v-card-text>
+          <v-form ref="componentSearchForm">
+            <v-text-field class="mb-3" v-model="componentSearchNameFilter" label="Name Filter" persistent-hint hint="Search for components with this phrase in the name."></v-text-field>
+            <v-combobox v-model="componentSearchKeywords" :items="allComponentKeywords" label="Search by keyword" multiple chips ></v-combobox>
+            <v-data-table :items="components" :headers="componentHeaders" class="mt-2 elevation-1">
+              <template v-slot:item="{ item }">
+                <tr @click="insertComponent(item)">
+                  <td><v-btn @click.stop="insertComponent(item)">Insert</v-btn></td>
+                  <td>{{ item.componentName }}</td>
+                  <td>{{ item.organizationName }}</td>
+                  <td><v-btn @click.stop="showDocumentation(item)">Show</v-btn></td>
+                </tr>
+              </template>
+            </v-data-table>
+          </v-form>
+        </v-card-text>
+          <v-card-actions>
+            <v-btn elevation="2" color="blue darken-1" text @click.native="componentSelectDialog=false">Cancel/Close</v-btn>
+            <v-spacer></v-spacer>
+            <v-btn elevation="2" color="blue darken-1" text @click.native="fetchComponents">Search</v-btn>
+          </v-card-actions>
+      </v-card>
+    </v-dialog>
+    <v-dialog v-model="documentationDialog" @keydown.esc.prevent="componentSelectDialog = false" max-width="900px" scrollable overlay-opacity="0.2">
+      <v-card>
+        <v-card-title>{{documentationItem.componentName}}</v-card-title>
+        <v-card-text>
+          <span v-html="documentationItem.documentation"></span>
+        </v-card-text>
+          <v-card-actions>
+            <v-spacer></v-spacer>
+            <v-btn elevation="2" color="blue darken-1" text @click.native="documentationDialog = false">Close</v-btn>
+          </v-card-actions>
       </v-card>
     </v-dialog>
   </div>
@@ -102,16 +144,34 @@
     watch: {
       dialog (val) {
         val || this.close()
-      }
+      },
+
     },
 
     mounted () {
       this.page.content = this.defaultPage;
       this.clientFunctions = Object.keys(vcdnUtils.clientFunctionMap);
       this.clientFunctions.unshift('[component]');
+      this.componentSearchNameFilter = '';
+      this.allComponentKeywords = [];
+      this.componentSearchKeywords = [],
+      this.components = [];
+      this.valid = false;
     },
 
-    methods: {
+    methods: {  
+      fetchComponents() {
+        (async () => {
+          var response = await Api().post('/organizationcomponent/searchcomponents',
+            {keywordsFilter: this.keywords, nameFilter: this.componentSearchNameFilter});
+          if (response.data.success) {
+            this.components = response.data.components;
+          } else if (response.data.errMsg) {
+            EventBus.$emit('global error alert', response.data.errMsg );
+          }
+        })();
+
+      },
       onClientFunctionSelect( clientFunction ) {
         if (clientFunction) {
           var script = vcdnUtils.clientFunctionMap[clientFunction];
@@ -120,14 +180,35 @@
             this.clientFunction = '';
           }
         }
-        this.macroDialog = false;
+        this.clientFuncSelectDialog = false;
+      },
+      insertComponent( item ) {
+        this.page.content = this.page.content.replace('~~~', `{component: 'dynamicComponent', organizationId:'${item.organizationId}', componentId: '${item.componentId}'}`);
+        this.componentSelectDialog = false;
+      },
+      showDocumentation(item) {
+        this.documentationItem = item;
+        this.documentationDialog = true;
       },
       onPageChange( value ) {
         var found = value.indexOf('%%%')>=0;
         if (found) {
-          setTimeout(() =>{
-            this.macroDialog = true;
-          }, 200)
+          this.clientFuncSelectDialog = true;
+        }
+        var found = value.indexOf('~~~')>=0;
+        if (found) {
+          if (this.allComponentKeywords.length==0) {
+            (async () => {
+              var response = await Api().get('/organizationcomponent/getcomponentkeywords');
+              if (response.data.success) {
+                this.allComponentKeywords = response.data.keywords;
+              } else if (response.data.errMsg) {
+                EventBus.$emit('global error alert', response.data.errMsg );
+              }
+            })();
+          }
+          this.fetchComponents();
+          this.componentSelectDialog = true;
         }
       },
       highlighter( code ) {
@@ -212,12 +293,25 @@
     },
     data: () => ({
       dialog: false,
-      macroDialog: false,
+      clientFuncSelectDialog: false,
+      componentSelectDialog: false,
+      componentSearchNameFilter: '',
+      allComponentKeywords: [],
+      componentSearchKeywords: [],
+      components: [],
+      documentationDialog: false,
+      documentationItem: {},
       valid: true,
       headers: [
         { text: 'Actions', value: 'name', sortable: false, align:'center' },
         { text: 'Name', align: 'left', sortable: true, value: 'name' },
         { text: 'Length', align: 'right', sortable: true, value: 'content.length' }
+      ],
+      componentHeaders: [
+        { text: "Insert", align:'left', sortable:false},
+        { text: 'Organization', align: 'left', sortable: true, value: 'organizationName' },
+        { text: 'Component', align: 'left', sortable: true, value: 'componentName' },
+        { text: "Documentation", align:'left', sortable:false}
       ],
       rules: {
           required: value => !!value || 'Required.'
