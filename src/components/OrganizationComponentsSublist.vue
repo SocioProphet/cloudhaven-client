@@ -268,12 +268,12 @@ import { mapState } from 'vuex'
             (async () => {
               var response = await Api().delete('/organizationcomponent/'+this.organization._id+'/'+item._id);
               if (response.data.success) {
-                this.$store.commit('SET_SUCCESS', `${item.name} deleted.`);
+                EventBus.$emit('global success alert', `${item.name} deleted.`);
                 vm.$emit('orgCompsChanged', response.data.components);
                 this.organization.components.splice(index, 1);
                 this.$store.dispatch('loadRecords', 'organizations');
               } else if (response.data.errMsg) {
-                this.appErrMsg = response.data.errMsg;
+                EventBus.$emit('global error alert', response.data.errMsg );
               }
             })();
           } else {
@@ -302,7 +302,7 @@ import { mapState } from 'vuex'
               vm.$emit('orgCompsChanged', response.data.components);
               this.dialog = false;
             } else if (response.data.errMsg) {
-              EventBus.$emit('global success alert', response.data.errMsg );
+              EventBus.$emit('global error alert', response.data.errMsg );
             }
           })();
         } else {

@@ -232,9 +232,9 @@ import Api from '@/services/Api'
         (async () => {
           var response = await Api().post('/chgpwd', this.chgPwdObj );
           if (response.data.success) {
-            this.$store.commit('SET_SUCCESS', `Password for ${this.chgPwdObj.name} updated.`)
+            EventBus.$emit('global success alert', `Password for ${this.chgPwdObj.name} updated.`)
           } else if (response.data.errMsg) {
-            this.$store.commit('SET_ERRMSG', response.data.errMsg)
+            EventBus.$emit('global error alert', response.data.errMsg)
           }
           this.pwdDialog = false;
         })();
@@ -245,7 +245,7 @@ import Api from '@/services/Api'
           this.$store.dispatch('updateRecord', {model:'users', dbObject:this.editedItem, label:`User ${this.editedItem.lastName}`}):
           this.$store.dispatch('createRecord', {model:'users', dbObject:this.editedItem, label:`User ${this.editedItem.lastName}`})).then((newRec)=> {
               if (newRec) {
-                this.$store.commit('SET_SUCCESS', `${this.editedItem.lastName} ${this.editedIndex > -1?'updated':'added'}.`);
+                EventBus.$emit('global success alert', `${this.editedItem.lastName} ${this.editedIndex > -1?'updated':'added'}.`);
                 this.dialog = false;
                 this.$store.dispatch('loadRecords', 'users')
               }

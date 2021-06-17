@@ -302,7 +302,6 @@
       close () {
         this.dialog = false;
         setTimeout(() => {
-          this.appErrMsg = '';
           this.editedItem = {
             name: '',
             applicationId: '',
@@ -326,12 +325,11 @@
 
             var response = await MultipartPostApi().post('/organizationapplication/upsert', this.createFormData(operation));
             if (response.data.success) {
-              this.$store.commit('SET_SUCCESS', `${this.editedItem.name} ${operation=='update'?'updated':'added'}.`);
+              EventBus.$emit('global success alert', `${this.editedItem.name} ${operation=='update'?'updated':'added'}.`);
               vm.$emit('orgAppsChanged', response.data.applications );
               this.dialog = false;
-              this.appErrMsg = '';
             } else if (response.data.errMsg) {
-              this.appErrMsg = response.data.errMsg;
+              EventBus.$emit('global error alert', response.data.errMsg );
             }
           })();
         } else {

@@ -86,7 +86,7 @@ import router from '../router'
             var response = await Api().get('/usersubscription/'+this.user._id);
             if (!response.data) return;
             if (response.data.errMsg) {
-              this.$store.commit('SET_ERRMSG', response.data.errMsg);
+              EventBus.$emit('global error alert', response.data.errMsg);
             } else {
               this.rawSubscriptions = response.data.subscribedApps;
             }

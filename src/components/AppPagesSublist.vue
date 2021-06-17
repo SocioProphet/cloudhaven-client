@@ -247,7 +247,6 @@
       close () {
         this.dialog = false;
         setTimeout(() => {
-          this.appErrMsg = '';
           this.page = {
             name: '',
             content: this.defaultPage
@@ -273,7 +272,7 @@
             var response = await Api().post('/organizationapplication/writepage', 
               {organizationId: this.organizationId, applicationId:this.application._id, pageName:this.page.name, content: this.page.content});
             if (response.data.success) {
-              this.$store.commit('SET_SUCCESS', `${this.page.name} ${operation=='update'?'updated':'added'}.`);
+              EventBus.$emit('global success alert',  `${this.page.name} ${operation=='update'?'updated':'added'}.`);
               vm.$emit('pagesChanged', response.data.pages );
               if (errors.length==0) {
                 this.dialog = false;

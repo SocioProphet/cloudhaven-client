@@ -275,7 +275,7 @@ export default {
         this.chgPwdObj._id = this.user._id;
         var response = await Api().post('/chgpwd', this.chgPwdObj );
         if (response.data.success) {
-          this.$store.commit('SET_SUCCESS', `Password changed.`)
+          EventBus.$emit('global success alert', `Password changed.`)
         } else if (response.data.errMsg) {
           this.pwdErrMsg = response.data.errMsg;
           this.showPwdErrMsg = true;

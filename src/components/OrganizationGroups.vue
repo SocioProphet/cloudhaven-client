@@ -57,13 +57,13 @@
 
 <script>
   import Api from '@/services/Api'
+  import { EventBus } from '../event-bus.js';
   import { mapState } from 'vuex'
   export default {
     props: ['organization'],
     data: () => ({
       dialog: false,
       valid: true,
-      emailErrMsg: '',
       rules: { email: (v) => !v || /^[^@]+@[^.]+\..+$/.test(v) || 'Please enter a valid email.' },
       headers: [
         { text: 'Actions', value: 'name', sortable: false, align:'center' },
@@ -97,7 +97,6 @@
           memberCnt: 0
         }, item);
         this.dialog = true;
-        this.emailErrMsg = '';
       },
 
       deleteItem (item) {
@@ -107,11 +106,11 @@
             (async () => {
               var response = await Api().delete('/organizationgroup/'+this.organization._id+'/'+item._id);
               if (response.data.success) {
-                this.$store.commit('SET_SUCCESS', `${item.name} deleted.`);
+                EventBus.$emit('global success alert', `${item.name} deleted.`);
                 this.organization.groups.splice(index, 1);
                 this.$store.dispatch('loadRecords', 'organizations');
               } else if (response.data.errMsg) {
-                this.$store.commit('SET_ERRMSG', response.data.errMsg);
+                EventBus.$emit('global error alert', response.data.errMsg);
               }
             })();
           } else {
@@ -123,7 +122,6 @@
       close () {
         this.dialog = false;
         setTimeout(() => {
-          this.emailErrMsg = '';
           this.editedItem = {
             name: '',
             memberCnt: 0
@@ -139,11 +137,11 @@
           (async () => {
             var response = await Api().put('/organizationgroup/'+this.organization._id+'/'+this.editedItem._id, this.editedItem);
             if (response.data.success) {
-              this.$store.commit('SET_SUCCESS', `${this.editedItem.name} updated.`);
+              EventBus.$emit('global success alert', `${this.editedItem.name} updated.`);
               Object.assign(this.organization.groups[this.editedIndex], this.editedItem)
               this.dialog = false;
             } else if (response.data.errMsg) {
-              this.$store.commit('SET_ERRMSG', response.data.errMsg );
+              EventBus.$emit('global error alert', response.data.errMsg );
             }
           })();
         } else {
@@ -152,11 +150,11 @@
             (async () => {
               var response = await Api().post('/organizationgroup', {organizationId:this.organization._id, organizationGroup:this.editedItem});
               if (response.data.success) {
-                this.$store.commit('SET_SUCCESS', `${this.editedItem.name} added.`);
+                EventBus.$emit('global success alert', `${this.editedItem.name} added.`);
                 this.organization.groups = [].concat(response.data.newOrg.groups);
                 this.dialog = false;
               } else if (response.data.errMsg) {
-                this.$store.commit('SET_ERRMSG', response.data.errMsg);
+                EventBus.$emit('global error alert', response.data.errMsg);
               }
             })();
           } else {

@@ -212,7 +212,7 @@ import CHFileViewer from './CHFileViewer.vue'
             var response = await Api().post('/userdata/userfile', formData);
             if (this.$safeRef(response.data).success) {
               this.loadUserFiles();
-              this.$store.commit('SET_SUCCESS', `${item.name} deleted.`);
+              EventBus.$emit('global success alert', `${item.name} deleted.`);
             }
           })();
         }
@@ -246,7 +246,7 @@ import CHFileViewer from './CHFileViewer.vue'
           var response = await MultipartPostApi().post('/userdata/userfile', formData);
           if (this.$safeRef(response.data).success) {
             this.loadUserFiles();
-            this.$store.commit('SET_SUCCESS', `${this.editedItem.name} ${this.editedIndex > -1?'updated':'added'}.`);
+            EventBus.$emit('global success alert', `${this.editedItem.name} ${this.editedIndex > -1?'updated':'added'}.`);
           }
           this.dialog = false;
         })();

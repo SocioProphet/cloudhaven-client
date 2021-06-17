@@ -57,6 +57,7 @@
 <script>
   import Api from '@/services/Api'
   import { mapState } from 'vuex'
+  import { EventBus } from '../event-bus.js';
   export default {
     props: ['organization'],
     data: () => ({
@@ -101,7 +102,7 @@
             (async () => {
               var response = await Api().delete('/organizationcontact/'+this.organization._id+'/'+item._id);
               if (response.data.success) {
-                this.$store.commit('SET_SUCCESS', `${item.name} deleted.`);
+                EventBus.$emit('global success alert', `${item.name} deleted.`);
                 this.organization.contacts.splice(index, 1);
                 this.$store.dispatch('loadRecords', 'organizations');
               } else if (response.data.errMsg) {
@@ -130,7 +131,7 @@
             var response = await Api().put('/organizationuser/'+this.organization._id+'/'+this.editedItem._id, this.editedItem);
             if (response.data.success) {
               EventBus.$emit('global success alert', response.data.errMsg);
-              this.$store.commit('SET_SUCCESS', `${this.editedItem.name} updated.`);
+              EventBus.$emit('global success alert', `${this.editedItem.name} updated.`);
               Object.assign(this.organization.contacts[this.editedIndex], this.editedItem)
               this.dialog = false;
               this.$store.dispatch('loadRecords', 'organizations');
@@ -144,7 +145,7 @@
             (async () => {
               var response = await Api().post('/organizationuser', {organizationId:this.organization._id, organizationContact:this.editedItem});
               if (response.data.success) {
-                this.$store.commit('SET_SUCCESS', `${this.editedItem.name} added.`);
+                EventBus.$emit('global success alert', `${this.editedItem.name} added.`);
                 this.organization.contacts = response.data.contacts;
                 this.dialog = false;
               } else if (response.data.errMsg) {

@@ -247,7 +247,7 @@ var defaultEvent = {
             var response = await Api().delete(`/calendarmgr/deleteevent/${this.user._id}/${this.event.dbEvent._id}`);
             if (this.$safeRef(response.data).success) {
               this.loadCalendar();
-              this.$store.commit('SET_SUCCESS', `${this.event.title} deleted.`);
+              EventBus.$emit('global success alert', `${this.event.title} deleted.`);
             }
             this.dialog = false;
           })();
