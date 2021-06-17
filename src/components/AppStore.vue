@@ -53,7 +53,6 @@ import Api from '@/services/Api'
     },
 
     mounted () {
-      this.$store.commit('SET_RESULTNOTIFICATION', '');
       (async () => {
         var response = await Api().get('/organizationapplication/applications');
         this.applications = (response.data || []).map((a)=>{

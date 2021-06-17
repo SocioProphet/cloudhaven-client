@@ -73,7 +73,6 @@ import moment from 'moment'
     },
 
     mounted () {
-      this.$store.commit('SET_RESULTNOTIFICATION', '');
       this.sEndDate = moment().startOf('day').add(1, 'days').format('MM/DD/YYYY');
       this.sStartDate = moment().startOf('day').format('MM/DD/YYYY');
       this.updateSearch();

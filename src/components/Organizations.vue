@@ -164,7 +164,6 @@ import OrganizationGroups from './OrganizationGroups.vue'
     },
 
     created() {
-      this.$store.commit('SET_RESULTNOTIFICATION', '');
       this.loadRecords();
     },
     mounted () {
@@ -195,7 +194,6 @@ import OrganizationGroups from './OrganizationGroups.vue'
         }
       },
       editItem (item) {
-        this.$store.commit('SET_RESULTNOTIFICATION', '');
 //        this.editedOrgId = item._id;
 //        this.editedOrg = Object.assign({}, item);
         this.dialog = true;

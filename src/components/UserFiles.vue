@@ -110,16 +110,13 @@ import CHFileViewer from './CHFileViewer.vue'
 
     watch: {
       dialog (val) {
-        if (val) {
-          this.$store.commit('SET_RESULTNOTIFICATION', '')
-        } else {
+        if (!val) {
           this.close()
         }
       }
     },
 
     created () {
-      this.$store.commit('SET_RESULTNOTIFICATION', '');
       EventBus.$on('users files data refresh', () =>{
       })
       this.loadUserFiles();
@@ -172,7 +169,6 @@ import CHFileViewer from './CHFileViewer.vue'
         })();
       },
       editItem (item) {
-        this.$store.commit('SET_RESULTNOTIFICATION', '');
         this.origDataString = this.dataString;
         this.origDataBlob = this.dataBlob;
         this.editedIndex = this.userFiles.indexOf(item);
@@ -202,7 +198,6 @@ import CHFileViewer from './CHFileViewer.vue'
       },
 
       deleteItem (item) {
-        this.$store.commit('SET_RESULTNOTIFICATION', '')
         if (confirm('Are you sure you want to delete '+item.name+'?')) {
           (async () => {
             var formData = new FormData();
@@ -219,7 +214,6 @@ import CHFileViewer from './CHFileViewer.vue'
       },
 
       cancel() {
-        this.$store.commit('SET_RESULTNOTIFICATION', '');
         this.dialog = false;
       },
       close () {

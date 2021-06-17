@@ -94,9 +94,8 @@ import moment from 'moment'
     },
 
     mounted () {
-      this.$store.commit('SET_RESULTNOTIFICATION', '');
-        this.sEndDate = moment().startOf('day').format('MM/DD/YYYY');
-        this.sStartDate = moment().subtract(1, 'months').startOf('day').format('MM/DD/YYYY');
+      this.sEndDate = moment().startOf('day').format('MM/DD/YYYY');
+      this.sStartDate = moment().subtract(1, 'months').startOf('day').format('MM/DD/YYYY');
     },
     methods: {
       updateSearch() {

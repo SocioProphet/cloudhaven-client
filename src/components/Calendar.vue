@@ -166,7 +166,6 @@ var defaultEvent = {
     },
 
     created () {
-      this.$store.commit('SET_RESULTNOTIFICATION', '');
 /*      EventBus.$on('calendar data refresh', () =>{
         loadCalendar();
       })
@@ -241,7 +240,6 @@ var defaultEvent = {
       },
 
       deleteEvent () {
-        this.$store.commit('SET_RESULTNOTIFICATION', '');
         if (confirm('Are you sure you want to delete '+this.event.title+'?')) {
           (async () => {
             var response = await Api().delete(`/calendarmgr/deleteevent/${this.user._id}/${this.event.dbEvent._id}`);
@@ -255,7 +253,6 @@ var defaultEvent = {
       },
 
       cancel() {
-        this.$store.commit('SET_RESULTNOTIFICATION', '');
         this.dialog = false;
       },
       close () {

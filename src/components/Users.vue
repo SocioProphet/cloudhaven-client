@@ -154,23 +154,18 @@ import Api from '@/services/Api'
 
     watch: {
       dialog (val) {
-        if (val) {
-          this.$store.commit('SET_RESULTNOTIFICATION', '')
-        } else {
+        if (!val) {
           this.close()
         }
       },
       pwdDialog (val) {
-        if (val) {
-          this.$store.commit('SET_RESULTNOTIFICATION', '')
-        } else {
+        if (!val) {
           this.closePwdDlg()
         }
       }
     },
 
     created () {
-      this.$store.commit('SET_RESULTNOTIFICATION', '');
       this.$store.commit('SET_CRUDAPISERVCE', 'users');
       this.$store.dispatch('loadRecords', 'users');
       EventBus.$on('users data refresh', () =>{
@@ -192,7 +187,6 @@ import Api from '@/services/Api'
         this.pwdDialog = true;
       },
       editItem (item) {
-        this.$store.commit('SET_RESULTNOTIFICATION', '')
         this.editedIndex = this.users.indexOf(item)
         this.editedItem = Object.assign({}, item)
         if (!this.editedItem._id) {
@@ -202,12 +196,10 @@ import Api from '@/services/Api'
       },
 
       deleteItem (item) {
-        this.$store.commit('SET_RESULTNOTIFICATION', '')
         confirm('Are you sure you want to delete '+item.name+'?') && this.$store.dispatch('deleteRecord', {model:'users', dbObject:item, label:`User ${this.editedItem.lastName}`});
       },
 
       cancel() {
-        this.$store.commit('SET_RESULTNOTIFICATION', '');
         this.dialog = false;
       },
       close () {

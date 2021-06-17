@@ -1,6 +1,7 @@
 import Vue from 'vue'
 import Router from 'vue-router'
 import store from './store'
+import { EventBus } from './event-bus.js';
 import AppStore from './components/AppStore.vue'
 import MyApps from './components/MyApps.vue'
 import Users from './components/Users.vue'
@@ -130,7 +131,7 @@ router.beforeEach((to, from, next) => {
     if (store.getters.isLoggedIn) {
       if (to.matched[0].props.default && to.matched[0].props.default.apAuthReqd && (
         store.state.user.rolesMap['SYSADMIN']==null)) {
-          store.commit('SET_ERRMSG', 'Unauthorized access');
+          EventBus.$emit('global success alert', 'Unauthorized access');
           next('/')
           return;
       }

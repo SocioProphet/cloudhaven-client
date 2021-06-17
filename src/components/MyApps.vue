@@ -70,7 +70,6 @@ import router from '../router'
     },
 
     mounted () {
-      this.$store.commit('SET_RESULTNOTIFICATION', '');
       this.loadMyApps();
       EventBus.$on('organizations data refresh', () =>{
         this.loadMyApps()

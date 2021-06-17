@@ -185,7 +185,6 @@ import moment from 'moment';
     },
 
     mounted () {
-      this.$store.commit('SET_RESULTNOTIFICATION', '');
       this.toOptions = [];
       this.ccOptions = [];
       this.bccOptions = [];
@@ -321,7 +320,6 @@ import moment from 'moment';
       },
 
       deleteMessage (item) {
-        this.$store.commit('SET_RESULTNOTIFICATION', '')
         if (confirm('Are you sure you want to delete '+item.subject+'?')) {
           var folderId = this.active.length>0?this.active[0]:null;
           var msgId = item._id;
@@ -334,7 +332,6 @@ import moment from 'moment';
       },
 
       cancel() {
-        this.$store.commit('SET_RESULTNOTIFICATION', '');
         this.dialog = false;
       },
       close () {

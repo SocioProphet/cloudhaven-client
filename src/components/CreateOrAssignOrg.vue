@@ -43,7 +43,6 @@ import router from '../router'
       alertMsg: ''
     }),
     mounted () {
-      this.$store.commit('SET_RESULTNOTIFICATION', '');
     },
     methods: {
       save () {

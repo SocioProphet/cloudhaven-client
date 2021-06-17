@@ -81,7 +81,6 @@ import moment from 'moment';
     },
 
     mounted () {
-      this.$store.commit('SET_RESULTNOTIFICATION', '');
       var u = this.user;
       (async () => {
         var dummy = await this.$store.dispatch('reloadUser');
@@ -106,7 +105,6 @@ import moment from 'moment';
 //      this.$nextTick(this.$refs.firstField.focus)
     },
     created() {
-      this.$store.commit('SET_RESULTNOTIFICATION', '');
     },
     methods: {
       save () {

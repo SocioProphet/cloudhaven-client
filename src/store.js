@@ -11,7 +11,6 @@ export default new Vuex.Store({
     apiMap: {},
     users: [],
     organizations: [],
-    resultNotification:{msg:'',type:''},
     currentRole:'',
     status: '',
     token: localStorage.getItem('token') || '',
@@ -86,75 +85,72 @@ export default new Vuex.Store({
             resolve(records);
           })();
         } catch(e) {
-          commit('SET_ERRMSG', e+'');
+          EventBus.$emit('global error alert', e+'');
           resolve(null);
         }
       })
     },
     createRecord({commit, state}, payload) {
       return new Promise((resolve) => {
-        commit('SET_RESULTNOTIFICATION', '');
         (async () => {
           try {
             const response =  await state.apiMap[payload.model].create( payload.dbObject );
             if (response.data.errMsg) {
-              commit('SET_RESULTNOTIFICATION', {msg:response.data.errMsg, type:'error'});
+              EventBus.$emit('global error alert', response.data.errMsg );
               resolve(null);
             } else if (response.errMsg) {
-              commit('SET_RESULTNOTIFICATION', {msg:response.errMsg, type:'error'});
+              EventBus.$emit('global error alert', response.errMsg );
               resolve(null);
             } else {
               commit('ADD_DBOBJECT', {model:payload.model, dbObject:response.data});
-              commit('SET_RESULTNOTIFICATION', {msg:payload.label+' added.', type:'success'});
+              EventBus.$emit('global success alert', payload.label+' added.' );
               resolve(response.data);
             }
           } catch(e) {
-            commit('SET_ERRMSG', e+'');
+            EventBus.$emit('global error alert', e+'');
           }
         })();
       });
     },
     readRecord({commit, state}, payload) {
       return new Promise((resolve) => {
-        commit('SET_RESULTNOTIFICATION', '');
         (async () => {
           try {
             const response =  await state.apiMap[payload.model].read( payload._id );
             if (response.data.errMsg) {
-              commit('SET_RESULTNOTIFICATION', {msg:response.data.errMsg, type:'error'});
+              EventBus.$emit('global error alert', response.data.errMsg );
             } else if (response.errMsg) {
-              commit('SET_RESULTNOTIFICATION', {msg:response.errMsg, type:'error'});
+              EventBus.$emit('global error alert', response.errMsg );
             } else {
               payload.dbObject = response.data;
               commit('UPDATE_DBOBJECT', payload );
-              commit('SET_ERRMSG', '');
+              EventBus.$emit('global error alert', '');
             }
             resolve(response.data);
           } catch(e) {
-            commit('SET_ERRMSG', e+'');
+            EventBus.$emit('global error alert', e+'');
           }
         })();
       });
     },
     updateRecord({commit, state}, payload) {
       return new Promise((resolve) => {
-        commit('SET_RESULTNOTIFICATION', '');
         (async () => {
           try {
             const response =  await state.apiMap[payload.model].update( payload.dbObject );
             if (response.data.errMsg) {
-              commit('SET_RESULTNOTIFICATION', {msg:response.data.errMsg, type:'error'});
+              EventBus.$emit('global error alert', response.data.errMsg );
               resolve(null);
             } else if (response.errMsg) {
-              commit('SET_RESULTNOTIFICATION', {msg:response.errMsg, type:'error'});
+              EventBus.$emit('global error alert', response.errMsg );
               resolve(null);
             } else {
               commit('UPDATE_DBOBJECT', payload );
-              commit('SET_RESULTNOTIFICATION', {msg:payload.label+' updated.', type:'success'});
+              EventBus.$emit('global success alert', payload.label+' updated.' );
               resolve(response.data);
             }
           } catch(e) {
-            commit('SET_ERRMSG', e+'');
+            EventBus.$emit('global error alert', e+'');
           }
         })();
       });
@@ -163,17 +159,16 @@ export default new Vuex.Store({
       return new Promise((resolve) => {
         (async () => {
           try {
-            commit('SET_RESULTNOTIFICATION', '')
             var response = await state.apiMap[payload.model].delete( payload.dbObject._id );
             if (response.data.errMsg) {
-              commit('SET_RESULTNOTIFICATION', {msg:response.data.errMsg, type:'error'})
+              EventBus.$emit('global error alert', response.data.errMsg );
             } else {
               commit("DEL_DBOBJECT", payload)
-              commit('SET_RESULTNOTIFICATION', {msg:payload.label+' deleted.', type:'success'})
+              EventBus.$emit('global success alert', payload.label+' deleted.' );
             }
             resolve(true);
           } catch(e) {
-            commit('SET_ERRMSG', e+'');
+            EventBus.$emit('global error alert', e+'');
           }
         })()
       })
@@ -225,33 +220,15 @@ export default new Vuex.Store({
       state[payload.model].push(payload.dbObject);
     },
     DEL_DBOBJECT: (state, payload ) => {
-          var idx = state[payload.model].indexOf( payload.dbObject )
-          if (idx>=0) {
-            state[payload.model].splice(idx,1);
-          }
-        },
+      var idx = state[payload.model].indexOf( payload.dbObject )
+      if (idx>=0) {
+        state[payload.model].splice(idx,1);
+      }
+    },
     UPDATE_DBOBJECT: (state, payload ) => {
-          var idx = state[payload.model].findIndex( (o) => {return o._id == payload.dbObject._id;} )
-          if (idx>=0) {
-            state[payload.model].splice(idx, 1, payload.dbObject);
-          }
-        },
-    SET_ERRMSG: ( state, errMsg) => {
-      state.resultNotification = errMsg==''?{msg:'',type:''}:{msg:errMsg, type:'error'}
-      if (errMsg) {
-        EventBus.$emit('global error alert', errMsg);
-      }
-    },
-    SET_SUCCESS: ( state, msg ) => {
-      state.resultNotification = msg?{msg:msg,type:'success'}:{msg:'',type:''};
-      if (msg) {
-        EventBus.$emit('global success alert', msg);
-      }
-    },
-    SET_RESULTNOTIFICATION: ( state, resultNotification) => {
-      state.resultNotification = resultNotification?resultNotification:{msg:'',type:''};
-      if (resultNotification && resultNotification.msg) {
-        EventBus.$emit(`global ${resultNotification.type||'success'} alert`, resultNotification.msg);
+      var idx = state[payload.model].findIndex( (o) => {return o._id == payload.dbObject._id;} )
+      if (idx>=0) {
+        state[payload.model].splice(idx, 1, payload.dbObject);
       }
     },
     SET_USERINFO: (state, userInfo) => {

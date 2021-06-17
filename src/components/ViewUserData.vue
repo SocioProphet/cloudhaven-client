@@ -168,7 +168,6 @@ import moment from 'moment';
       }
     },
     created () {
-      this.$store.commit('SET_RESULTNOTIFICATION', '');
       this.loadUserData();
       EventBus.$on('user data refresh', () =>{
         this.loadUserData();

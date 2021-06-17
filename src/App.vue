@@ -163,9 +163,7 @@ export default {
       this.goHome();
     },
     pwdDialog (val) {
-      if (val) {
-        this.$store.commit('SET_RESULTNOTIFICATION', '')
-      } else {
+      if (!val) {
         this.closePwdDlg()
       }
     }
@@ -257,7 +255,6 @@ export default {
       this.leftDrawer = false;
     },
     goBack() {
-      this.$store.commit('SET_RESULTNOTIFICATION', '');
       router.go(-1);
     },
     chgPwd() {
