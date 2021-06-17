@@ -4,7 +4,7 @@
     <v-toolbar flat color="white">
       <v-toolbar-title>Organizations</v-toolbar-title>
     </v-toolbar>
-    <v-data-table v-if="!user.rolesMap['SYSADMIN']" id="organization-table"
+    <v-data-table v-if="!isAdmin" id="organization-table"
       :headers="headers"
       :items="myOrgMemberships"
       hide-default-footer disable-pagination
@@ -38,22 +38,22 @@
       </template>
     </v-data-table>
     <v-tabs dark fixed-tabs background-color="#1E5AC8" color="#FFF10E" class="mt-5">
-    <v-tab v-if="editedOrg.organization.organizationId!='cloudhaven'" >Applications</v-tab>
-    <v-tab v-if="editedOrg.organization.organizationId!='cloudhaven'" >Components</v-tab>
-    <v-tab>Groups</v-tab>
-    <v-tab>Members</v-tab>
-    <v-tab-item v-if="editedOrg.organization.organizationId!='cloudhaven'">
-      <OrganizationAppsSublist :organization="editedOrg.organization" @orgAppsChanged="orgAppsChanged"/>
-    </v-tab-item>
-    <v-tab-item v-if="editedOrg.organization.organizationId!='cloudhaven'">
-      <OrganizationComponentsSublist :organization="editedOrg.organization" @orgCompsChanged="orgCompsChanged"/>
+    <v-tab>Applications</v-tab>
+    <v-tab>Components</v-tab>
+    <!--v-tab>Groups</v-tab>
+    <v-tab>Members</v-tab-->
+    <v-tab-item>
+      <OrganizationAppsSublist :organization="(isAdmin?cloudHavenOrg:editedOrg).organization" @orgAppsChanged="orgAppsChanged"/>
     </v-tab-item>
     <v-tab-item>
-      <OrganizationGroups :organization="editedOrg.organization" />
+      <OrganizationComponentsSublist :organization="(isAdmin?cloudHavenOrg:editedOrg).organization" @orgCompsChanged="orgCompsChanged"/>
+    </v-tab-item>
+    <!--v-tab-item>
+      <OrganizationGroups :organization="isAdmin?cloudHavenOrg:editedOrg.organization" />
     </v-tab-item>
     <v-tab-item>
-      <OrganizationMembersSublist :organization="editedOrg.organization"/>
-    </v-tab-item>
+      <OrganizationMembersSublist :organization="isAdmin?cloudHavenOrg:editedOrg.organization"/>
+    </v-tab-item-->
   </v-tabs>
 
   <v-dialog v-model="dialog" max-width="900px" overlay-opacity="0.2">
@@ -137,8 +137,19 @@ import OrganizationGroups from './OrganizationGroups.vue'
     }),
 
     computed: {
+      isAdmin() {
+        return this.user.rolesMap['SYSADMIN']!=null;
+      },
+      cloudHavenOrg() {
+        var retOrg = this.user.orgMemberships.find(om=>{
+          var match = om.organization.name=='CloudHaven';
+          return match;
+        });
+        return retOrg;
+      },
       editedOrg() {
-        return this.myOrgMemberships.length>0?this.myOrgMemberships[0]:{organization:{}};
+        var retOrg = this.isAdmin?this.cloudHavenOrg:(this.myOrgMemberships.length>0?this.myOrgMemberships[0]:{organization:{}});
+        return retOrg;
       },
 /*      formTitle () {
         return this.editedIndex === -1 ? 'New Organization' : 'Edit Organization'
@@ -157,9 +168,6 @@ import OrganizationGroups from './OrganizationGroups.vue'
       this.loadRecords();
     },
     mounted () {
-/*      EventBus.$on('organizations data refresh', () =>{
-        this.loadRecords();
-      })*/
     },
 
     methods: {
@@ -171,8 +179,10 @@ import OrganizationGroups from './OrganizationGroups.vue'
       },
       loadRecords() {
         if (this.user.rolesMap['SYSADMIN']) {
-//          this.$store.commit('SET_CRUDAPISERVCE', 'organizations');
-//          this.$store.dispatch('loadRecords', 'organizations');
+          this.$store.dispatch('reloadUser')
+          .then(()=>{
+            this.myOrgMemberships = this.user.orgMemberships;
+          })
         } else {
           (async () => {
               var response = await Api().get('/organizationuser/currentuserorgs');

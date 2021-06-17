@@ -73,6 +73,9 @@
       }
     }),
 
+    computed: {
+      ...mapState(['user'])
+    },
     watch: {
       dialog (val) {
         val || this.close()
