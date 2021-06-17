@@ -43,10 +43,10 @@
     <!--v-tab>Groups</v-tab>
     <v-tab>Members</v-tab-->
     <v-tab-item>
-      <OrganizationAppsSublist :organization="(isAdmin?cloudHavenOrg:editedOrg).organization" @orgAppsChanged="orgAppsChanged"/>
+      <OrganizationAppsSublist :key="key" :organization="activeOrg" @orgAppsChanged="orgAppsChanged"/>
     </v-tab-item>
     <v-tab-item>
-      <OrganizationComponentsSublist :organization="(isAdmin?cloudHavenOrg:editedOrg).organization" @orgCompsChanged="orgCompsChanged"/>
+      <OrganizationComponentsSublist :key="key" :organization="activeOrg" @orgCompsChanged="orgCompsChanged"/>
     </v-tab-item>
     <!--v-tab-item>
       <OrganizationGroups :organization="isAdmin?cloudHavenOrg:editedOrg.organization" />
@@ -132,11 +132,15 @@ import OrganizationGroups from './OrganizationGroups.vue'
           applications: []
         }
       },*/
-      myOrgMemberships: []
+      myOrgMemberships: [],
+      key: 1
 
     }),
 
     computed: {
+      activeOrg() {
+        return (this.isAdmin?this.cloudHavenOrg:this.editedOrg).organization;
+      },
       isAdmin() {
         return this.user.rolesMap['SYSADMIN']!=null;
       },
@@ -171,18 +175,25 @@ import OrganizationGroups from './OrganizationGroups.vue'
 
     methods: {
       orgAppsChanged() {
+        debugger;
         this.loadRecords();
       },
       orgCompsChanged() {
         this.loadRecords();
       },
       loadRecords() {
-        if (this.user.rolesMap['SYSADMIN']) {
+        this.key++;
+/*        if (this.user.rolesMap['SYSADMIN']) {
           this.$store.dispatch('reloadUser')
           .then(()=>{
-            this.myOrgMemberships = this.user.orgMemberships;
+            debugger;
+            var mo = this.myOrgMemberships;
+            this.myOrgMemberships = [].concat(this.user.orgMemberships);
+            var mo = this.myOrgMemberships;
+            this.$forceUpdate();
+            debugger;
           })
-        } else {
+        } else {*/
           (async () => {
               var response = await Api().get('/organizationuser/currentuserorgs');
               if (response.data.success) {
@@ -191,7 +202,7 @@ import OrganizationGroups from './OrganizationGroups.vue'
                 EventBus.$emit('global error alert', response.data.errMsg);
               }
           })();
-        }
+//        }
       },
       editItem (item) {
 //        this.editedOrgId = item._id;

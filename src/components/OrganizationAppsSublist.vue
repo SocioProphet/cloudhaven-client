@@ -193,6 +193,7 @@
     },
 
     mounted () {
+      this.valid = true;
       if (this.isAdmin) {
         this.$store.commit('SET_CRUDAPISERVCE', 'organizations');
         this.loadOrganizations();
@@ -205,10 +206,12 @@
       },
       pagesChanged( pages ) {
         this.editedItem.pages = [].concat(pages);
-        this.$emit("orgAppsChanged");
-        if (!this.isAdmin) {
-          this.loadOrganizations();
+        if (this.editedItem._id) {
+          this.$emit("orgAppsChanged");
         }
+/*        if (!this.isAdmin) {
+          this.loadOrganizations();
+        }*/
       },
       prepDragNDrop() {
         //File drag-n-drop logic
@@ -256,6 +259,9 @@
         formData.append('name', this.editedItem.name);
         formData.append('url', this.editedItem.url);
         formData.append('status', this.editedItem.status);
+        if (!this.editedItem._id && this.editedItem.pages.length>0) {
+          formData.append('pages', JSON.stringify(this.editedItem.pages));
+        }
         return formData;
       },
       editItem (item) {

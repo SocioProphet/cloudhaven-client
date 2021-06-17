@@ -28,7 +28,7 @@
         </tr>
       </template>
       <template v-slot:[`body.append`]>
-      <v-dialog v-model="dialog" @keydown.esc.prevent="dialog = false" max-width="100%" scrollable overlay-opacity="0.2">
+      <v-dialog v-model="pageDialog" @keydown.esc.prevent="pageDialog = false" max-width="100%" scrollable overlay-opacity="0.2">
         <template v-slot:activator="{ on, attrs }">
           <v-btn v-bind="attrs" v-on="on" color="primary" dark class="mb-3">New Page</v-btn>
         </template>
@@ -55,9 +55,9 @@
           </v-card-text>
 
           <v-card-actions>
-            <v-btn elevation="2" color="blue darken-1" text @click.native="dialog=false">Cancel</v-btn>
+            <v-btn elevation="2" color="blue darken-1" text @click.native="pageDialog=false">Cancel</v-btn>
             <v-spacer></v-spacer>
-            <v-btn elevation="2" color="blue darken-1" text @click.native="save"><v-icon left dark>mdi-content-save</v-icon>Save</v-btn>
+            <v-btn elevation="2" color="blue darken-1" text @click.native.stop="save($event)"><v-icon left dark>mdi-content-save</v-icon>Save</v-btn>
           </v-card-actions>
           <v-textarea v-if="errors.length>0" wrap="off" light color="red--text text--darken-2" class="mx-5 mt-4" label="Errors" :value="errors.join('\n')">
           </v-textarea>
@@ -142,7 +142,7 @@
       }
     },
     watch: {
-      dialog (val) {
+      pageDialog (val) {
         val || this.close()
       },
 
@@ -150,16 +150,17 @@
 
     mounted () {
       this.page.content = this.defaultPage;
+      this.page.name = this.application.pages.length==0?'home':'';
       this.clientFunctions = Object.keys(vcdnUtils.clientFunctionMap);
       this.clientFunctions.unshift('[component]');
       this.componentSearchNameFilter = '';
       this.allComponentKeywords = [];
       this.componentSearchKeywords = [],
       this.components = [];
-      this.valid = false;
+      this.valid = true;
     },
 
-    methods: {  
+    methods: {
       fetchComponents() {
         (async () => {
           var response = await Api().post('/organizationcomponent/searchcomponents',
@@ -220,7 +221,7 @@
           this.page.content = this.defaultPage;
         }
         this.page = Object.assign({name: '', content:''}, item);
-        this.dialog = true;
+        this.pageDialog = true;
       },
 
       deleteItem (item) {
@@ -245,17 +246,18 @@
       },
 
       close () {
-        this.dialog = false;
+        this.pageDialog = false;
         setTimeout(() => {
           this.page = {
-            name: '',
+            name: this.application.pages.length==0?'home':'',
             content: this.defaultPage
           };
-          this.editedIndex = -1
+          this.editedIndex = -1;
         }, 300)
       },
 
-      save () {
+      save (e) {
+        e.preventDefault();
         var vm = this;
         if (!this.$refs.pageForm.validate()) return;
         var operation = this.editedIndex > -1 ? 'update' : 'add';
@@ -275,7 +277,7 @@
               EventBus.$emit('global success alert',  `${this.page.name} ${operation=='update'?'updated':'added'}.`);
               vm.$emit('pagesChanged', response.data.pages );
               if (errors.length==0) {
-                this.dialog = false;
+                this.pageDialog = false;
               }
               EventBus.$emit('global success alert', `${this.page.name} ${this.editedIndex > -1?'updated':'added'}${errors.length>0?' with errors':''}.`);
             } else if (response.data.errMsg) {
@@ -286,12 +288,12 @@
           var pages = [].concat(this.application.pages);
           pages.push(this.page);
           vm.$emit('pagesChanged', pages );
-          this.dialog = false;
+          this.pageDialog = false;
         }
       }
     },
     data: () => ({
-      dialog: false,
+      pageDialog: false,
       clientFuncSelectDialog: false,
       componentSelectDialog: false,
       componentSearchNameFilter: '',
