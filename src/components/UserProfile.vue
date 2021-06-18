@@ -81,7 +81,6 @@ import moment from 'moment';
     },
 
     mounted () {
-      var u = this.user;
       (async () => {
         var dummy = await this.$store.dispatch('reloadUser');
         var response = await Api().post('/userdata/batchget', {userIds: [this.user._id]});

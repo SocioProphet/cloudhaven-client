@@ -14,11 +14,14 @@
           <v-btn v-bind="attrs" v-on="on" color="primary" dark class="mb-3">New User</v-btn>
         </template>
         <v-card>
-          <v-card-title><span class="text-h5">{{ formTitle }}</span></v-card-title>
+          <v-card-title><span class="text-h5">{{ formTitle }}</span><v-spacer></v-spacer>
+                  <v-btn elevation="2" color="blue darken-1" text @click.native="save"><v-icon left dark>mdi-content-save</v-icon>Save</v-btn>
+          </v-card-title>
           <v-card-text>
             <v-form ref="theForm" v-model="valid" lazy-validation>
             <v-text-field v-if="editedItem.organization" readonly :value="editedItem.organization.name" label="Organization" ></v-text-field>
             <v-text-field v-model="editedItem.email" label="Email (username)" required :rules="[rules.required, rules.email]" ></v-text-field>
+            <v-select v-model="editedItem.status" :items="['Email Verification Pending', 'Need Organization Assignment', 'Active', 'Suspended']" label="Status" :rules="[rules.required]"></v-select>
             <v-text-field v-model="editedItem.firstName" label="First Name" :rules="[rules.required]"></v-text-field>
             <v-text-field v-model="editedItem.middleName" label="Middle Name"></v-text-field>
             <v-text-field v-model="editedItem.lastName" label="Last Name" :rules="[rules.required]"></v-text-field>
@@ -83,8 +86,9 @@
           </v-row>
         </td>
         <td align="center" class="pt-3"><a @click.stop="showChangePwdForm(item)">Change Password</a></td>
-        <td class="pt-3">{{ item.email }}</td>
-        <td class="pt-3">{{ item.name }}</td>
+        <td>{{ item.email }}</td>
+        <td>{{ item.name }}</td>
+        <td>{{ item.status }}</td>
         <td class="pt-1">
           <span v-for="(role, i) in item.roles" :key="i"><br v-if="i!=0" />{{getRoleLabel(role)}}</span>
         </td>
@@ -120,10 +124,12 @@ import Api from '@/services/Api'
         { text: 'Change Password', sortable: false, align:'center' },
         { text: 'Email', align: 'left', sortable: true, value: 'email' },
         { text: 'Name', align:'left', sortable:true, value: 'name' },
+        { text: 'Status', align:'left', sortable:true, value: 'status' },
         { text: 'Roles', align:'left', sortable:true, value: 'roles' }
       ],
       editedIndex: -1,
       editedItem: {
+        status: 'Email Verification Pending',
         email: '',
         firstName: '',
         middleName: '',
@@ -204,7 +210,7 @@ import Api from '@/services/Api'
       },
       close () {
         setTimeout(() => {
-          this.editedItem = {email: '', firstName: '', middleName:'', lastName:'', password: '', language: 'English', roles:[] }
+          this.editedItem = {status: 'Email Verification Pending', email: '', firstName: '', middleName:'', lastName:'', password: '', language: 'English', roles:[] }
           this.editedIndex = -1
         }, 300)
       },

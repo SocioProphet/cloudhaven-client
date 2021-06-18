@@ -162,7 +162,6 @@ import CHFileViewer from './CHFileViewer.vue'
         oThis.updateKey++; //repaint the file viewer
       },
       loadUserFiles() {
-        var u = this.user;
         (async () => {
           var response = await Api().get('/userdata/userfile/list/'+this.user._id);
           this.userFiles = response.data || {};

@@ -174,7 +174,7 @@ export default {
   mounted() {
     var vm = this;
     EventBus.$on('set app frame', (appDetails) => {
-       vm.appDetails = Object.assign({}, appDetails?appDetails:CloudHavenAppDetails)
+      vm.appDetails = Object.assign({}, appDetails?appDetails:CloudHavenAppDetails)
     })
     EventBus.$on('global success alert', (msg) => {
       vm.showAlert( msg, false);

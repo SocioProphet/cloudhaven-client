@@ -190,6 +190,7 @@ var defaultPage = `var uiConfig = {
   },
   components: [],
   externalComponents: [{organizationId:'widget-co', componentId:'test-comp-x'}],
+  /* uncomment this for the home page if there is a menu navigation to application pages
   appFrame: {
     name: 'Skeleton App',
     appBarStyle: {background: 'linear-gradient(rgb(40, 54, 102) 0%, rgb(37, 114, 210) 100%)'},
@@ -199,7 +200,7 @@ var defaultPage = `var uiConfig = {
       { page: 'home', title: 'Dashboard'},
       { page: 'widgets', title: 'Widgets'}, 
     ]
-  },
+  },*/
   uiSchema: {
     component: 'container',
     contents: [
@@ -270,7 +271,6 @@ obj.getDefaultPage = () => {
 }
 
 obj.getDefaultComponent = () => {
-  debugger;
   return defaultComponent;
 }
 

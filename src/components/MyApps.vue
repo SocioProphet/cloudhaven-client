@@ -88,7 +88,6 @@ import router from '../router'
         })();
       },
       unsubscribe(app) {
-        var u = this.user;
         (async () => {
           var response = await Api().delete(`/usersubscription/${this.user._id}/${app.organizationId}/${app._id}`);
           if (response.data.success) {

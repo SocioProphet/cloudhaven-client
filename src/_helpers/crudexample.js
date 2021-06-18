@@ -50,9 +50,7 @@ var uiConfig = {
     initialize: {
       body: '\
       console.log("email:"+this._currentUser.email);\
-      debugger;\
       this._readAppData({table:"Desserts", key:this._currentUser.email }, function(result) {\
-      debugger;\
         if (result.success) {\
           this.desserts = JSON.parse(result.data[0].jsonData);\
         }\
@@ -99,7 +97,6 @@ var uiConfig = {
     },
     save: {
       body: '\
-      debugger;\
         var action = "added";\
         if (this.editedIndex > -1) {\
           action = "updated";\

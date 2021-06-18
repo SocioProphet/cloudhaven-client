@@ -168,7 +168,11 @@ import OrganizationGroups from './OrganizationGroups.vue'
     },
 
     created() {
-      this.loadRecords();
+      this.$store.dispatch('reloadUser')
+      .then((user)=>{
+        console.log('reloadUser:'+user);
+        this.loadRecords();
+      })
     },
     mounted () {
     },

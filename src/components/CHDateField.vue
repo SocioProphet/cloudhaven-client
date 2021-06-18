@@ -31,10 +31,11 @@ export default {
   },
   methods: {
     dateRule(value) {
+      if (!value) return true;
       var parts = this.curDate.split(/[^\d]/)
       if (!parts || parts.length<3 || (parts[0].length<4 && parts[1].length<4 && parts[2].length<4)) return 'Enter a valid date format.';
       var isValid = moment(this.curDate, 'l').isValid();
-      return (value && isValid) || 'Enter a valid date format.';
+      return isValid || 'Enter a valid date format.';
     },
     input(value) {
       if (!value) {
