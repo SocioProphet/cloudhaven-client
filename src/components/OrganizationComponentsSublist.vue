@@ -132,7 +132,7 @@ import { mapState } from 'vuex'
         documentation: defaultDocumentation,
         content: vcdnUtils.getDefaultComponent()
       },
-      editedItem: {},
+      editedItem: {keywords:[], content: vcdnUtils.getDefaultComponent()},
       errors: [],
       extensions: [
         History,
@@ -165,7 +165,7 @@ import { mapState } from 'vuex'
           hdrs.push({ text: 'Approved', align:'left', sortable:true, value: 'isApproved'});
           return hdrs;
         } else {
-          return rawHeaders;
+          return this.rawHeaders;
         }
       },
       components() {
@@ -240,8 +240,8 @@ import { mapState } from 'vuex'
       editItem (item) {
         if (!this.organization.components) this.organization.components = [];
         this.editedIndex = this.organization.components.findIndex((component) => {return component.name === item.name;});
-        if (!this.content) {
-          this.content = vcdnUtils.getDefaultComponent();
+        if (!this.editedItem.content) {
+          this.editedItem.content = vcdnUtils.getDefaultComponent();
         }
         if (!Array.isArray(item.keywords)) item.keywords = [];
         this.editedItem = Object.assign({
@@ -294,13 +294,23 @@ import { mapState } from 'vuex'
         var vm = this;
         if (!this.$refs.appForm.validate()) return;
         var operation = this.editedIndex > -1 ? 'update' : 'add';
+        var errors = [];
+        try {
+          var uiConfig = eval(this.editedItem.content);
+          errors = vcdnUtils.checkSyntax(uiConfig, true) || [];
+        } catch (e) {
+          errors.push(e+'');
+        }
+        this.errors = errors;
         if (operation == 'update' || this.organization._id) {
           (async () => {
             var response = await Api().post('/organizationcomponent', this.createFormData(operation));
             if (response.data.success) {
               EventBus.$emit('global success alert', `${this.editedItem.name} ${operation=='update'?'updated':'added'}.`);
-              vm.$emit('orgCompsChanged', response.data.components);
-              this.dialog = false;
+              if (this.errors.length==0) {
+                vm.$emit('orgCompsChanged', response.data.components);
+                this.dialog = false;
+              }
             } else if (response.data.errMsg) {
               EventBus.$emit('global error alert', response.data.errMsg );
             }

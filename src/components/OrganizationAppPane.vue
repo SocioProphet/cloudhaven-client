@@ -38,7 +38,13 @@ export default {
         EventBus.$emit('global error alert', 'No home page found.');
         return;
       }
-      this.uiConfig = eval(homePage.content);
+      this.uiConfig = null;
+      try {
+        this.uiConfig = eval(homePage.content);
+      } catch (e) {
+        console.log('Home page content syntax error: '+e);
+        return;
+      }
       this.getComponents();
     } else {
       (async () => {

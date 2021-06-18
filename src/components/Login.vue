@@ -156,7 +156,6 @@
           let password = this.loginPassword;
           this.$store.dispatch('login', { email, password })
           .then((user) => {
-            EventBus.$emit('global error alert', '');
             if (user.status == 'Email Verification Pending') {
               this.waitForEmailVerification();
             } else if (user.status == 'Need Organization Assignment') {
@@ -165,9 +164,10 @@
               this.goHome(user);
             }
           })
-          .catch(() => {
+          .catch((error) => {
+
             this.loginAlertType = 'error';
-            this.loginAlertMsg = 'Login failed.';
+            this.loginAlertMsg = 'Login failed. '+error;
           })
         }
       },

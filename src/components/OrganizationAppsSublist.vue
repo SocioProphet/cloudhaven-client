@@ -147,7 +147,7 @@
           hdrs.push({ text: 'Approved', align:'left', sortable:true, value: 'isApproved'});
           return hdrs;
         } else {
-          return rawHeaders;
+          return this.rawHeaders;
         }
       },
       applications() {

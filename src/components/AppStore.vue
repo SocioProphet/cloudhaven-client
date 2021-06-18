@@ -12,11 +12,7 @@
               <v-img width="150px" :src="app.logoSrc"></v-img>
             </v-card-text>
             <v-card-actions>
-              <v-btn
-                text
-                color="teal accent-4"
-                @click="subscribe(app)"
-              >
+              <v-btn text color="green darken-1" @click.stop="subscribe(app)" >
                 Subscribe
               </v-btn>
             </v-card-actions>
@@ -73,8 +69,12 @@ import Api from '@/services/Api'
         (async () => {
           var postData = {userId: this.user._id, organizationId: app.organizationId, applicationId: app._id};
           var response = await Api().post('/usersubscription', postData);
-          var x = response.data;
-          this.$store.commit('SET_CRUDAPISERVCE', 'organizations');
+          if (response.data.success) {
+            EventBus.$emit('global success alert', `Subscribed to ${app.name}.`);
+            this.$store.commit('SET_CRUDAPISERVCE', 'organizations');
+          } else if (response.data.errMsg) {
+            EventBus.$emit('global success alert', `Failed to subscribed to ${app.name} (${errMsg}).`);
+          }
         })();
 
       }

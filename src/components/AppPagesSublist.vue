@@ -41,12 +41,9 @@
               <v-row><v-col cols="3">
               <v-text-field v-model="page.name" label="Name" required :rules="[rules.required]"></v-text-field>
               </v-col>
-              <v-col cols="9" class="d-flex justify-right align-end">
-              <v-spacer></v-spacer>
-                <v-flex>
-                <div style="display:inline-block" class="mb-0 black--text">Type "<b>%%%</b>" in the page to select client function to insert.</div>
-                <div style="display:inline-block" class="mb-0 black--text">Type "<b>~~~</b>" in the page to select a component to insert.</div>
-                </v-flex>
+              <v-col cols="9" class="justify-end align-end">
+                <div style="text-align:right" class="mb-0 black--text">Type "<b>%%%</b>" in the page to select and insert a system function.</div>
+                <div style="text-align:right" class="mb-0 black--text">Type "<b>~~~</b>" in the page to search for and insert a component.</div>
                 </v-col>
               </v-row>
               <!--v-textarea rows="20" v-model="page.content" label="Contents" required></v-textarea-->
@@ -118,8 +115,8 @@
 
 <script>
   import _ from 'lodash';
-  import { EventBus } from '../event-bus.js';
   import Api from '@/services/Api'
+  import { EventBus } from '../event-bus.js';
   import { PrismEditor } from 'vue-prism-editor';
   import vcdnUtils from '../_helpers/vcdnutils.js'
   import 'vue-prism-editor/dist/prismeditor.min.css'; // import the styles somewhere

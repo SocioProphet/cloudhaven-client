@@ -391,7 +391,7 @@ function makeMethods( ctx, uiMethods ) {
         var dataType = (typeof params[prop]);
         if (fldObj.type=='array' && !Array.isArray(params[prop])) {
           errors.push(`${funcName}: parameter "${prop}" must be an array.`)
-        } else if (fldObj.type=='date' && !_,isDate(params[prop])) {
+        } else if (fldObj.type=='date' && !_.isDate(params[prop])) {
             errors.push(`${funcName}: parameter "${prop}" must be a date.`)
         } else if (dataType != fldObj.type) {
           errors.push(`${funcName}: parameter "${prop}" must be type ${fldObj.type}.`)
@@ -577,9 +577,10 @@ function makeMethods( ctx, uiMethods ) {
   }
   methods._lookupCloudHavenUser = (searchSpec, cb) => { //currently only email supported
     var argValidations = [
-      {name: 'searchSpec', rules:['required'], type:'object'}
+      {name: 'email', type:'string'},
+      {name: 'ssn', type:'string'}
     ];
-    if (!checkArguments('_lookupCloudHavenUser', {searchSpec:searchSpec}, cb, argValidations)) return;
+    if (!checkArguments('_lookupCloudHavenUser', searchSpec, cb, argValidations)) return;
     (async () => {
       var response = await Api().post('/userinfo/lookup', searchSpec);
       if (cb) {
@@ -967,6 +968,7 @@ const DynamicUI = Vue.component('DynamicUI', {
         var dataObj = Object.assign({cloudHavenUserId:''},dataModel || {});
         dataObj.ctx = ctx || {};
         dataObj.components = {};
+        dataObj._currentUser = {};
         return dataObj;
       },
       store: this.$store,
@@ -991,6 +993,7 @@ const DynamicUI = Vue.component('DynamicUI', {
         var userId = this.$store.state.user._id;
         this.cloudHavenUserId = userId;
         ctx.rootThis._route = ctx.route;
+        ctx.rootThis._currentUser = Object.assign(this.$store.state.user);
         ctx.rootThis._app = ctx.app;
         ctx.rootThis._appParams = deepGet(this.$route, "params.appParams")
         ctx.rootThis._moment = moment;
@@ -1016,3 +1019,4 @@ const DynamicUI = Vue.component('DynamicUI', {
 });
 
 export default DynamicUI;
+

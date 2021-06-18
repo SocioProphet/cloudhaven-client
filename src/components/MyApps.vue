@@ -12,11 +12,7 @@
               <v-img width="150px" :src="app.logoSrc"></v-img>
             </v-card-text>
             <v-card-actions>
-              <v-btn
-                text
-                color="teal accent-4"
-                @click="unsubscribe(app)"
-              >
+              <v-btn text color="red darken-2" @click.stop="unsubscribe(app)" >
                 Unsubscribe
               </v-btn>
             </v-card-actions>
@@ -95,8 +91,12 @@ import router from '../router'
         var u = this.user;
         (async () => {
           var response = await Api().delete(`/usersubscription/${this.user._id}/${app.organizationId}/${app._id}`);
-          var x = response.data;
-          this.loadMyApps();
+          if (response.data.success) {
+            EventBus.$emit('global success alert', `Unsubscribed to ${app.name}.`);
+            this.loadMyApps();
+          } else if (response.data.errMsg) {
+            EventBus.$emit('global success alert', `Failed to unsubscribed to ${app.name} (${errMsg}).`);
+          }
         })();
 
       }

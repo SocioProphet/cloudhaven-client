@@ -21,34 +21,25 @@ var validHtmlTags = [
 
 var obj = {};
 obj.clientFunctionMap = {
-  _writeAppData:`  //params: table, key, dataString
-    _writeAppData(params, function(results) {});`,
-  _readAppData :`  //params: table, key, searchOperator(startswith, contains)
-    _readAppData (params, function(data) {});`,
-  _pdfGet:`  //params: operationId
-    _pdfGet(params, function(data) {});`,
-  _appGet:`  //params: operationId
-    _appGet(params, function(data) {});`,
-  _appGetFile:`  //params: postId, fileId
-    _appGetFile(params, function(blob) {});`,
-  _appPost:`  //params: operationId, postData
-    _appPost(params, function(results) {});`,
-  _lookupCloudHavenUser:'_lookupCloudHavenUser(searchSpec, function(user) {});',
-  _usersSearch:`  //searchCriteria: phrase, dateOfBirth
-    _usersSearch(searchCriteria, function(users) {});`,
-  _getUserData:'_getUserData(pUserIds[], userDataIds, function() {});',
-  _writeUserData:'_writeUserData(userId, userDataIdToValueMap, function(results) {});',
-  _getUserFile:'_getUserFile(userId, fileId, function(blob) {});',
-  _userFileOperation:` //params: operation, userId, fileType, name, fileName, fileId, file
-    _userFileOperation(params, function(results) {});`,
-  _gotoAppPage:'_gotoAppPage(page, appParams );',
-  _queueUserMessageOrTask:`  //params: senderId, senderEmail, recipients[{to:[],cc:[],bcc:[]], subject, message, application{organizationId, applicationId, componentId, appCongigData}
-    _queueUserMessageOrTask(params, function(queueItemId ) {});`,
-  _setUserTaskDisposition:'_setUserTaskDisposition(queueItemId, params, function(results) {});',
-  _deleteUserMessageOrTask:'_deleteUserMessageOrTask(queueItemId, function(results) {});',
-  _addCalendarEntry:` //params: title, content, start, durationType('allday' or 'timed'), applicationId, componentId, appConfigData
-    _addCalendarEntry(params, function(calEntryId ) {});`,
-  _showNotification:'_showNotification(msg );'
+  _writeAppData:'this._writeAppData({table:"", key:"", dataString:""}, function(results) {});',
+  _readAppData :'this._readAppData({table:"", key:"", searchOperator:"contains"}, function(data) {});',
+  _pdfGet:'this._pdfGet({operationId:""}, function(data) {});',
+  _appGet:'this._appGet({operationId:""}, function(data) {});',
+  _appGetFile:'this._appGetFile({operationId:"", fileId:""}, function(blob) {});',
+  _appPost:'this._appPost({operationId:"", postData:""}, function(results) {});',
+  _lookupCloudHavenUser:'this._lookupCloudHavenUser({email:"", ssn:""}, function(user) {});',
+  _usersSearch:'this._usersSearch({phrase:"", dateOfBirth:""}, function(users) {});',
+  _getUserData:'this._getUserData(pUserIds, userDataIds, function() {});',
+  _writeUserData:'this._writeUserData(userId, userDataIdToValueMap, function(results) {});',
+  _getUserFile:'this._getUserFile(userId, fileId, function(blob) {});',
+  _userFileOperation:'_userFileOperation({operation:"", userId:"", fileType:"", name:"", fileName:"", fileId:"", file:null}, function(results) {});',
+  _gotoAppPage:'this._gotoAppPage(page, appParams );',
+  _queueUserMessageOrTask:'this._queueUserMessageOrTask({senderId:"", senderEmail:"", recipients:[{to:[],cc:[],bcc:[]}], subject:"", message:"", application:{organizationId:"", applicationId:"", componentId:"", appConfigData:{}}}, function(queueItemId) {});',
+  _setUserTaskDisposition:'this._setUserTaskDisposition(queueItemId, params, function(results) {});',
+  _deleteUserMessageOrTask:'this._deleteUserMessageOrTask(queueItemId, function(results) {});',
+  _addCalendarEntry:'this._addCalendarEntry({title:"", content:"", start:new Date(), durationType:"timed", applicationId:"", componentId:"", appConfigData:{}}, function(calEntryId ) {});',
+  _showNotification:'this._showNotification("");',
+  _showError:'this._showError("");'
   };
   
 obj.uiElementToVueCompMap = {
@@ -261,7 +252,7 @@ var defaultComponent = `var uiConfig = {
   components: [],
   externalComponents: [],
   uiSchema: {
-    component: 'vsheet',
+    component: 'sheet',
     contents: [
       {component: 'card', props: { elevation: 2 }, contents: [
         {component: 'cardTitle', contents: 'This is the title' },
@@ -279,6 +270,7 @@ obj.getDefaultPage = () => {
 }
 
 obj.getDefaultComponent = () => {
+  debugger;
   return defaultComponent;
 }
 
@@ -400,7 +392,8 @@ obj.checkSyntax = ( vcdn, isComponent ) => {
     if (!uiSchema.component) {
       errors.push(`Missing component property (near ${JSON.stringify(uiSchema).substring(0,60)}).`);
     }
-    var validComponents = Object.keys(obj.uiElementToVueCompMap).concat(["template", "dynamicComponent", "loop"].concat(validHtmlTags));
+    var validComponents = Object.keys(obj.uiElementToVueCompMap).concat(["template", "dynamicComponent", "loop"].concat(validHtmlTags))
+      .sort((a,b)=>(a<b?-1:(a>b?1:0)));
     var defaultValidProps = [
       'component',
       'class',
@@ -443,7 +436,7 @@ obj.checkSyntax = ( vcdn, isComponent ) => {
       }
       if (prop == 'component') {
         if (validComponents.indexOf(uiSchema.component)<0) {
-          errors.push(`Unrecognized uiSchema component ${uiSchema.component} (${validComps.join(', ')})`);
+          errors.push(`Unrecognized uiSchema component ${uiSchema.component} (${validComponents.join(', ')})`);
         }
       }
     });

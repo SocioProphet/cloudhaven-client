@@ -175,7 +175,6 @@ import OrganizationGroups from './OrganizationGroups.vue'
 
     methods: {
       orgAppsChanged() {
-        debugger;
         this.loadRecords();
       },
       orgCompsChanged() {
@@ -183,26 +182,14 @@ import OrganizationGroups from './OrganizationGroups.vue'
       },
       loadRecords() {
         this.key++;
-/*        if (this.user.rolesMap['SYSADMIN']) {
-          this.$store.dispatch('reloadUser')
-          .then(()=>{
-            debugger;
-            var mo = this.myOrgMemberships;
-            this.myOrgMemberships = [].concat(this.user.orgMemberships);
-            var mo = this.myOrgMemberships;
-            this.$forceUpdate();
-            debugger;
-          })
-        } else {*/
-          (async () => {
-              var response = await Api().get('/organizationuser/currentuserorgs');
-              if (response.data.success) {
-                this.myOrgMemberships = [].concat(response.data.orgMemberships);
-              } else if (response.data.errMsg) {
-                EventBus.$emit('global error alert', response.data.errMsg);
-              }
-          })();
-//        }
+        (async () => {
+            var response = await Api().get('/organizationuser/currentuserorgs');
+            if (response.data.success) {
+              this.myOrgMemberships = [].concat(response.data.orgMemberships);
+            } else if (response.data.errMsg) {
+              EventBus.$emit('global error alert', response.data.errMsg);
+            }
+        })();
       },
       editItem (item) {
 //        this.editedOrgId = item._id;
