@@ -389,10 +389,14 @@ function makeMethods( ctx, uiMethods ) {
           errors.push(`${funcName}: parameter "${prop}" cannot be blank.`);
         }
         var dataType = (typeof params[prop]);
-        if (fldObj.type=='array' && !Array.isArray(params[prop])) {
-          errors.push(`${funcName}: parameter "${prop}" must be an array.`)
-        } else if (fldObj.type=='date' && !_.isDate(params[prop])) {
-            errors.push(`${funcName}: parameter "${prop}" must be a date.`)
+        if (fldObj.type=='array') {
+          if (!Array.isArray(params[prop])) {
+            errors.push(`${funcName}: parameter "${prop}" must be an array.`);
+          }
+        } else if (fldObj.type=='date') {
+          if (!_.isDate(params[prop])) {
+            errors.push(`${funcName}: parameter "${prop}" must be a date.`);
+          }
         } else if (dataType != fldObj.type) {
           errors.push(`${funcName}: parameter "${prop}" must be type ${fldObj.type}.`)
         }
@@ -575,12 +579,12 @@ function makeMethods( ctx, uiMethods ) {
   methods._routerGoBack = () => {
     router.go(-1);
   }
-  methods._lookupCloudHavenUser = (searchSpec, cb) => { //currently only email supported
+  methods._lookupUser = (searchSpec, cb) => { //currently only email supported
     var argValidations = [
       {name: 'email', type:'string'},
       {name: 'ssn', type:'string'}
     ];
-    if (!checkArguments('_lookupCloudHavenUser', searchSpec, cb, argValidations)) return;
+    if (!checkArguments('_lookupUser', searchSpec, cb, argValidations)) return;
     (async () => {
       var response = await Api().post('/userinfo/lookup', searchSpec);
       if (cb) {
@@ -628,13 +632,8 @@ function makeMethods( ctx, uiMethods ) {
       }
       response = await Api().post('/userdata/batchget', {userIds: pUserIds, userDataIds: userDataIds});
       if (response.data.success) {
-        Object.keys(response.data.userDataMap).forEach(userId=>{
-          var userObj = userMap[userId] || (userMap[userId]={});
-          var userData = response.data.userDataMap[userId] || {};
-          userMap[userId] = Object.assign(userObj, userData);
-        })
+        if (cb) cb.call(ctx.rootThis, response.data.userDataMap);
       }
-      if (cb) cb.call(ctx.rootThis, userMap);
     })();
   };
   methods._writeUserData = (userId, userDataIdToValueMap, cb) => {

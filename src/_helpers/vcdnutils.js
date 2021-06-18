@@ -27,7 +27,7 @@ obj.clientFunctionMap = {
   _appGet:'this._appGet({operationId:""}, function(data) {});',
   _appGetFile:'this._appGetFile({operationId:"", fileId:""}, function(blob) {});',
   _appPost:'this._appPost({operationId:"", postData:""}, function(results) {});',
-  _lookupCloudHavenUser:'this._lookupCloudHavenUser({email:"", ssn:""}, function(user) {});',
+  _lookupUser:'this._lookupUser({email:"", ssn:""}, function(user) {});',
   _usersSearch:'this._usersSearch({phrase:"", dateOfBirth:""}, function(users) {});',
   _getUserData:'this._getUserData(pUserIds, userDataIds, function() {});',
   _writeUserData:'this._writeUserData(userId, userDataIdToValueMap, function(results) {});',

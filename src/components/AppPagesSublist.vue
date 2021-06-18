@@ -272,9 +272,9 @@
               {organizationId: this.organizationId, applicationId:this.application._id, pageName:this.page.name, content: this.page.content});
             if (response.data.success) {
               EventBus.$emit('global success alert',  `${this.page.name} ${operation=='update'?'updated':'added'}.`);
-              vm.$emit('pagesChanged', response.data.pages );
               if (errors.length==0) {
                 this.pageDialog = false;
+                vm.$emit('pagesChanged', response.data.pages );
               }
               EventBus.$emit('global success alert', `${this.page.name} ${this.editedIndex > -1?'updated':'added'}${errors.length>0?' with errors':''}.`);
             } else if (response.data.errMsg) {
