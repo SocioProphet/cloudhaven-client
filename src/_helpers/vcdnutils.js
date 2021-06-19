@@ -189,7 +189,6 @@ var defaultPage = `var uiConfig = {
     }
   },
   components: [],
-  externalComponents: [{organizationId:'widget-co', componentId:'test-comp-x'}],
   /* uncomment this for the home page if there is a menu navigation to application pages
   appFrame: {
     name: 'Skeleton App',
@@ -216,7 +215,6 @@ var defaultPage = `var uiConfig = {
 uiConfig;
       `;
 var defaultComponent = `var uiConfig = {
-  name: "Component X", //This is just a comment and is overwritten by the componentId used to fetch this component
   props: {
     exampleString: {type: "String"},
     exampleBoolean: {type: "Boolean"},
@@ -251,7 +249,6 @@ var defaultComponent = `var uiConfig = {
     }
   },
   components: [],
-  externalComponents: [],
   uiSchema: {
     component: 'sheet',
     contents: [
@@ -348,7 +345,7 @@ obj.checkSyntax = ( vcdn, isComponent ) => {
       }
     }
   }
-  function validateExtComponents( extCompJSON ) {
+/*  function validateExtComponents( extCompJSON ) {
     if (!Array.isArray(extCompJSON)) {
       errors.push('"externalComponents" root property invalid (must be an array of JSON objects).')
     } else {
@@ -372,7 +369,7 @@ obj.checkSyntax = ( vcdn, isComponent ) => {
         }
       }
     }
-  }
+  }*/
   function validateAppFrame( appFrameJSON ) {
     var validProps = {name:'string', appBarStyle: 'object', appBarTextClass: 'string', nameTextClass: 'string', menuItems: 'array'};
     Object.keys(appFrameJSON).forEach(prop => {
@@ -421,10 +418,12 @@ obj.checkSyntax = ( vcdn, isComponent ) => {
       'scopedSlots',
       'template',
       'debug',
-      'mask'
+      'mask',
+      'inheritListeners',
+      'inheritAttrs'
     ];
     var compToValidProps = {
-      dynamicComponent: ["component", "organizationId", "componentId"],
+      dynamicComponent: ["organizationId", "componentId"].concat(defaultValidProps),
       loop: ["component", "dataList", "contents", "itemAlias", "indexIsKey", "key"],
       template: ["component", "template"]
     }
@@ -432,11 +431,11 @@ obj.checkSyntax = ( vcdn, isComponent ) => {
     var validPropsMap = validProps.reduce((mp,p)=>{ mp[p] = true; return mp; },{});
     Object.keys(uiSchema).forEach(prop =>{
       if (!validPropsMap[prop]) {
-        errors.push(`Unrecognized uiSchema component "${uiSchema.component}" property ${prop} (${validProps.join(', ')})`);
+        errors.push(`Component "${uiSchema.component}": unrecognized uiSchema property ${prop} (${validProps.join(', ')})`);
       }
       if (prop == 'component') {
         if (validComponents.indexOf(uiSchema.component)<0) {
-          errors.push(`Unrecognized uiSchema component ${uiSchema.component} (${validComponents.join(', ')})`);
+          errors.push(`Unrecognized uiSchema component "${uiSchema.component}" (${validComponents.join(', ')})`);
         }
       }
     });
@@ -452,7 +451,7 @@ obj.checkSyntax = ( vcdn, isComponent ) => {
   }
   var validPropertiesMap = {
     components:'array',
-    externalComponents:'array',
+//    externalComponents:'array',
     dataModel:'object',
     methods:'object',
     computed:'object',
@@ -464,7 +463,7 @@ obj.checkSyntax = ( vcdn, isComponent ) => {
   Object.keys(vcdn).forEach(p=>{
     var obj = vcdn[p];
     var objType = validPropertiesMap[p];
-    if (!objType && !(isComponent && (p=='name' || p=='props')) ) {
+    if (!objType && !(isComponent && (p=='props')) ) {
       errors.push(`Invalid root property "${p}" - (${Object.keys(validPropertiesMap).join(', ')})`);
     }
     if (((objType=='array') && !Array.isArray(obj)) || ((objType=='object') && !isObject(obj))) {
@@ -472,8 +471,8 @@ obj.checkSyntax = ( vcdn, isComponent ) => {
     }
     if (p == 'components') {
       validateComponents( obj );
-    } else if (p == 'externalComponents') {
-      validateExtComponents( obj );
+//    } else if (p == 'externalComponents') {
+//      validateExtComponents( obj );
     } else if (p == 'methods') {
       validateMethods('method',obj);
     } else if (p == 'computed') {

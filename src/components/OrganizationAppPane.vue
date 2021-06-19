@@ -10,6 +10,19 @@ import Api from '@/services/Api'
 import { VSheet } from 'vuetify/lib'
 import { EventBus } from '../event-bus.js';
 
+function findExternalComponents( uiSchema, comps ) {
+  if (!uiSchema) return;
+  if (Array.isArray(uiSchema)) {
+    uiSchema.forEach(e=>{
+      findExternalComponents( e, comps );
+    })
+  } else {
+    if (uiSchema.component == 'dynamicComponent') {
+      comps.push({organizationId:uiSchema.organizationId, componentId:uiSchema.componentId});
+    }
+    findExternalComponents( uiSchema.contents, comps );
+  }
+}
 export default {
   components: {
     DynamicUI, VSheet
@@ -66,18 +79,19 @@ export default {
   },
   methods: {
     getComponents() {
-      (async () => {
-        if (this.uiConfig.externalComponents) {
-          var extComps = this.uiConfig.externalComponents;
-          var response = await Api().post('/organizationcomponent/getcomponents', {status: 'Published', organizationComps:this.uiConfig.externalComponents});
+      var extComps = [];
+      findExternalComponents( this.uiConfig.uiSchema, extComps );
+      if (extComps) {
+        (async () => {
+          var response = await Api().post('/organizationcomponent/getcomponents', {status: 'Published', organizationComps:extComps});
           if (response.status==200 && response.data.success) {
             this.uiConfig.components = (this.uiConfig.components || []).concat(response.data.components);
           }
           this.component = 'DynamicUI';
-        } else {
+        })();
+      } else {
           this.component = 'DynamicUI';
-        }
-      })();
+      }
     }
   }
 }

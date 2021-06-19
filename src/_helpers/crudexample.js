@@ -49,7 +49,6 @@ var uiConfig = {
     created: "this.initialize();",
     initialize: {
       body: '\
-      console.log("email:"+this._currentUser.email);\
       this._readAppData({table:"Desserts", key:this._currentUser.email }, function(result) {\
         if (result.success) {\
           this.desserts = JSON.parse(result.data[0].jsonData);\
@@ -115,6 +114,16 @@ var uiConfig = {
       args: ["value"],
       body: "return value?this._moment(value).format('l'):'';"
     }
+  },
+  appFrame: {
+    name: 'Sample Application',
+    appBarStyle: {background: 'linear-gradient(rgb(40, 54, 102) 0%, rgb(37, 114, 210) 100%)'},
+    appBarTextClass: 'yellow--text text--accent-2',
+    nameTextClass: 'white--text',
+    menuItems: [ //These are just examples and need to be replaced by real pages
+      { page: 'home', title: 'CRUD Example'},
+      { page: 'miscExamples', title: 'Misc Examples'}
+    ]
   },
   uiSchema: {component: "container", contents:[
   {component: "div", class:"ma-4", template:"<a href='https://vuetifyjs.com/en/components/data-tables/#crud-actions' target='_blank'>(from Vuetify Data Tables CRUD Actions example)</a>"},

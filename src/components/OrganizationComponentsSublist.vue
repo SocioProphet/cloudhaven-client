@@ -22,7 +22,6 @@
           </v-icon>
         </td>
         <td v-if="isAdmin">{{item.organizationName}}</td>
-        <td>{{ item.name }}</td>
         <td>{{ item.componentId }}</td>
         <td>{{ item.source}}</td>
         <td>{{ item.status}}</td>
@@ -30,7 +29,7 @@
         </tr>
       </template>
       <template v-slot:[`body.append`]>
-      <v-dialog v-model="dialog" @keydown.esc.prevent="dialog = false" max-width="100%" scrollable overlay-opacity="0.2">
+      <v-dialog v-model="dialog" @keydown.esc.prevent="dialog = false" max-width="100%" persistent scrollable overlay-opacity="0.2">
         <template v-slot:activator="{ on, attrs }">
           <v-btn v-bind="attrs" v-on="on" color="primary" dark class="mb-3">New Component</v-btn>
         </template>
@@ -40,8 +39,7 @@
           </v-card-title>
           <v-card-text>
             <v-form ref="appForm" v-model="valid" lazy-validation>
-              <v-text-field v-model="editedItem.name" label="Name" required :rules="[rules.required]"></v-text-field>
-              <v-text-field v-model="editedItem.componentId" label="Id" required :rules="[rules.required]"></v-text-field>
+              <v-text-field v-model="editedItem.componentId" label="Name" required :rules="[rules.required, rules.elementName]"></v-text-field>
               <v-radio-group v-model="editedItem.source" row label="Source">
                 <v-radio label='App Server' value='App Server'></v-radio>
                 <v-radio label='CloudHaven' value='CloudHaven'></v-radio>
@@ -88,7 +86,7 @@
 
 <script>
   import Api from '@/services/Api';
-import { mapState } from 'vuex'
+  import { mapState } from 'vuex'
   import _ from 'lodash';
   import { PrismEditor } from 'vue-prism-editor';
   import { EventBus } from '../event-bus.js';
@@ -113,18 +111,19 @@ import { mapState } from 'vuex'
       valid: true,
       rawHeaders: [
         { text: 'Actions', value: 'name', sortable: false, align:'center', width:"80px" },
-        { text: 'Name', align: 'left', sortable: true, value: 'name' },
-        { text: 'Id', align: 'left', sortable: true, value: 'componentId' },
+        { text: 'Name (Id)', align: 'left', sortable: true, value: 'componentId' },
         { text: 'Source', align: 'left', sortable: true, value: 'source' },
         { text: 'Status', align: 'left', sortable:true, name: 'status'}
       ],
       rules: {
-          required: value => !!value || 'Required.'
+          required: value => !!value || 'Required.',
+          elementName: value => {
+            /*!!value ||*/ return /[a-z][a-z0-9\-._]*-[a-z0-9\-._]*$/.test(value) || 'Must start with a-z and must contain a dash (like "x1-a2").';
+          }
       },
       editedIndex: -1,
       keyword: '',
       defaultPage: {
-        name: '',
         componentId: '',
         source: 'App Server',
         status: 'Draft',
@@ -178,8 +177,8 @@ import { mapState } from 'vuex'
             return ar;
           },[]);
           comps = comps.sort((a,b)=>{
-            var aKey = a.organizationName+'-'+a.name;
-            var bKey = b.organizationName+'-'+b.name;
+            var aKey = a.organizationName+'-'+a.componentId;
+            var bKey = b.organizationName+'-'+b.componentId;
             return aKey<bKey?-1:(aKey>bKey?1:0);
           });
           return comps;
@@ -229,7 +228,6 @@ import { mapState } from 'vuex'
           organization_Id:this.organization._id,
           component_Id: this.editedItem._id,
           componentId: this.editedItem.componentId,
-          name: this.editedItem.name,
           source: this.editedItem.source,
           status: this.editedItem.status,
           keywords: this.editedItem.keywords,
@@ -239,13 +237,12 @@ import { mapState } from 'vuex'
       },
       editItem (item) {
         if (!this.organization.components) this.organization.components = [];
-        this.editedIndex = this.organization.components.findIndex((component) => {return component.name === item.name;});
+        this.editedIndex = this.organization.components.findIndex((component) => {return component.componentId === item.componentId;});
         if (!this.editedItem.content) {
           this.editedItem.content = vcdnUtils.getDefaultComponent();
         }
         if (!Array.isArray(item.keywords)) item.keywords = [];
         this.editedItem = Object.assign({
-          name: '',
           componentId:'',
           source: 'App Server',
           status: 'Draft',
@@ -262,13 +259,13 @@ import { mapState } from 'vuex'
 
       deleteItem (item) {
         var vm = this;
-        const index = this.organization.components.findIndex((component) => {return component.name === item.name && component.contactType == item.contactType;})
-        if (confirm('Are you sure you want to delete '+item.name+'?')) {
+        const index = this.organization.components.findIndex((component) => {return component.componentId === item.componentId;})
+        if (confirm('Are you sure you want to delete '+item.componentId+'?')) {
           if (item._id) {
             (async () => {
               var response = await Api().delete('/organizationcomponent/'+this.organization._id+'/'+item._id);
               if (response.data.success) {
-                EventBus.$emit('global success alert', `${item.name} deleted.`);
+                EventBus.$emit('global success alert', `${item.componentId} deleted.`);
                 vm.$emit('orgCompsChanged', response.data.components);
                 this.organization.components.splice(index, 1);
                 this.$store.dispatch('loadRecords', 'organizations');
@@ -306,7 +303,7 @@ import { mapState } from 'vuex'
           (async () => {
             var response = await Api().post('/organizationcomponent', this.createFormData(operation));
             if (response.data.success) {
-              EventBus.$emit('global success alert', `${this.editedItem.name} ${operation=='update'?'updated':'added'}.`);
+              EventBus.$emit('global success alert', `${this.editedItem.componentId} ${operation=='update'?'updated':'added'}.`);
               if (this.errors.length==0) {
                 vm.$emit('orgCompsChanged', response.data.components);
                 this.dialog = false;

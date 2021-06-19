@@ -32,7 +32,6 @@ var uiConfig = {
           this.user.firstName = user.firstName;\
           this.user.lastName = user.lastName;\
           this._getUserData([user._id], this.auxUserFields, function(results) {\
-      debugger;\
             var readUserData = results[user._id];\n\
             if (readUserData) {\n\
               var xxx = readUserData;\n\
@@ -51,7 +50,6 @@ var uiConfig = {
     },
     saveUserData: {
       body:'\
-      debugger;\
         var valsMap = this.auxUserFields.reduce((mp,f)=>{\n\
           mp[f] = this.user[f] || "";\n\
           return mp;\n\

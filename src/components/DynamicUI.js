@@ -112,9 +112,6 @@ function makeComponent( h, metaData, ctx, pScopedProps ) {
       var context = pScopedProps?_.assignIn({}, rootThis, pScopedProps):rootThis;
       return Vue.compile(metaData.template).render.call( context, h);
     }
-    if (metaData.component == 'dynamicComponent') {
-      return h( ctx.components[metaData.organizationId+'-'+metaData.componentId], {props:metaData.props?propValsFromModel( ctx, metaData.props):{}});
-    }
     if (metaData.component == "loop") {
       var index = 0;
       var dataList = getModelValue( rootThis, pScopedProps, metaData.dataList) || [];
@@ -135,39 +132,45 @@ function makeComponent( h, metaData, ctx, pScopedProps ) {
     contents = metaData.contents;
     var component = metaData.component;
     var vueComponent = vcdnUtils.uiElementToVueCompMap[component] || component;
-    var dataObj = ['class', 'style', 'attrs', 'props', 'domProps', 'key', 'ref'].reduce((o,k)=>{
+    var dataObj = {};
+    if (metaData.inheritAttrs) {
+      dataObj.attrs = rootThis.$attrs;
+    }
+    ['class', 'style', 'attrs', 'props', 'domProps', 'key', 'ref'].forEach((k)=>{
       var kk = (k in metaData)?k:(metaData[':'+k]?(':'+k):null);
       if (kk) {
         if (metaData[kk] instanceof Object) {
-          o[k] = Object.keys(metaData[kk]).reduce((obj, key)=>{
+          if (!dataObj[k]) dataObj[k] = {};
+          Object.keys(metaData[kk]).forEach((key)=>{
             var isLiteral = (key.indexOf(":")!=0);
             var val = metaData[kk][key];
             if (isLiteral && key != 'rules') {
-              obj[key] = val;
+              dataObj[k][key] = val;
             } else {
               key = key.replace(/:/g,'');
               if (key == "rules") {
-                obj.rules = val.map(f=>rootThis[f]);
+                dataObj[k].rules = _.isString(val)?getModelValue( rootThis, pScopedProps, val):val.map(f=>rootThis[f]);
               } else if (k == 'props' && key == "value") {
                 let tmp = getModelValue( rootThis, pScopedProps, val);
-                obj[key] = metaData.ensureDate?ensureDate(tmp):tmp;
+                dataObj[k][key] = metaData.ensureDate?ensureDate(tmp):tmp;
               } else {
-                obj[key] = getModelValue( rootThis, pScopedProps, val);
+                dataObj[k][key] = getModelValue( rootThis, pScopedProps, val);
               }
             }
-            return obj;
-          },{})
+          })
         } else {
           var val = metaData[kk];
           var isLiteral = kk.indexOf(":")!=0;
-          o[k] = isLiteral?val:getModelValue( rootThis, pScopedProps, val );
+          dataObj[k] = isLiteral?val:getModelValue( rootThis, pScopedProps, val );
         }
       }
-      return o;
-    },{});
+    });
     if (metaData.to) {
       dataObj.on = dataObj.on || {};
       dataObj.on.click = rootThis._gotoRoute(metaData.to);
+    }
+    if (metaData.inheritListeners) {
+      dataObj.on = rootThis.$listeners;
     }
     ["nativeOn", "on"].forEach(ot=>{
       if (metaData[ot]) {
@@ -353,7 +356,13 @@ function makeComponent( h, metaData, ctx, pScopedProps ) {
   if (isArray) {
     return children;
   }
-  return h( vueComponent, dataObj, children);
+  if (metaData.component == 'dynamicComponent') {
+    if (!ctx.components[metaData.organizationId+'-'+metaData.componentId]) {
+      console.log(`Component ${metaData.componentId} not found.`);
+      return `[Component ${metaData.componentId} not found.]`;
+    }
+  }
+  return h( metaData.component == 'dynamicComponent'?ctx.components[metaData.organizationId+'-'+metaData.componentId]:vueComponent, dataObj, children);
 }
 
 
@@ -365,7 +374,7 @@ function makeMethods( ctx, uiMethods ) {
       try {
         o[m] = makeFunction(uiMethods[m], m);
       } catch(e) {
-        console.log('Method '+m+' error: '+e);
+        console.log('Method "'+m+'" error: '+e);
       }
       return o;
     },{});
@@ -840,7 +849,7 @@ function makeProps( propsCfg) {
 }
 function makeDynamicComponent( pCtx, cCfg ) {
   var ctx = {rootThis:null, route:pCtx.route, app:pCtx.app};
-  return Vue.component(cCfg.name, {
+  return Vue.component(cCfg.componentId, {
     props: makeProps( cCfg.props ),
     data() {
       var dataObj = Object.assign({cloudHavenUserId:''},cCfg.dataModel || {});

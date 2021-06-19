@@ -28,7 +28,7 @@
         </tr>
       </template>
       <template v-slot:[`body.append`]>
-      <v-dialog v-model="pageDialog" @keydown.esc.prevent="pageDialog = false" max-width="100%" scrollable overlay-opacity="0.2">
+      <v-dialog v-model="pageDialog" @keydown.esc.prevent="pageDialog = false" max-width="100%" scrollable overlay-opacity="0.2" persistent>
         <template v-slot:activator="{ on, attrs }">
           <v-btn v-bind="attrs" v-on="on" color="primary" dark class="mb-3">New Page</v-btn>
         </template>
@@ -77,14 +77,15 @@
         <v-card-title>Insert a Component</v-card-title>
         <v-card-text>
           <v-form ref="componentSearchForm">
-            <v-text-field class="mb-3" v-model="componentSearchNameFilter" label="Name Filter" persistent-hint hint="Search for components with this phrase in the name."></v-text-field>
-            <v-combobox v-model="componentSearchKeywords" :items="allComponentKeywords" label="Search by keyword" multiple chips ></v-combobox>
+            <v-text-field class="mb-3" v-model="componentSearchNameFilter" label="Name Filter" persistent-hint hint="Search for components with this phrase in the name."
+              @input="onNameFilterChange"></v-text-field>
+            <v-combobox v-model="componentSearchKeywords" :items="allComponentKeywords" label="Search by keyword" multiple chips @input="fetchComponents"></v-combobox>
             <v-data-table :items="components" :headers="componentHeaders" class="mt-2 elevation-1">
               <template v-slot:item="{ item }">
                 <tr @click="insertComponent(item)">
                   <td><v-btn @click.stop="insertComponent(item)">Insert</v-btn></td>
-                  <td>{{ item.componentName }}</td>
                   <td>{{ item.organizationName }}</td>
+                  <td>{{ item.componentId }}</td>
                   <td><v-btn @click.stop="showDocumentation(item)">Show</v-btn></td>
                 </tr>
               </template>
@@ -92,9 +93,10 @@
           </v-form>
         </v-card-text>
           <v-card-actions>
-            <v-btn elevation="2" color="blue darken-1" text @click.native="componentSelectDialog=false">Cancel/Close</v-btn>
             <v-spacer></v-spacer>
-            <v-btn elevation="2" color="blue darken-1" text @click.native="fetchComponents">Search</v-btn>
+            <v-btn elevation="2" color="blue darken-1" text @click.native="componentSelectDialog=false">Cancel/Close</v-btn>
+            <!--v-spacer></v-spacer>
+            <v-btn elevation="2" color="blue darken-1" text @click.native="fetchComponents">Search</v-btn-->
           </v-card-actions>
       </v-card>
     </v-dialog>
@@ -158,10 +160,18 @@
     },
 
     methods: {
+      onNameFilterChange() {
+        if (this.timeoutId) {
+          clearTimeout(this.timeoutId);
+        }
+        this.timeoutId = setTimeout(() => {
+          this.fetchComponents();
+        }, 500);
+      },
       fetchComponents() {
         (async () => {
           var response = await Api().post('/organizationcomponent/searchcomponents',
-            {keywordsFilter: this.keywords, nameFilter: this.componentSearchNameFilter});
+            {keywordsFilter: this.componentSearchKeywords, nameFilter: this.componentSearchNameFilter});
           if (response.data.success) {
             this.components = response.data.components;
           } else if (response.data.errMsg) {
@@ -290,6 +300,7 @@
       }
     },
     data: () => ({
+      timeoutId: null,
       pageDialog: false,
       clientFuncSelectDialog: false,
       componentSelectDialog: false,
