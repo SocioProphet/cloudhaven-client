@@ -19,7 +19,8 @@
           </v-card-title>
           <v-card-text>
             <v-form ref="theForm" v-model="valid" lazy-validation>
-            <v-text-field v-if="editedItem.organization" readonly :value="editedItem.organization.name" label="Organization" ></v-text-field>
+            <v-text-field v-if="editedIndex>=0" readonly :value="mainOrg.name" label="Organization" ></v-text-field>
+            <v-select v-else v-model="organization" label="Organization" :items="organizations" item-text="name" item_value="_id" return-object ></v-select>
             <v-text-field v-model="editedItem.email" label="Email (username)" required :rules="[rules.required, rules.email]" ></v-text-field>
             <v-select v-model="editedItem.status" :items="['Email Verification Pending', 'Need Organization Assignment', 'Active', 'Suspended']" label="Status" :rules="[rules.required]"></v-select>
             <v-text-field v-model="editedItem.firstName" label="First Name" :rules="[rules.required]"></v-text-field>
@@ -102,8 +103,9 @@
 <script>
 import { mapState } from 'vuex'
 import { EventBus } from '../event-bus.js';
-import CHDateField from './CHDateField'
-import Api from '@/services/Api'
+import CHDateField from './CHDateField';
+import Api from '@/services/Api';
+import moment from 'moment';
   export default {
     components: {
       CHDateField
@@ -127,6 +129,7 @@ import Api from '@/services/Api'
         { text: 'Status', align:'left', sortable:true, value: 'status' },
         { text: 'Roles', align:'left', sortable:true, value: 'roles' }
       ],
+      organization: null,
       editedIndex: -1,
       editedItem: {
         status: 'Email Verification Pending',
@@ -138,6 +141,7 @@ import Api from '@/services/Api'
         ssn: '',
         password: '',
         language: 'English',
+        orgMemberships:[],
         roles:[]
       },
       chgPwdObj:{},
@@ -149,10 +153,13 @@ import Api from '@/services/Api'
     }),
 
     computed: {
+      mainOrg() {
+        return (this.editedItem.orgMemberships && this.editedItem.orgMemberships.length>0)?this.editedItem.orgMemberships[0].organization:{};
+      },
       formTitle () {
         return this.editedIndex === -1 ? 'New User' : 'Edit User'
       },
-      ...mapState(['users']),
+      ...mapState(['organizations', 'users']),
       isOrganization() {
         return this.editedItem.roles?this.editedItem.roles.find(r=>(r=='ORGANIZATION'))!=null:false;
       }
@@ -173,9 +180,12 @@ import Api from '@/services/Api'
 
     created () {
       this.$store.commit('SET_CRUDAPISERVCE', 'users');
+      this.$store.commit('SET_CRUDAPISERVCE', 'organizations');
       this.$store.dispatch('loadRecords', 'users');
+      this.$store.dispatch('loadRecords', 'organizations');
       EventBus.$on('users data refresh', () =>{
         this.$store.dispatch('loadRecords', 'users');
+        this.$store.dispatch('loadRecords', 'organizations');
       })
     },
 
@@ -193,8 +203,11 @@ import Api from '@/services/Api'
         this.pwdDialog = true;
       },
       editItem (item) {
-        this.editedIndex = this.users.indexOf(item)
-        this.editedItem = Object.assign({}, item)
+        this.editedIndex = this.users.indexOf(item);
+        this.editedItem = Object.assign({}, item);
+        if (item.dateOfBirth) {
+          this.editedItem.dateOfBirth = moment(item.dateOfBirth).toDate();
+        }
         if (!this.editedItem._id) {
           this.$refs.form.reset()
         }
@@ -210,7 +223,7 @@ import Api from '@/services/Api'
       },
       close () {
         setTimeout(() => {
-          this.editedItem = {status: 'Email Verification Pending', email: '', firstName: '', middleName:'', lastName:'', password: '', language: 'English', roles:[] }
+          this.editedItem = {status: 'Email Verification Pending', email: '', firstName: '', middleName:'', lastName:'', password: '', language: 'English', roles:[], orgMemberships:[] }
           this.editedIndex = -1
         }, 300)
       },
@@ -239,14 +252,20 @@ import Api from '@/services/Api'
       },
       save () {
         if (!this.$refs.theForm.validate()) return;
-        ((this.editedIndex > -1)?
-          this.$store.dispatch('updateRecord', {model:'users', dbObject:this.editedItem, label:`User ${this.editedItem.lastName}`}):
-          this.$store.dispatch('createRecord', {model:'users', dbObject:this.editedItem, label:`User ${this.editedItem.lastName}`})).then((newRec)=> {
-              if (newRec) {
-                EventBus.$emit('global success alert', `${this.editedItem.lastName} ${this.editedIndex > -1?'updated':'added'}.`);
-                this.dialog = false;
-                this.$store.dispatch('loadRecords', 'users')
-              }
+        var promise = null;
+        if (this.editedIndex > -1) {
+          promise = this.$store.dispatch('updateRecord', {model:'users', dbObject:this.editedItem, label:`User ${this.editedItem.lastName}`});
+        } else {
+          var dbObject = Object.assign({orgMemberships:[]}, this.editedItem);
+          dbObject.orgMemberships.push({isAdmin:false, organization: this.organization._id});
+          promise = this.$store.dispatch('createRecord', {model:'users', dbObject:dbObject, label:`User ${this.editedItem.lastName}`});
+        }
+        promise.then((newRec)=> {
+          if (newRec) {
+            EventBus.$emit('global success alert', `${this.editedItem.lastName} ${this.editedIndex > -1?'updated':'added'}.`);
+            this.dialog = false;
+            this.$store.dispatch('loadRecords', 'users')
+          }
           })
       }
     }

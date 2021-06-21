@@ -357,7 +357,8 @@ function makeComponent( h, metaData, ctx, pScopedProps ) {
     return children;
   }
   if (metaData.component == 'dynamicComponent') {
-    if (!ctx.components[metaData.organizationId+'-'+metaData.componentId]) {
+    var compKey = (metaData.organizationId||'')+'-'+metaData.componentId;
+    if (!ctx.components[compKey]) {
       console.log(`Component ${metaData.componentId} not found.`);
       return `[Component ${metaData.componentId} not found.]`;
     }
@@ -631,7 +632,6 @@ function makeMethods( ctx, uiMethods ) {
       return;
     };
     (async () => {
-      var userMap = null;
       var response = await Api().post("/userinfo/getusers", {userIds:pUserIds})
       if (response.data) {
         userMap = response.data.reduce((mp,u)=>{

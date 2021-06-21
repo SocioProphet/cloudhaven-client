@@ -9,6 +9,7 @@ import DynamicUI from './DynamicUI.js'
 import Api from '@/services/Api'
 import { VSheet } from 'vuetify/lib'
 import { EventBus } from '../event-bus.js';
+import vcdnUtils from '../_helpers/vcdnutils.js'
 
 function findExternalComponents( uiSchema, comps ) {
   if (!uiSchema) return;
@@ -66,7 +67,13 @@ export default {
       (async () => {
         var response = await Api().post('/organizationapplication/getapppage', {app:pApp, page:page});
         if (response.data.success) {
-          this.uiConfig = response.data;
+          this.uiConfig = response.data.data;
+          var errors = vcdnUtils.checkSyntax(this.uiConfig) || [];
+          if (errors.length>0) {
+            console.log('Errors:\n'+errors.join('\n'));
+            EventBus.$emit('global error alert', 'Syntax errors in page (see console log).');
+            return;
+          }
           if (this.uiConfig.appFrame) {
             EventBus.$emit('set app frame', Object.assign(this.app, this.uiConfig.appFrame))
           }
@@ -85,7 +92,20 @@ export default {
         (async () => {
           var response = await Api().post('/organizationcomponent/getcomponents', {status: 'Published', organizationComps:extComps});
           if (response.status==200 && response.data.success) {
-            this.uiConfig.components = (this.uiConfig.components || []).concat(response.data.components);
+            var components = (this.uiConfig.components || []).concat(response.data.components);
+            var gotErrors = false;
+            components.forEach(component =>{
+              var errors = vcdnUtils.checkSyntax(component, true);
+              if (errors) {
+                console.log('Component "'+component.componentId+'" errors:\n'+errors.join('\n'));
+                gotErrors = true;
+              }
+            });
+            if (gotErrors) {
+              EventBus.$emit('global error alert', 'Syntax errors in a component (see console log).');
+              return;
+            }            
+            this.uiConfig.components = components;
           }
           this.component = 'DynamicUI';
         })();

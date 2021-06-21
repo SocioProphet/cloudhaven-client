@@ -463,7 +463,7 @@ obj.checkSyntax = ( vcdn, isComponent ) => {
   Object.keys(vcdn).forEach(p=>{
     var obj = vcdn[p];
     var objType = validPropertiesMap[p];
-    if (!objType && !(isComponent && (p=='props')) ) {
+    if (!objType && !(isComponent && (p=='props' || p=='componentId')) ) {
       errors.push(`Invalid root property "${p}" - (${Object.keys(validPropertiesMap).join(', ')})`);
     }
     if (((objType=='array') && !Array.isArray(obj)) || ((objType=='object') && !isObject(obj))) {

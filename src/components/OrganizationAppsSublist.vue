@@ -21,7 +21,8 @@
             mdi-trash-can
           </v-icon>
         </td>
-        <td v-if="isAdmin">{{item.organizationName}}</td>
+        <!--td v-if="isAdmin">{{item.organizationName}}</td-->
+        <td v-if="isAdmin">{{item.organizationId}}</td>
         <td>{{ item.name }}</td>
         <td>{{ item.applicationId }}</td>
         <!--td><v-img max-width="30" max-height="30" :src="item.logo" /></td-->
@@ -143,7 +144,8 @@
       headers() {
         if (this.isAdmin) {
           var hdrs = [].concat(this.rawHeaders);
-          hdrs.splice(1,0, { text: 'Organization', align: 'left', sortable: true, value: 'organizationName' });
+//          hdrs.splice(1,0, { text: 'Organization', align: 'left', sortable: true, value: 'organizationName' });
+          hdrs.splice(1,0, { text: 'Organization Id', align: 'left', sortable: true, value: 'organizationId' });
           hdrs.push({ text: 'Approved', align:'left', sortable:true, value: 'isApproved'});
           return hdrs;
         } else {
@@ -154,7 +156,7 @@
         if (this.isAdmin) {
           var apps = this.organizations.reduce((ar,org)=>{
             org.applications.forEach(a=>{
-              var app = Object.assign({organizationName:org.name}, a);
+              var app = Object.assign({organizationName:org.name, organizationId:org.organizationId}, a);
               ar.push(app);
             })
             return ar;
@@ -253,7 +255,9 @@
         formData.append('applicationId', this.editedItem.applicationId);
         formData.append('organization_Id', this.organization._id);
         formData.append('source', this.editedItem.source);
-        formData.append('_id', this.editedItem._id);
+        if (this.editedItem._id) {
+          formData.append('_id', this.editedItem._id);
+        }
         formData.append('logo', this.editedItem.logo);
         formData.append('logoUpdated', this.logoUpdated)
         formData.append('name', this.editedItem.name);
@@ -266,10 +270,10 @@
       },
       editItem (item) {
         if (!this.organization.applications) this.organization.applications = [];
-        this.editedIndex = this.organization.applications.findIndex((application) => {return application.name === item.name;});
+        this.editedIndex = this.organization.applications.findIndex((application) => {return application._id === item._id;});
         this.editedItem = Object.assign({
+          _id: '',
           name: '',
-          application_Id:'',
           applicationId: '',
           source: 'CloudHaven',
           logo:'',
@@ -285,7 +289,7 @@
 
       deleteItem (item) {
         var vm = this;
-        const index = this.organization.applications.findIndex((application) => {return application.name === item.name && application.contactType == item.contactType;})
+        const index = this.organization.applications.findIndex((application) => {return application._id === item._id;})
         if (confirm('Are you sure you want to delete '+item.name+'?')) {
           if (item._id) {
             (async () => {
@@ -309,9 +313,9 @@
         this.dialog = false;
         setTimeout(() => {
           this.editedItem = {
+            _id: '',
             name: '',
             applicationId: '',
-            application_Id: '',
             source: 'CloudHaven',
             logo:'',
             url:'',

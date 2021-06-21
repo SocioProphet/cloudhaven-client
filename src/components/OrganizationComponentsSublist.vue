@@ -21,7 +21,7 @@
             mdi-trash-can
           </v-icon>
         </td>
-        <td v-if="isAdmin">{{item.organizationName}}</td>
+        <td v-if="isAdmin">{{item.organizationId}}</td>
         <td>{{ item.componentId }}</td>
         <td>{{ item.source}}</td>
         <td>{{ item.status}}</td>
@@ -124,6 +124,7 @@
       editedIndex: -1,
       keyword: '',
       defaultPage: {
+        _id: '',
         componentId: '',
         source: 'App Server',
         status: 'Draft',
@@ -160,7 +161,7 @@
       headers() {
         if (this.isAdmin) {
           var hdrs = [].concat(this.rawHeaders);
-          hdrs.splice(1,0, { text: 'Organization', align: 'left', sortable: true, value: 'organizationName' });
+          hdrs.splice(1,0, { text: 'Organization Id', align: 'left', sortable: true, value: 'organizationId' });
           hdrs.push({ text: 'Approved', align:'left', sortable:true, value: 'isApproved'});
           return hdrs;
         } else {
@@ -171,7 +172,7 @@
         if (this.isAdmin) {
           var comps = this.organizations.reduce((ar,org)=>{
             org.components.forEach(c=>{
-              var comp = Object.assign({organizationName:org.name}, c);
+              var comp = Object.assign({organizationId:org.organizationId}, c);
               ar.push(comp);
             })
             return ar;
@@ -237,12 +238,13 @@
       },
       editItem (item) {
         if (!this.organization.components) this.organization.components = [];
-        this.editedIndex = this.organization.components.findIndex((component) => {return component.componentId === item.componentId;});
+        this.editedIndex = this.organization.components.findIndex((component) => {return component._id === item._id;});
         if (!this.editedItem.content) {
           this.editedItem.content = vcdnUtils.getDefaultComponent();
         }
         if (!Array.isArray(item.keywords)) item.keywords = [];
         this.editedItem = Object.assign({
+          _id: '',
           componentId:'',
           source: 'App Server',
           status: 'Draft',
@@ -259,7 +261,7 @@
 
       deleteItem (item) {
         var vm = this;
-        const index = this.organization.components.findIndex((component) => {return component.componentId === item.componentId;})
+        const index = this.organization.components.findIndex((component) => {return component._id === item._id;})
         if (confirm('Are you sure you want to delete '+item.componentId+'?')) {
           if (item._id) {
             (async () => {

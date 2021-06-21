@@ -223,21 +223,21 @@
         return highlight(code, languages.js);
       },
       editItem (item) {
-        this.editedIndex = this.application.pages.findIndex((page) => {return page.name === item.name;});
+        this.editedIndex = this.application.pages.findIndex((page) => {return page._id === item._id;});
         if (this.editedIndex<0 && !this.page.content) {
           this.page.content = this.defaultPage;
         }
-        this.page = Object.assign({name: '', content:''}, item);
+        this.page = Object.assign({_id:'', name: '', content:''}, item);
         this.pageDialog = true;
       },
 
       deleteItem (item) {
         var vm = this;
-        const index = this.application.pages.findIndex((page) => {return page.name === item.name;})
+        const index = this.application.pages.findIndex((page) => {return page._id === item._id;})
         if (confirm('Are you sure you want to delete '+item.name+'?')) {
           if (item._id) {
             (async () => {
-              var path = `/organizationapplication/page/${this.organizationId}/${this.application._id}/${encodeURIComponent(item.name)}`;
+              var path = `/organizationapplication/page/${this.organizationId}/${this.application._id}/${item._id}`;
               var response = await Api().delete(path);
               if (response.data.success) {
                 EventBus.$emit('global success alert', `${item.name} deleted.`);
@@ -278,8 +278,8 @@
         this.errors = errors;
         if (operation == 'update' || this.application._id) {
           (async () => {
-            var response = await Api().post('/organizationapplication/writepage', 
-              {organizationId: this.organizationId, applicationId:this.application._id, pageName:this.page.name, content: this.page.content});
+            var postObj = {organizationId: this.organizationId, applicationId:this.application._id, pageId: this.page._id, name:this.page.name, content: this.page.content};
+            var response = await Api().post('/organizationapplication/writepage', postObj );
             if (response.data.success) {
               EventBus.$emit('global success alert',  `${this.page.name} ${operation=='update'?'updated':'added'}.`);
               if (errors.length==0) {
@@ -293,7 +293,7 @@
           })();
         } else {
           var pages = [].concat(this.application.pages);
-          pages.push(this.page);
+          pages.push({name:this.page.name, content: this.page.content});
           vm.$emit('pagesChanged', pages );
           this.pageDialog = false;
         }
@@ -327,6 +327,7 @@
       },
       editedIndex: -1,
       page: {
+        _id: '',
         name: '',
         content: ''
       },

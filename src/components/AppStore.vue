@@ -39,7 +39,7 @@ import Api from '@/services/Api'
       emptyLogo() {
         return "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7";
       },
-      ...mapState(['organizations', 'user'])
+      ...mapState([ 'user'])
     },
 
     watch: {
@@ -71,7 +71,6 @@ import Api from '@/services/Api'
           var response = await Api().post('/usersubscription', postData);
           if (response.data.success) {
             EventBus.$emit('global success alert', `Subscribed to ${app.name}.`);
-            this.$store.commit('SET_CRUDAPISERVCE', 'organizations');
           } else if (response.data.errMsg) {
             EventBus.$emit('global success alert', `Failed to subscribed to ${app.name} (${errMsg}).`);
           }
