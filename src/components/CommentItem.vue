@@ -1,19 +1,25 @@
 <template>
+<div style="background-color:#F0F0F0;padding:1px">
   <v-textarea 
-    class="mx-2 "
+    :class="commentClass"
     :label="comment.owner.name+' - '+(comment.created_at?$options.filters.datetime(comment.created_at):'')"
-    rows="3"
+    :rows="commentRows"
     v-model="comment.content"
     :clearable="editMode"
     :append-outer-icon="actionIcon"
-    dense
+    dense hide-details
+    filled
+    :reverse="notMine" 
+    :background-color="notMine?'#F0F0F0':'#FFFFFF'"
     :readonly="!editMode"
     @click="putInEditMode"
     @click:append-outer="commentAction"
   ></v-textarea>
+  </div>
 </template>
 <script>
 import Api from '@/services/Api'
+import { mapState } from 'vuex'
 import moment from 'moment'
   export default {
     props: {
@@ -33,9 +39,20 @@ import moment from 'moment'
     mounted() {
     },
     computed: {
+      commentClass() {
+        return this.notMine?"ml-4 mr-1 mb-1":"ml-1 mb-1";
+      },
+      notMine() {
+        return this.user._id != this.comment.owner._id;
+      },
+      commentRows() {
+        var lines = (this.comment.content||'').split(/\r|\r\n|\n/);
+        return lines.length>5?5:(lines.length==0?1:lines.length);
+      },
       actionIcon() {
         return this.editMode?'mdi-check-bold':'mdi-trash-can';
-      } 
+      },
+      ...mapState(['user'])
     },
     methods: {
       putInEditMode() {

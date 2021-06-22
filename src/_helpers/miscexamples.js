@@ -275,5 +275,4 @@ export default `var uiConfig = {
     ] //container
   }
 };
-uiConfig;
 `

@@ -212,8 +212,7 @@ var defaultPage = `var uiConfig = {
     ]
   }
 };
-uiConfig;
-      `;
+`;
 var defaultComponent = `var uiConfig = {
   props: {
     exampleString: {type: "String"},
@@ -261,8 +260,7 @@ var defaultComponent = `var uiConfig = {
     ]
   }
 };
-uiConfig;
-      `;
+`;
 obj.getDefaultPage = () => {
   return defaultPage;
 }
@@ -271,7 +269,15 @@ obj.getDefaultComponent = () => {
   return defaultComponent;
 }
 
-obj.checkSyntax = ( vcdn, isComponent ) => {
+obj.sandboxedStringToJSON = ( src ) => {
+  if (src.indexOf('uiConfig')<0) {
+    throw 'Missing uiConfig object.';
+  }
+  var func = Function.apply( null, [src+'\nreturn uiConfig;\n'] );
+  return (func)();
+}
+
+obj.checkStructure = ( vcdn, isComponent ) => {
   var errors = [];
   function makeFunction( funcType, funcSpec, name ) {
     try {

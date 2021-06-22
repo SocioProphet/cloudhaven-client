@@ -54,7 +54,7 @@ export default {
       }
       this.uiConfig = null;
       try {
-        this.uiConfig = eval(pageObj.content);
+        this.uiConfig = vcdnUtils.sandboxedStringToJSON(pageObj.content);
       } catch (e) {
         console.log('Home page content syntax error: '+e);
         return;
@@ -68,7 +68,7 @@ export default {
         var response = await Api().post('/organizationapplication/getapppage', {app:pApp, page:page});
         if (response.data.success) {
           this.uiConfig = Object.assign({},response.data.data);
-          var errors = vcdnUtils.checkSyntax(this.uiConfig) || [];
+          var errors = vcdnUtils.checkStructure(this.uiConfig) || [];
           if (errors.length>0) {
             console.log('Errors:\n'+errors.join('\n'));
             EventBus.$emit('global error alert', 'Syntax errors in page (see console log).');
@@ -92,10 +92,24 @@ export default {
         (async () => {
           var response = await Api().post('/organizationcomponent/getcomponents', {status: 'Published', organizationComps:extComps});
           if (response.status==200 && response.data.success) {
+            //components and rawComponents(stringSource, organizationId, componentId)
             var components = (this.uiConfig.components || []).concat(response.data.components);
+            response.data.rawComponents.forEach(c=>{
+              try {
+                var uiConfig = vcdnUtils.sandboxedStringToJSON(c.stringContent);
+                if (uiConfig) {
+                  uiConfig.organizationId = c.organizationId;
+                  uiConfig.componentId = c.componentId;
+                  components.push(uiConfig);
+                }
+              } catch(e) {
+                console.log(`Org ${c.organizationId} - Component ${c.componentId} error: ${e+''}.`);
+              }
+            })
+            
             var gotErrors = false;
             components.forEach(component =>{
-              var errors = vcdnUtils.checkSyntax(component, true);
+              var errors = vcdnUtils.checkStructure(component, true);
               if (errors) {
                 console.log('Component "'+component.componentId+'" errors:\n'+errors.join('\n'));
                 gotErrors = true;

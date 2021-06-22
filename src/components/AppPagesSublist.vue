@@ -45,8 +45,9 @@
                 <v-select v-model="template" label="Template" :items="['Default','CRUD Example', 'Misc Examples']" @input="onTemplateChange"></v-select>
               </v-col>
               <v-col cols="6" class="justify-end align-end">
-                <div style="text-align:right" class="mb-0 black--text">Type "<b>%%%</b>" in the page to select and insert a system function.</div>
-                <div style="text-align:right" class="mb-0 black--text">Type "<b>~~~</b>" in the page to search for and insert a component.</div>
+                <div style="text-align:right" class="mb-0 black--text">Type "<span style="background-color:yellow"><b>%%%</b></span>" in the page to select and insert a system function.</div>
+                <div style="text-align:right" class="mb-0 black--text">Type "<span style="background-color:yellow"><b>~~~</b></span>" in the page to search for and insert a component.</div>
+                <div style="text-align:right" class="mb-0 black--text"><b>Note:</b> the "Page Object" must be assigned to a <span style="background-color:yellow"><b>uiConfig</b></span> variable.</div>
                 </v-col>
               </v-row>
               <!--v-textarea rows="20" v-model="page.content" label="Contents" required></v-textarea-->
@@ -284,8 +285,8 @@
         var operation = this.editedIndex > -1 ? 'update' : 'add';
         var errors = [];
         try {
-          var uiConfig = eval(this.page.content);
-          errors = vcdnUtils.checkSyntax(uiConfig) || [];
+          var uiConfig = vcdnUtils.sandboxedStringToJSON(this.page.content);
+          errors = vcdnUtils.checkStructure(uiConfig) || [];
         } catch (e) {
           errors.push(e+'');
         }

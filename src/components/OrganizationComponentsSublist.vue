@@ -295,8 +295,8 @@
         var operation = this.editedIndex > -1 ? 'update' : 'add';
         var errors = [];
         try {
-          var uiConfig = eval(this.editedItem.content);
-          errors = vcdnUtils.checkSyntax(uiConfig, true) || [];
+          var uiConfig = vcdnUtils.sandboxedStringToJSON(this.editedItem.content);
+          errors = vcdnUtils.checkStructure(uiConfig, true) || [];
         } catch (e) {
           errors.push(e+'');
         }

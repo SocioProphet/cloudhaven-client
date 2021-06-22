@@ -20,7 +20,7 @@
               v-model="newComment"
               placeholder='Type a new comment here and click the send icon on the right.'
               @click:append="addComment"
-              rows="3"
+              :rows="newCommentRows"
             ></v-textarea>
         </v-card-actions>
     </v-card>
@@ -57,6 +57,12 @@ import Api from '@/services/Api'
             this.conversation = {comments:[]};
           }
         })();
+      },
+      computed: {
+        newCommentRows() {
+          var lines = this.newComment.split(/\r|\r\n|\n/);
+          return lines.length>5?5:(lines.length==0?1:lines.length);
+        }
       },
       methods: {
         addComment() {
