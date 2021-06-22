@@ -476,12 +476,12 @@ function makeMethods( ctx, uiMethods ) {
   };
   methods._appGet = (params, cb) => {
     var argValidations = [
-      {name: 'operationId', rules:['required', 'notblank'], type:'string'}
+      {name: 'subpath', rules:['required', 'notblank'], type:'string'}
     ];
     if (!checkArguments('_appGet', params, cb, argValidations)) return;
     (async () => {
       try {
-        var response = await Api().post('/organizationapplication/apppost', {app:app, httpMethod: 'GET', operationId:params.operationId});
+        var response = await Api().post('/organizationapplication/apppost', {app:app, httpMethod: 'GET', operationId:params.subpath});
         if (cb) {
           (cb).call(ctx.rootThis, response.data);
         }
@@ -660,22 +660,35 @@ function makeMethods( ctx, uiMethods ) {
       if (cb) cb.call(ctx.rootThis, response.data);
     })();
   }
-  methods._getUserFile = (userId, userFileId, cb) => {
+  methods._getUserFiles = (userId, cb) =>{
+    var argValidations = [
+      {name: 'userId', rules:['required', 'nonblank'], type:'string'}
+    ];
+    if (!checkArguments('_getUserFiles', {userId:userId}, cb, argValidations)) return;
+    (async () => {
+      var response = await Api().get('/userdata/userfile/list/'+userId);
+      if (cb) cb.call(ctx.rootThis, response.data);
+    })();
+  }
+  methods._getUserFile = (params, cb) => {
     var argValidations = [
       {name: 'userId', rules:['required', 'nonblank'], type:'string'},
-      {name: 'userFileId', rules:['required', 'nonblank'], type:'string'}
+      {name: 'fileId', rules:['required', 'nonblank'], type:'string'}
     ];
-    if (!checkArguments('_getUserFile', {userId:userId, userFileId:userFileId}, cb, argValidations)) return;
+    if (!checkArguments('_getUserFile', params, cb, argValidations)) return;
     (async () => {
-      var response = await Api().get(`/userdata/userfile/body/${userId}/${userFileId}`,
+      var response = await Api().get(`/userdata/userfile/getfile/${params.userId}/${params.fileId}`,
         {responseType: 'blob', timeout: 30000 });
-      var parts = response.headers["content-disposition"].split(/["']/);
-      const rawFilename = parts[1];
+      var rawFilename = '';
+      if (response.headers["content-disposition"]) {
+        var parts = response.headers["content-disposition"].split(/["']/);
+        rawFilename = parts[1];
+      }
       const contentType = response.headers["content-type"];
       if (contentType.indexOf('text/')==0 || contentType == 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
         cb.call(ctx.rootThis, response.data );
       } else if (contentType == 'application/pdf'  || contentType.indexOf('image/')==0) {
-        cb.call(ctx.rootThis, new File( [response.data], item.fileName, {type: mimeType}));
+        cb.call(ctx.rootThis, new File( [response.data], rawFilename, {type: contentType}));
       }
     })();
   }
@@ -724,19 +737,21 @@ function makeMethods( ctx, uiMethods ) {
 
     (async () => {
       var formData = new FormData();
-      formData.append('userId',  params.userId);
       formData.append('operation', params.operation);
-      formData.append('name', params.name);
-      formData.append('fileName', params.filename);
-      formData.append('mimeType', mimeType);
-      if (params.userFileId) {
-        formData.append('fileId', params.userFileId);
+      formData.append('userId',  params.userId);
+      if (params.operation == 'add' || params.operation=='update') {
+        formData.append('name', params.name);
+        formData.append('fileName', params.fileName);
+        formData.append('mimeType', mimeType);
+      }
+      if (params.fileId) {
+        formData.append('fileId', params.fileId);
       }
       if (params.file) {
-        formData.append('files.'+params.filename, params.file);
+        formData.append('files.'+params.fileName, params.file);
       }
       var response = await MultipartPostApi().post('/userdata/userfile', formData);
-      if (cb) cb.call(ctx.rootThis, this.$safeRef(response.data).success);
+      if (cb) cb.call(ctx.rootThis, response.data);
     })();
 
   }

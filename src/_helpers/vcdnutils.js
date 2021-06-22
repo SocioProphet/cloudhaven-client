@@ -11,7 +11,7 @@ var validHtmlTags = [
   'a', 'abbr', 'address', 'area', 'article', 'aside', 'audio', 'b', 'base', 'bdi', 'bdo', 'blockquote', 'body', 
   'br', 'button', 'canvas', 'caption', 'cite', 'code', 'col', 'colgroup', 'data', 'datalist', 'dd', 'del', 'details', 
   'dfn', 'dialog', 'div', 'dl', 'dt', 'em', 'embed', 'fieldset', 'figcaption', 'figure', 'footer', 'form', 
-  'h1, h2, h3, h4, h5, h6', 'head', 'header', 'hgroup', 'hr', 'html', 'i', 'iframe', 'img', 'input', 'ins', 'kbd', 
+  'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'head', 'header', 'hgroup', 'hr', 'html', 'i', 'iframe', 'img', 'input', 'ins', 'kbd', 
   'label', 'legend', 'li', 'link', 'main', 'map', 'mark', 'MathML math', 'menu', 'meta', 'meter', 'nav', 'noscript', 
   'object', 'ol', 'optgroup', 'option', 'output', 'p', 'param', 'picture', 'pre', 'progress', 'q', 'rp', 'rt', 'ruby', 
   's', 'samp', 'script', 'section', 'select', 'slot', 'small', 'source', 'span', 'strong', 'style', 'sub', 'summary', 
@@ -288,7 +288,7 @@ obj.checkSyntax = ( vcdn, isComponent ) => {
           getSetObj.get = makeFunction( funcType, funcSpec.get, name+':get' );
         }
         if (getSetObj) return getSetObj;
-        var args = funcSpec.args || [];
+        var args = [].concat(funcSpec.args || []);
         args.push(funcSpec.body);
         var func = Function.apply( null, args);
         if (_.isString(func)) {
@@ -463,7 +463,7 @@ obj.checkSyntax = ( vcdn, isComponent ) => {
   Object.keys(vcdn).forEach(p=>{
     var obj = vcdn[p];
     var objType = validPropertiesMap[p];
-    if (!objType && !(isComponent && (p=='props' || p=='componentId')) ) {
+    if (!objType && !(isComponent && (p=='props' || p=='componentId' || p=='organizationId')) ) {
       errors.push(`Invalid root property "${p}" - (${Object.keys(validPropertiesMap).join(', ')})`);
     }
     if (((objType=='array') && !Array.isArray(obj)) || ((objType=='object') && !isObject(obj))) {

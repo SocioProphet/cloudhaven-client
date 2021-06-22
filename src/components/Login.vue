@@ -78,6 +78,7 @@
 
 <script>
   import Api from '@/services/Api'
+  import { EventBus } from '../event-bus.js';
   export default {
     computed: {
       passwordMatch() {
@@ -172,6 +173,7 @@
         }
       },
       goHome(user) {
+        EventBus.$emit('set app frame'); //Reset to CloudHaven appFrame
         this.$router.push(user.roles.find(r=>(r=='ORGANIZATION'))?'/organizationcalendar': '/home')
       }
     },

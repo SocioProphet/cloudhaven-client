@@ -1,4 +1,4 @@
-var uiConfig = {
+export default `var uiConfig = {
   dataModel:{
       dialog: false,
       dialogDelete: false,
@@ -185,6 +185,5 @@ var uiConfig = {
       "no-data":{component: "button", props:{color:"primary"}, on:{click:"initialize"}, contents:"Reset"}
   }}
 ]}
-};
-export default uiConfig;
+};`;
       

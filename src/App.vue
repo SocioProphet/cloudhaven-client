@@ -288,7 +288,8 @@ export default {
     logout() {
       this.$store.dispatch('logout')
       .then(() => {
-        this.$router.push('/login')
+        this.appDetails = Object.assign({}, CloudHavenAppDetails);
+        this.$router.push('/login');
       })
     },
     gotoCloudHaven() {

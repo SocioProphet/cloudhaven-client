@@ -38,10 +38,13 @@
           </v-card-title>
           <v-card-text>
             <v-form ref="pageForm" v-model="valid" lazy-validation>
-              <v-row><v-col cols="3">
-              <v-text-field v-model="page.name" label="Name" required :rules="[rules.required]"></v-text-field>
+              <v-row><v-col cols="3 justify-space-between">
+                <v-text-field v-model="page.name" label="Name" required :rules="[rules.required]"></v-text-field>
               </v-col>
-              <v-col cols="9" class="justify-end align-end">
+              <v-col cols="3">
+                <v-select v-model="template" label="Template" :items="['Default','CRUD Example', 'Misc Examples']" @input="onTemplateChange"></v-select>
+              </v-col>
+              <v-col cols="6" class="justify-end align-end">
                 <div style="text-align:right" class="mb-0 black--text">Type "<b>%%%</b>" in the page to select and insert a system function.</div>
                 <div style="text-align:right" class="mb-0 black--text">Type "<b>~~~</b>" in the page to search for and insert a component.</div>
                 </v-col>
@@ -121,6 +124,8 @@
   import { EventBus } from '../event-bus.js';
   import { PrismEditor } from 'vue-prism-editor';
   import vcdnUtils from '../_helpers/vcdnutils.js'
+  import crudExample from '../_helpers/crudexample.js'
+  import miscExamples from '../_helpers/miscexamples.js'
   import 'vue-prism-editor/dist/prismeditor.min.css'; // import the styles somewhere
  
   // import highlighting library (you can use any library you want just return html string)
@@ -160,6 +165,15 @@
     },
 
     methods: {
+      onTemplateChange() {
+        if (this.template == 'Default') {
+          this.page.content = vcdnUtils.getDefaultPage();
+        } else if (this.template == 'CRUD Example') {
+          this.page.content = crudExample;
+        } else if (this.template == 'Misc Examples') {
+          this.page.content = miscExamples;
+        }
+      },
       onNameFilterChange() {
         if (this.timeoutId) {
           clearTimeout(this.timeoutId);
@@ -300,6 +314,7 @@
       }
     },
     data: () => ({
+      template: 'Default',
       timeoutId: null,
       pageDialog: false,
       clientFuncSelectDialog: false,

@@ -67,7 +67,7 @@ export default {
       (async () => {
         var response = await Api().post('/organizationapplication/getapppage', {app:pApp, page:page});
         if (response.data.success) {
-          this.uiConfig = response.data.data;
+          this.uiConfig = Object.assign({},response.data.data);
           var errors = vcdnUtils.checkSyntax(this.uiConfig) || [];
           if (errors.length>0) {
             console.log('Errors:\n'+errors.join('\n'));
