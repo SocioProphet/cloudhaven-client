@@ -660,6 +660,48 @@ function makeMethods( ctx, uiMethods ) {
       if (cb) cb.call(ctx.rootThis, response.data);
     })();
   }
+  methods._writeMultiInstanceUserData = (params, cb) => {
+    var argValidations = [
+      {name: 'owner', rules:['required', 'nonblank'], type:'string'},
+      {name: 'organizationId', rules:['required', 'nonblank'], type:'string'},
+      {name: 'key', type: 'string'},
+      {name: 'content', type: 'string'}
+    ];
+    if (!checkArguments('_writeMultiInstanceUserData', params, cb, argValidations)) return;
+    (async () => {
+      var response = await Api().post('/multiinstanceuserdatamgr/create', params);
+      if (cb) cb.call(ctx.rootThis, response.data);
+    })();
+  }
+  methods._getMultiInstanceUserData = (params, cb) => {
+    var argValidations = [
+      {name: 'owner', rules:['required', 'nonblank'], type:'string'},
+      {name: 'organizationId', rules:['required', 'nonblank'], type:'string'},
+      {name: 'key', type: 'string', rules:['required', 'nonblank']}
+    ];
+    if (!checkArguments('_getMultiInstanceUserData', params, cb, argValidations)) return;
+    (async () => {
+      var response = await Api().post('/multiinstanceuserdatamgr/getcollection', params);
+      if (cb) cb.call(ctx.rootThis, response.data);
+    })();
+  }
+  methods._deleteMultiInstanceUserData = (params, cb) => {
+    var argValidations = [
+      {name: 'owner', rules:['required', 'nonblank'], type:'string'},
+      {name: '_id', type:'string'},
+      {name: 'organizationId', type:'string'},
+      {name: 'key', type: 'string'}
+    ];
+    if (!checkArguments('_deleteMultiInstanceUserData', params, cb, argValidations)) return;
+    if (!params._id && (!params.organizationId || !params.key)) {
+      console.log('_deleteMultiInstanceUserData must either have _id or organizationId+key parameters.');
+      return;
+    }
+    (async () => {
+      var response = await Api().post('/multiinstanceuserdatamgr/delete', params);
+      if (cb) cb.call(ctx.rootThis, response.data);
+    })();
+  }
   methods._getUserFiles = (userId, cb) =>{
     var argValidations = [
       {name: 'userId', rules:['required', 'nonblank'], type:'string'}
