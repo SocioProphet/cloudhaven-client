@@ -32,65 +32,63 @@
         </tr>
       </template>
       <template v-slot:[`body.append`]>
-      <v-dialog v-model="dialog" @keydown.esc.prevent="dialog = false" max-width="500px" scrollable overlay-opacity="0.2">
-        <template v-slot:activator="{ on, attrs }">
-          <v-btn v-bind="attrs" v-on="on" color="primary" dark class="mb-3">New Application</v-btn>
-        </template>
-        <v-card>
-          <v-card-title>
-            <span class="text-h5">Application</span>
-          </v-card-title>
-          <v-card-text>
-            <v-form ref="appForm" v-model="valid" lazy-validation>
-              <v-text-field v-model="editedItem.name" label="Name" required :rules="[rules.required]"></v-text-field>
-              <v-text-field v-model="editedItem.applicationId" label="Application Id" required :rules="[rules.required]"></v-text-field>
-              <v-radio-group v-model="editedItem.source" row label="Source">
-                <v-radio label='App Server' value='App Server'></v-radio>
-                <v-radio label='CloudHaven' value='CloudHaven'></v-radio>
-              </v-radio-group>
-              <v-text-field v-model="editedItem.url" label="URL" required :rules="editedItem.source=='App Server'?[rules.required]:[]"></v-text-field>
-              <v-radio-group v-model="editedItem.status" row label="Status">
-                <v-radio label='Draft' value='Draft'></v-radio>
-                <v-radio label='Published' value='Published'></v-radio>
-              </v-radio-group>
-              <v-tabs dark fixed-tabs background-color="#1E5AC8" color="#FFF10E" >
-              <v-tab>Pages</v-tab>
-              <v-tab>Logo</v-tab>
-              <v-tab-item>
-                <AppPagesSublist :organizationId="organization._id" :application="editedItem" @pagesChanged="pagesChanged"/>
-              </v-tab-item>
-              <v-tab-item>
-              <v-row fill-height wrap class="pt-4" >
-                <div style="width:100%" >
-                  <span class="v-label v-label--active theme--light ml-3" >Logo</span>
-                </div>
-                <v-col sm="12" md="6" lg="6" class="pr-4">
-                  <div style="position:relative;width:200px;height:200px">
-                  <v-icon v-if="editedItem.logo" class="ma-1" style="z-index:100;position:absolute;top:0px;right:0px;" @click="removeLogo()">mdi-trash-can</v-icon>
-                  <v-img width="200px" :src="dataURI"></v-img>
-                  </div>
-                </v-col>
-                <v-col>
-                  <v-sheet height="200" width="100%" color='#D0D0D0' 
-                  style="position:relative" class="d-flex justify-center align-center ma-0 pa-2" >
-                  <v-flex class="drop-files justify-center text-h5" style="text-align:center">Drop Logo here.</v-flex>
-                  </v-sheet>
-                </v-col>
-              </v-row>
-              </v-tab-item>
-            </v-tabs>
-            </v-form>
-          </v-card-text>
-
-          <v-card-actions>
-            <v-btn elevation="2" color="blue darken-1" text @click.native="dialog=false">Cancel</v-btn>
-            <v-spacer></v-spacer>
-            <v-btn elevation="2" color="blue darken-1" text @click.native="save"><v-icon left dark>mdi-content-save</v-icon>Save</v-btn>
-          </v-card-actions>
-        </v-card>
-      </v-dialog>
+          <v-btn color="primary" dark class="mb-3" @click.native="editItem()">New Application</v-btn>
       </template>
     </v-data-table>
+    <v-dialog v-model="dialog" @keydown.esc.prevent="dialog = false" max-width="500px" scrollable overlay-opacity="0.2" >
+      <v-card>
+        <v-card-title>
+          <span class="text-h5">Application</span>
+        </v-card-title>
+        <v-card-text>
+          <v-form ref="appForm" v-model="valid" lazy-validation>
+            <v-text-field v-model="editedItem.name" label="Name" required :rules="[rules.required]"></v-text-field>
+            <v-text-field v-model="editedItem.applicationId" label="Application Id" required :rules="[rules.required]"></v-text-field>
+            <v-radio-group v-model="editedItem.source" row label="Source">
+              <v-radio label='App Server' value='App Server'></v-radio>
+              <v-radio label='CloudHaven' value='CloudHaven'></v-radio>
+            </v-radio-group>
+            <v-text-field v-model="editedItem.url" label="URL" required :rules="editedItem.source=='App Server'?[rules.required]:[]"></v-text-field>
+            <v-radio-group v-model="editedItem.status" row label="Status">
+              <v-radio label='Draft' value='Draft'></v-radio>
+              <v-radio label='Published' value='Published'></v-radio>
+            </v-radio-group>
+            <v-tabs dark fixed-tabs background-color="#1E5AC8" color="#FFF10E" >
+            <v-tab>Pages</v-tab>
+            <v-tab>Logo</v-tab>
+            <v-tab-item>
+              <AppPagesSublist :organizationId="organization._id" :application="editedItem" @pagesChanged="onPagesChanged"/>
+            </v-tab-item>
+            <v-tab-item>
+            <v-row fill-height wrap class="pt-4" >
+              <div style="width:100%" >
+                <span class="v-label v-label--active theme--light ml-3" >Logo</span>
+              </div>
+              <v-col sm="12" md="6" lg="6" class="pr-4">
+                <div style="position:relative;width:200px;height:200px">
+                <v-icon v-if="editedItem.logo" class="ma-1" style="z-index:100;position:absolute;top:0px;right:0px;" @click="removeLogo()">mdi-trash-can</v-icon>
+                <v-img width="200px" :src="dataURI"></v-img>
+                </div>
+              </v-col>
+              <v-col>
+                <v-sheet height="200" width="100%" color='#D0D0D0' 
+                style="position:relative" class="d-flex justify-center align-center ma-0 pa-2" >
+                <v-flex class="drop-files justify-center text-h5" style="text-align:center">Drop Logo here.</v-flex>
+                </v-sheet>
+              </v-col>
+            </v-row>
+            </v-tab-item>
+          </v-tabs>
+          </v-form>
+        </v-card-text>
+
+        <v-card-actions>
+          <v-btn elevation="2" color="blue darken-1" text @click.native.stop="close">Cancel</v-btn>
+          <v-spacer></v-spacer>
+          <v-btn elevation="2" color="blue darken-1" text @click.native="save"><v-icon left dark>mdi-content-save</v-icon>Save</v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
   </div>
 </template>
 
@@ -128,17 +126,27 @@
       },
       editedIndex: -1,
       editedItem: {
+        name:'',
+        applicationId:'',
+        source: 'CloudHaven',
+        logo:null,
+        url:'',
+        status: 'Draft',
+        pages:[]
+      },
+      defaultApp: {
         name: '',
         applicationId:'',
         source: 'CloudHaven',
         logo:null,
-        url: '',
+        url: 'http://',
         status: 'Draft',
         pages: []
       },
       logoUpdated: false,
       dragAndDropCapable: false,
-      currentLogoURI: null
+      currentLogoURI: null,
+      pagesChanged: false
     }),
     computed: {
       headers() {
@@ -189,13 +197,11 @@
       ...mapState(['organizations','user'])
     },
     watch: {
-      dialog (val) {
-        val || this.close()
-      }
     },
 
     mounted () {
       this.valid = true;
+      this.pagesChanged = false;
       if (this.isAdmin) {
         this.$store.commit('SET_CRUDAPISERVCE', 'organizations');
         this.loadOrganizations();
@@ -206,11 +212,9 @@
       loadOrganizations() {
         this.$store.dispatch('loadRecords', 'organizations');
       },
-      pagesChanged( pages ) {
+      onPagesChanged( pages ) {
         this.editedItem.pages = [].concat(pages);
-        if (this.editedItem._id) {
-          this.$emit("orgAppsChanged");
-        }
+        this.pagesChanged = true;
 /*        if (!this.isAdmin) {
           this.loadOrganizations();
         }*/
@@ -269,18 +273,12 @@
         return formData;
       },
       editItem (item) {
+        if (!item && this.$refs.appForm) {
+          this.$refs.appForm.resetValidation();
+        }
         if (!this.organization.applications) this.organization.applications = [];
-        this.editedIndex = this.organization.applications.findIndex((application) => {return application._id === item._id;});
-        this.editedItem = Object.assign({
-          _id: '',
-          name: '',
-          applicationId: '',
-          source: 'CloudHaven',
-          logo:'',
-          url: '',
-          status: 'Draft',
-          pages: []
-        }, item);
+        this.editedIndex = item?this.organization.applications.findIndex((application) => {return application._id === item._id;}):-1;
+        this.editedItem = Object.assign({},item || this.defaultApp);
         this.dialog = true;
         setTimeout(()=>{
           this.prepDragNDrop();
@@ -289,7 +287,7 @@
 
       deleteItem (item) {
         var vm = this;
-        const index = this.organization.applications.findIndex((application) => {return application._id === item._id;})
+        const index = this.organization.applications.findIndex((application) => {return item._id?application._id === item._id:application.name === item.name;})
         if (confirm('Are you sure you want to delete '+item.name+'?')) {
           if (item._id) {
             (async () => {
@@ -308,22 +306,15 @@
           }
         }
       },
-
       close () {
-        this.dialog = false;
-        setTimeout(() => {
-          this.editedItem = {
-            _id: '',
-            name: '',
-            applicationId: '',
-            source: 'CloudHaven',
-            logo:'',
-            url:'',
-            status: 'Draft',
-            pages: []
-          };
-          this.editedIndex = -1
-        }, 300)
+        if (this.pagesChanged) {
+          if (confirm('Pages changed - do you really want to exit without saving?')) {
+            this.dialog = false;
+          }
+           this.$emit("orgAppsChanged");
+        } else {
+          this.dialog = false;
+        }
       },
 
       save () {

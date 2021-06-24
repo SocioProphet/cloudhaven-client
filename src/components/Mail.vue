@@ -287,7 +287,6 @@ import moment from 'moment';
       getUnassignedTasks() {
         (async () => {
           var response = await Api().get(`/messagemgr/getunassignedtasksforuser/${this.user._id}`);
-          debugger;
           var xxx = response.data;
         })();
       },

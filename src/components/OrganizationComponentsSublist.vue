@@ -9,17 +9,8 @@
       <template v-slot:item="{ item }">
         <tr @click="editItem(item)">
         <td class="d-flex justify-center align-center px-0">
-          <v-icon
-            class="mr-3"
-            @click.stop="editItem(item)"
-          >
-            mdi-pencil
-          </v-icon>
-          <v-icon
-            @click.stop="deleteItem(item)"
-          >
-            mdi-trash-can
-          </v-icon>
+          <v-icon class="mr-3" @click.stop="editItem(item)" >mdi-pencil</v-icon>
+          <v-icon @click.stop="deleteItem(item)">mdi-trash-can</v-icon>
         </td>
         <td v-if="isAdmin">{{item.organizationId}}</td>
         <td>{{ item.componentId }}</td>
@@ -29,58 +20,56 @@
         </tr>
       </template>
       <template v-slot:[`body.append`]>
-      <v-dialog v-model="dialog" @keydown.esc.prevent="dialog = false" max-width="100%" persistent scrollable overlay-opacity="0.2">
-        <template v-slot:activator="{ on, attrs }">
-          <v-btn v-bind="attrs" v-on="on" color="primary" dark class="mb-3">New Component</v-btn>
-        </template>
-        <v-card>
-          <v-card-title>
-            <span class="text-h5">Component</span>
-          </v-card-title>
-          <v-card-text>
-            <v-form ref="appForm" v-model="valid" lazy-validation>
-              <v-text-field v-model="editedItem.componentId" label="Name" required :rules="[rules.required, rules.elementName]"></v-text-field>
-              <v-radio-group v-model="editedItem.source" row label="Source">
-                <v-radio label='App Server' value='App Server'></v-radio>
-                <v-radio label='CloudHaven' value='CloudHaven'></v-radio>
-              </v-radio-group>
-              <v-radio-group v-model="editedItem.status" row label="Status">
-                <v-radio label='Draft' value='Draft'></v-radio>
-                <v-radio label='Published' value='Published'></v-radio>
-              </v-radio-group>
-              <v-tabs dark fixed-tabs background-color="#1E5AC8" color="#FFF10E" >
-              <v-tab>Source</v-tab>
-              <v-tab>Documentation</v-tab>
-              <v-tab-item>
-                <prism-editor class="my-editor" v-model="editedItem.content" :highlight="highlighter" line-numbers :rules="[rules.required]"></prism-editor>
-              </v-tab-item>
-              <v-tab-item>
-                <v-row class="mt-1 mb-2">
-                  <v-col cols="2" class="d-flex align-start">
-                    <v-text-field label="Enter a keyword" v-model="keyword" @keydown.enter="addKeyword"
-                      persistent-hint hint="type keyword and press enter"></v-text-field>
-                  </v-col>
-                  <v-col class="d-flex justify-left">
-                      <v-chip outlined class="ma-1" v-for="(kw, index) in editedItem.keywords" :key="index" close @click:close="removeKeyword(index)">{{ kw }}</v-chip>
-                  </v-col>
-                </v-row>
-              <tiptap-vuetify v-model="editedItem.documentation" :extensions="extensions" />
-              </v-tab-item>
-            </v-tabs>
-            </v-form>
-          </v-card-text>
-
-          <v-card-actions>
-            <v-btn elevation="2" color="blue darken-1" text @click.native="dialog=false">Cancel</v-btn>
-            <v-spacer></v-spacer>
-            <v-btn elevation="2" color="blue darken-1" text @click.native="save"><v-icon left dark>mdi-content-save</v-icon>Save</v-btn>
-          </v-card-actions>
-          <v-textarea v-if="errors.length>0" wrap="off" light color="red--text text--darken-2" class="mx-5 mt-4" label="Errors" :value="errors.join('\n')">
-          </v-textarea>
-        </v-card>
-      </v-dialog>
+       <v-btn color="primary" dark class="mb-3" @click.native="editItem()">New Component</v-btn>
       </template>
     </v-data-table>
+    <v-dialog v-model="dialog" @keydown.esc.prevent="dialog = false" max-width="100%" persistent scrollable overlay-opacity="0.2">
+      <v-card>
+        <v-card-title>
+          <span class="text-h5">Component</span>
+        </v-card-title>
+        <v-card-text>
+          <v-form ref="appForm" v-model="valid" lazy-validation>
+            <v-text-field v-model="editedItem.componentId" label="Name" required :rules="[rules.required, rules.elementName]"></v-text-field>
+            <v-radio-group v-model="editedItem.source" row label="Source">
+              <v-radio label='App Server' value='App Server'></v-radio>
+              <v-radio label='CloudHaven' value='CloudHaven'></v-radio>
+            </v-radio-group>
+            <v-radio-group v-model="editedItem.status" row label="Status">
+              <v-radio label='Draft' value='Draft'></v-radio>
+              <v-radio label='Published' value='Published'></v-radio>
+            </v-radio-group>
+            <v-tabs dark fixed-tabs background-color="#1E5AC8" color="#FFF10E" >
+            <v-tab>Source</v-tab>
+            <v-tab>Documentation</v-tab>
+            <v-tab-item>
+              <prism-editor class="my-editor" v-model="editedItem.content" :highlight="highlighter" line-numbers :rules="[rules.required]"></prism-editor>
+            </v-tab-item>
+            <v-tab-item>
+              <v-row class="mt-1 mb-2">
+                <v-col cols="2" class="d-flex align-start">
+                  <v-text-field label="Enter a keyword" v-model="keyword" @keydown.enter="addKeyword"
+                    persistent-hint hint="type keyword and press enter"></v-text-field>
+                </v-col>
+                <v-col class="d-flex justify-left">
+                    <v-chip outlined class="ma-1" v-for="(kw, index) in editedItem.keywords" :key="index" close @click:close="removeKeyword(index)">{{ kw }}</v-chip>
+                </v-col>
+              </v-row>
+            <tiptap-vuetify v-model="editedItem.documentation" :extensions="extensions" />
+            </v-tab-item>
+          </v-tabs>
+          </v-form>
+        </v-card-text>
+
+        <v-card-actions>
+          <v-btn elevation="2" color="blue darken-1" text @click.native="dialog=false">Cancel</v-btn>
+          <v-spacer></v-spacer>
+          <v-btn elevation="2" color="blue darken-1" text @click.native="save"><v-icon left dark>mdi-content-save</v-icon>Save</v-btn>
+        </v-card-actions>
+        <v-textarea v-if="errors.length>0" wrap="off" light color="red--text text--darken-2" class="mx-5 mt-4" label="Errors" :value="errors.join('\n')">
+        </v-textarea>
+      </v-card>
+    </v-dialog>
   </div>
 </template>
 
@@ -238,12 +227,8 @@
       },
       editItem (item) {
         if (!this.organization.components) this.organization.components = [];
-        this.editedIndex = this.organization.components.findIndex((component) => {return component._id === item._id;});
-        if (!this.editedItem.content) {
-          this.editedItem.content = vcdnUtils.getDefaultComponent();
-        }
-        if (!Array.isArray(item.keywords)) item.keywords = [];
-        this.editedItem = Object.assign({
+        this.editedIndex = item?this.organization.components.findIndex((component) => {return component._id === item._id;}):-1;
+        this.editedItem = Object.assign({}, item?item:{
           _id: '',
           componentId:'',
           source: 'App Server',
@@ -251,8 +236,12 @@
           keywords: [],
           documentation: '',
           content: ''
-        }, item);
-        if (!this.editedItem.documentation) {
+        });
+        if (!item || !Array.isArray(item.keywords)) this.editedItem.keywords = [];
+        if (!item || !this.editedItem.content) {
+          this.editedItem.content = vcdnUtils.getDefaultComponent();
+        }
+        if (!item ||!this.editedItem.documentation) {
           this.editedItem.documentation = defaultDocumentation;
         }
 

@@ -17,42 +17,7 @@
         </tr>
       </template>
       <template v-slot:[`body.append`]>
-      <v-dialog v-model="pageDialog" @keydown.esc.prevent="pageDialog = false" max-width="100%" scrollable overlay-opacity="0.2" persistent>
-        <template v-slot:activator="{ on, attrs }">
-          <v-btn v-bind="attrs" v-on="on" color="primary" dark class="mb-3">New Page</v-btn>
-        </template>
-        <v-card>
-          <v-card-title>
-            <span class="text-h5">Page</span>
-          </v-card-title>
-          <v-card-text>
-            <v-form ref="pageForm" v-model="valid" lazy-validation>
-              <v-row><v-col cols="3 justify-space-between">
-                <v-text-field v-model="page.name" label="Name" required :rules="[rules.required]"></v-text-field>
-              </v-col>
-              <v-col cols="3">
-                <v-select v-model="template" label="Template" :items="['Default','CRUD Example', 'Misc Examples']" @input="onTemplateChange"></v-select>
-              </v-col>
-              <v-col cols="6" class="justify-end align-end">
-                <div style="text-align:right" class="mb-0 black--text">Type "<span style="background-color:yellow"><b>%%%</b></span>" in the page to select and insert a system function.</div>
-                <div style="text-align:right" class="mb-0 black--text">Type "<span style="background-color:yellow"><b>~~~</b></span>" in the page to search for and insert a component.</div>
-                <div style="text-align:right" class="mb-0 black--text"><b>Note:</b> the "Page Object" must be assigned to a <span style="background-color:yellow"><b>uiConfig</b></span> variable.</div>
-                </v-col>
-              </v-row>
-              <!--v-textarea rows="20" v-model="page.content" label="Contents" required></v-textarea-->
-              <prism-editor class="my-editor" v-model="page.content" :highlight="highlighter" line-numbers :rules="[rules.required]" @input="onPageChange"></prism-editor>
-            </v-form>
-          </v-card-text>
-
-          <v-card-actions>
-            <v-btn elevation="2" color="blue darken-1" text @click.native="pageDialog=false">Cancel</v-btn>
-            <v-spacer></v-spacer>
-            <v-btn elevation="2" color="blue darken-1" text @click.native.stop="save($event)"><v-icon left dark>mdi-content-save</v-icon>Save</v-btn>
-          </v-card-actions>
-          <v-textarea v-if="errors.length>0" wrap="off" light color="red--text text--darken-2" class="mx-5 mt-4" label="Errors" :value="errors.join('\n')">
-          </v-textarea>
-        </v-card>
-      </v-dialog>
+        <v-btn color="primary" dark class="mb-3" @click.native="editItem()">New Page</v-btn>
       </template>
     </v-data-table>
     <v-dialog v-model="clientFuncSelectDialog" @keydown.esc.prevent="clientFuncSelectDialog = false" max-width="500px" scrollable overlay-opacity="0.2">
@@ -105,6 +70,39 @@
           </v-card-actions>
       </v-card>
     </v-dialog>
+    <v-dialog v-model="pageDialog" @keydown.esc.prevent="pageDialog = false" max-width="100%" scrollable overlay-opacity="0.2" persistent>
+      <v-card>
+        <v-card-title>
+          <span class="text-h5">Page</span>
+        </v-card-title>
+        <v-card-text>
+          <v-form ref="pageForm" v-model="valid" lazy-validation>
+            <v-row><v-col cols="3 justify-space-between">
+              <v-text-field v-model="page.name" label="Name" required :rules="[rules.required]"></v-text-field>
+            </v-col>
+            <v-col cols="3">
+              <v-select v-model="template" label="Template" :items="['Default','CRUD Example', 'Misc Examples']" @input="onTemplateChange"></v-select>
+            </v-col>
+            <v-col cols="6" class="justify-end align-end">
+              <div style="text-align:right" class="mb-0 black--text">Type "<span style="background-color:yellow"><b>%%%</b></span>" in the page to select and insert a system function.</div>
+              <div style="text-align:right" class="mb-0 black--text">Type "<span style="background-color:yellow"><b>~~~</b></span>" in the page to search for and insert a component.</div>
+              <div style="text-align:right" class="mb-0 black--text"><b>Note:</b> the "Page Object" must be assigned to a variable named <span style="background-color:yellow"><b>uiConfig</b></span>.</div>
+              </v-col>
+            </v-row>
+            <!--v-textarea rows="20" v-model="page.content" label="Contents" required></v-textarea-->
+            <prism-editor class="my-editor" v-model="page.content" :highlight="highlighter" line-numbers :rules="[rules.required]" @input="onPageChange"></prism-editor>
+          </v-form>
+        </v-card-text>
+
+        <v-card-actions>
+          <v-btn elevation="2" color="blue darken-1" text @click.native="pageDialog=false">Cancel</v-btn>
+          <v-spacer></v-spacer>
+          <v-btn elevation="2" color="blue darken-1" text @click.native.stop="save($event)"><v-icon left dark>mdi-content-save</v-icon>Save</v-btn>
+        </v-card-actions>
+        <v-textarea v-if="errors.length>0" wrap="off" light color="red--text text--darken-2" class="mx-5 mt-4" label="Errors" :value="errors.join('\n')">
+        </v-textarea>
+      </v-card>
+    </v-dialog>
   </div>
 </template>
 
@@ -143,8 +141,6 @@
     },
 
     mounted () {
-      this.page.content = this.defaultPage;
-      this.page.name = this.application.pages.length==0?'home':'';
       this.clientFunctions = Object.keys(vcdnUtils.clientFunctionMap);
       this.clientFunctions.unshift('[component]');
       this.componentSearchNameFilter = '';
@@ -227,17 +223,27 @@
         return highlight(code, languages.js);
       },
       editItem (item) {
-        this.editedIndex = this.application.pages.findIndex((page) => {return page._id === item._id;});
+        this.editedIndex = item?this.application.pages.findIndex((page) => {return page._id === item._id;}):-1;
         if (this.editedIndex<0 && !this.page.content) {
           this.page.content = this.defaultPage;
         }
         this.page = Object.assign({_id:'', name: '', content:''}, item);
+        if (!item) {
+          if (this.application.pages.length==0) {
+            this.page.name = 'home';
+          }
+          this.page.content = this.defaultPage;
+        }
         this.pageDialog = true;
+        if (!item) {
+          this.valid = true;
+          if (this.$refs.pageForm) this.$refs.pageForm.resetValidation();
+        }
       },
 
       deleteItem (item) {
         var vm = this;
-        const index = this.application.pages.findIndex((page) => {return page._id === item._id;})
+        const index = this.application.pages.findIndex((page) => {return item._id?page._id === item._id:page.name === item.name;})
         if (confirm('Are you sure you want to delete '+item.name+'?')) {
           if (item._id) {
             (async () => {

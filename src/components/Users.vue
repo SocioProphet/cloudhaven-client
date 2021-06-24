@@ -215,7 +215,7 @@ import moment from 'moment';
       },
 
       deleteItem (item) {
-        confirm('Are you sure you want to delete '+item.name+'?') && this.$store.dispatch('deleteRecord', {model:'users', dbObject:item, label:`User ${this.editedItem.lastName}`});
+       confirm('Are you sure you want to delete '+item.name+'?') && this.$store.dispatch('deleteRecord', {model:'users', dbObject:item, label:`User ${this.editedItem.lastName}`});
       },
 
       cancel() {

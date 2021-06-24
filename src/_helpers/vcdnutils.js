@@ -28,7 +28,7 @@ obj.clientFunctionMap = {
   _appGetFile:'this._appGetFile({operationId:"", fileId:""}, function(blob) {});',
   _appPost:'this._appPost({operationId:"", postData:""}, function(results) {});',
   _lookupUser:'this._lookupUser({email:"", ssn:""}, function(user) {});',
-  _usersSearch:'this._usersSearch({phrase:"", dateOfBirth:""}, function(users) {});',
+  _usersSearch:'this._usersSearch({searchPhrase:"", dateOfBirth:""}, function(users) {});',
   _getUserData:'this._getUserData(pUserIds, userDataIds, function() {});',
   _writeUserData:'this._writeUserData(userId, userDataIdToValueMap, function(results) {});',
   _writeMultiInstanceUserData: 'this._writeMultiInstanceUserData({owner:"", organizationId:"", key:"", content:""}, function(result) {});',
@@ -43,7 +43,10 @@ obj.clientFunctionMap = {
   _deleteUserMessageOrTask:'this._deleteUserMessageOrTask(queueItemId, function(results) {});',
   _addCalendarEntry:'this._addCalendarEntry({title:"", content:"", start:new Date(), durationType:"timed", applicationId:"", componentId:"", appConfigData:{}}, function(calEntryId ) {});',
   _showNotification:'this._showNotification("");',
-  _showError:'this._showError("");'
+  _showError:'this._showError("");',
+  _currentUser: 'this._currentUser',
+  _app: 'this._app',
+  _moment: 'this.moment()'
   };
   
 obj.uiElementToVueCompMap = {

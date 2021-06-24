@@ -33,7 +33,7 @@
               <v-data-table :headers="groupMembersHeaders" :items="editedItem.members" hide-default-footer disable-pagination class="elevation-1" >
                 <template v-slot:top>
                   <v-container>
-                    <v-row style="flex-wrap: nowrap; overflow-x: auto;" class="mb-2">
+                    <v-row style="flex-wrap: nowrap;" class="mb-2">
                       <v-text-field v-model="memberSearchFilter" label="New Member Search Filter" @input="onSearchFilterChange"
                         persistent-hint hint="Space-separated phrases to be searched in email/first name/last name." class="mr-2"></v-text-field>
                       <v-select v-model="selectedMember" :label="memberSearchFilter?'Select Member':''" :items="memberOptions" item-value="_id" item-text="name" return-object @change="addMember"/>
@@ -103,7 +103,8 @@
         editedItem: {
           name: '',
           members:[]
-        }
+        },
+        timeoutId:null
       }
     },
 
@@ -120,9 +121,6 @@
     },
 
     mounted () {
-      debugger;
-      var org = this.organization;
-      var x = '';
     },
 
     methods: {
@@ -162,7 +160,6 @@
         this.editedItem.members = this.editedItem.members.filter(m=>(m._id!=item._id));
       },
       editItem (item) {
-        debugger;
         this.editedIndex = this.organization.groups.findIndex((group) => {return group._id === item._id;});
         this.editedItem = Object.assign({
           name: '',
@@ -204,7 +201,6 @@
 
       save () {
         if (!this.$refs.groupForm.validate()) return;
-        debugger;
         if (this.editedIndex > -1) {
           //update existing group
           (async () => {

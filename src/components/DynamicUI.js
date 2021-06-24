@@ -604,13 +604,13 @@ function makeMethods( ctx, uiMethods ) {
   }
   methods._usersSearch = (searchCriteria, cb) => {
     var argValidations = [
-      {name: 'phrase', rules:['required', 'nonblank'], type:'string'},
+      {name: 'searchPhrase', rules:['required', 'nonblank'], type:'string'},
       {name: 'dateOfBirth', type: 'date'}
     ];
     if (!checkArguments('_usersSearch', searchCriteria, cb, argValidations)) return;
     var vm = ctx.rootThis;
     (async () => {
-      var response = await Api().post("/usersearch", searchCriteria);
+      var response = await Api().post("/usersearch/emailnamesearch", searchCriteria);
 //      var result = response.data;
       if (cb) {
         vm.$nextTick(() =>{
