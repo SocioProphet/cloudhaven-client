@@ -865,9 +865,26 @@ function makeMethods( ctx, uiMethods ) {
       }
     })();
   }
+  //params: groupId, subject, message
+  methods._queueTask = (params, cb ) => {
+    var argValidations = [
+      {name: 'groupId', rules:['required', 'nonblank'], type:'string'},
+      {name: 'subject', type:'string'},
+      {name: 'message', type:'string'},
+      {name: 'applicationId', type:'string'},
+    ];
+    if (!checkArguments('_queueTask', params, cb, argValidations)) return;
+    (async () => {
+      var response = await Api().post('/messagemgr/queuetask', params);
+      if (cb) (cb).call(ctx.rootThis, response.data);
+    })();
+  }
 
   return methods;
 }
+
+
+
 function makeFilters( ctx, filters ) {
   return filters?Object.keys(filters).reduce((o,m)=>{
     try {

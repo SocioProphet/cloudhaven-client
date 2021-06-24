@@ -9,19 +9,8 @@
       <template v-slot:item="{ item }">
         <tr @click="editItem(item)">
         <td class="d-flex justify-center align-center px-0">
-          <v-icon
-            small
-            class="mr-3"
-            @click.stop="editItem(item)"
-          >
-            mdi-pencil
-          </v-icon>
-          <v-icon
-            small
-            @click.stop="deleteItem(item)"
-          >
-            mdi-trash-can
-          </v-icon>
+          <v-icon class="mr-3" @click.stop="editItem(item)">mdi-pencil</v-icon>
+          <v-icon @click.stop="deleteItem(item)">mdi-trash-can</v-icon>
         </td>
         <td>{{ item.name }}</td>
         <td align="right">{{ item.content?item.content.length:0 }}</td>

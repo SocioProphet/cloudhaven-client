@@ -40,18 +40,18 @@
     <v-tabs dark fixed-tabs background-color="#1E5AC8" color="#FFF10E" class="mt-5">
     <v-tab>Applications</v-tab>
     <v-tab>Components</v-tab>
-    <!--v-tab>Groups</v-tab>
-    <v-tab>Members</v-tab-->
+    <v-tab>Groups</v-tab>
+    <!--v-tab>Members</v-tab-->
     <v-tab-item>
       <OrganizationAppsSublist :key="key" :organization="activeOrg" @orgAppsChanged="orgAppsChanged"/>
     </v-tab-item>
     <v-tab-item>
       <OrganizationComponentsSublist :key="key" :organization="activeOrg" @orgCompsChanged="orgCompsChanged"/>
     </v-tab-item>
-    <!--v-tab-item>
+    <v-tab-item>
       <OrganizationGroups :organization="isAdmin?cloudHavenOrg:editedOrg.organization" />
     </v-tab-item>
-    <v-tab-item>
+    <!--v-tab-item>
       <OrganizationMembersSublist :organization="isAdmin?cloudHavenOrg:editedOrg.organization"/>
     </v-tab-item-->
   </v-tabs>

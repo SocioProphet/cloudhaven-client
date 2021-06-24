@@ -6,6 +6,7 @@ import AppStore from './components/AppStore.vue'
 import MyApps from './components/MyApps.vue'
 import Users from './components/Users.vue'
 import Mail from './components/Mail.vue'
+import Tasks from './components/Tasks.vue'
 import Calendar from './components/Calendar.vue'
 import UserFiles from './components/UserFiles.vue'
 import UserProfile from './components/UserProfile.vue'
@@ -34,6 +35,11 @@ let router = new Router({
       path: '/mail',
       name: 'mail',
       component: Mail
+    },
+    {
+      path: '/tasks',
+      name: 'tasks',
+      component: Tasks
     },
     {
       path: '/createorassignorg',

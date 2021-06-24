@@ -72,6 +72,7 @@
       <v-alert class="mt-auto mb-auto" dense dark elevation="12" transition="slide-y-reverse-transition" dismissible v-model="showGlobalAlert" :type="globalAlert.type||'success'">{{globalAlert.msg}}</v-alert>
       <v-spacer></v-spacer>
       <v-btn v-if="isLoggedIn && user.status=='Active'" class="mr-2" color="black" fab small dark @click="gotoCalendar"><v-icon>mdi-calendar-month-outline</v-icon></v-btn>
+      <v-btn v-if="isLoggedIn && user.status=='Active'" class="mr-2" color="black" fab small dark @click="gotoTasks"><v-icon>mdi-tray-full</v-icon></v-btn>
       <v-btn v-if="isLoggedIn && user.status=='Active'" class="mr-2" color="black" fab small dark @click="gotoMail"><v-icon>mdi-email-multiple-outline</v-icon></v-btn>
       <span v-if="isLoggedIn" :class="appDetails.nameTextClass">{{user.name}}&nbsp;&nbsp;&nbsp;&nbsp;<a :class="appDetails.appBarTextClass" @click="logout"><b>Logout</b></a></span>
       <!--v-spacer></v-spacer>
@@ -234,6 +235,9 @@ export default {
     },
     gotoCalendar() {
       this.$router.push('/calendar');
+    },
+    gotoTasks() {
+      this.$router.push('/tasks');
     },
     gotoMail() {
       this.$router.push('/mail');

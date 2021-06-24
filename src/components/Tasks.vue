@@ -2,16 +2,15 @@
   <div class="mt-3">
     <v-row>
       <v-toolbar dense elevation="5">
-      <v-toolbar-title class="mr-3">Messages</v-toolbar-title>
+      <v-toolbar-title class="mr-3">Tasks</v-toolbar-title>
       <v-spacer></v-spacer>
-      <v-btn icon><v-icon>mdi-email-sync-outline</v-icon></v-btn>
-      <v-btn icon @click.stop="addMessage()" class="mr-2"><v-icon>mdi-email-plus-outline</v-icon></v-btn>
-      <v-form class="ma-0 pa-0"><v-text-field class="ma-0 pa-0" prepend-inner-icon="mdi-magnify" hide-details placeholder="Search" dense/></v-form>
+      <v-btn icon><v-icon>mdi-refresh</v-icon></v-btn>
+      <!--v-form class="ma-0 pa-0"><v-text-field class="ma-0 pa-0" prepend-inner-icon="mdi-magnify" hide-details placeholder="Search" dense/></v-form-->
     </v-toolbar>
     </v-row>
     <v-row>
       <v-col cols="3"  nowrap>
-        <v-treeview :items="folderTree" elevation="2" dense activatable :active="active" @update:active="onActivated"></v-treeview>
+        Task Queues Goe Here
       </v-col>
       <v-col cols="9" class="justify-start">
         <v-row>
@@ -21,23 +20,23 @@
         <v-simple-checkbox dense hide-details />
       </template>
       <template v-slot:item="{ item }">
-       <tr @click="viewMessage(item)">
+       <tr @click="viewTask(item)">
          <td style="width:5%" class="align-center"><v-simple-checkbox dense hide-details /></td>
         <td style="width:10%">
           <v-row class="justify-center align-center align-stretch">
-          <v-btn icon ><v-icon medium @click.stop="viewMessage(item)">mdi-email-open-outline</v-icon></v-btn>
-          <v-btn icon >
+          <v-btn icon ><v-icon medium @click.stop="viewTask(item)">mdi-email-open-outline</v-icon></v-btn>
+          <!--v-btn icon >
           <v-icon
             medium
-            @click.stop="deleteMessage(item)"
+            @click.stop="deleteTask(item)"
           >
             mdi-trash-can
           </v-icon>
-          </v-btn>
+          </v-btn-->
           </v-row>
         </td>
         <td style="width:35%">{{item.subject}}</td>
-        <td style="width:30%">{{item.correspondent}}</td>
+        <td style="width:30%">{{item.group}}</td>
         <td style="width:20%">{{ item.date | datetime }}</td>
        </tr>
       </template>
@@ -109,7 +108,7 @@ import moment from 'moment';
         { value: 'selector', sortable:false },
         { text: 'Actions', sortable: false, align:'center' },
         { text: 'Subject', sortable: true, value:'subject' },
-        { text: 'Correspondent', sortable: true, value: 'correspondent' },
+        { text: 'Group', sortable: true, value: 'group' },
         { text: 'Date', align:'left', sortable:true, value: 'date' }
       ],
       message: {
@@ -160,11 +159,7 @@ import moment from 'moment';
         return this.activeFolder?this.activeFolder.name:'';
       },
       formTitle () {
-        if (!this.message._id) {
-          return 'Create Message';
-        }
-        var datePrefix = this.activeFolderName == 'Sent'?'Sent ':' Received ';
-        return `${this.activeFolderName} ${datePrefix} ${moment(this.message.date).format('l LT')}`;
+        return `??`;
       },
       ...mapState(['user'])
     },
@@ -180,7 +175,7 @@ import moment from 'moment';
         this.genericLoadUserOptions( 'bcc', value );
       },
       active( actives ) {
-        this.loadMessages( actives.length>0?actives[0]:null);
+        this.loadTasks( actives.length>0?actives[0]:null);
       }
     },
 
@@ -266,22 +261,9 @@ import moment from 'moment';
           return ar;
         },[]);
       },
-      loadFolderTree() {
+      getMyTasks() {
         (async () => {
-          var response = await Api().get('/messagemgr/gettree');
-          var folders = (response.data || []);
-          this.folderTree = folders.reduce((ar, f)=>{
-            if (!f.parentFolder) {
-              ar.push({id:f._id, name: f.name, children:[], folder:f});
-              this.folderMap[f._id] = f;
-            }
-            return ar;
-          },[]);
-          this.active.push(this.folderTree[0].id);
-          this.loadMessages();
-          this.folderTree.forEach(f=>{
-            this.getChildren( f, folders );
-          })
+          var response = await Api().get('/messagemgr/gettasks/'+this.user._id);
         })();
       },
       getUnassignedTasks() {
@@ -291,43 +273,16 @@ import moment from 'moment';
           var xxx = response.data;
         })();
       },
-      loadMessages( folderId ) {
-        if (!folderId) {
-          folderId = this.active.length>0?this.active[0]:null;
-        }
-        if (!folderId) {
-          this.messages = [];
-          return;
-        }
-        var fMap = this.folderMap;
-        var folderName = fMap[folderId].name;
-        (async () => {
-          var response = await Api().get('/messagemgr/getfoldermsgs/'+folderId);
-          var messages = (response.data || []);
-          messages.sort((a,b)=>(a.date<b.date?-1:(a.date>b.date?1:0)));
-          messages = messages.map((m)=>{
-            var sharing = m.sharings.find(s=>(s.recipientType=='to'));
-            var correspondent = sharing.user.name;
-            return {_id:m._id, subject: m.subject, date: m.date, correspondent: correspondent, message:m.message}
-          })
-          this.messages = messages;
-        })();
-      },
       cancel() {
         this.dialog = false;
       },
-      addMessage (item) {
-        this.editMode = 'edit';
-        this.message = Object.assign({}, item);
-        this.dialog = true;
-      },
-      viewMessage (item) {
+      viewTask (item) {
         this.editMode = 'view';
         this.message = Object.assign({}, item);
         this.dialog = true;
       },
 
-      deleteMessage (item) {
+/*      deleteTask (item) {
         if (confirm('Are you sure you want to delete '+item.subject+'?')) {
           var folderId = this.active.length>0?this.active[0]:null;
           var msgId = item._id;
@@ -337,7 +292,7 @@ import moment from 'moment';
             this.loadMessages();
           })();
         }
-      },
+      },*/
 
       cancel() {
         this.dialog = false;
@@ -348,26 +303,6 @@ import moment from 'moment';
         }, 300)
       },
       sendMsg () {
-        if (!this.$refs.theForm.validate()) return;
-        (async () => {
-          var recipients = ['to', 'cc', 'bcc'].reduce((ar,type)=>{
-            var emailMap = {};
-            this[type+'Dests'].forEach(d=>{
-              if (!emailMap[d.email]) {
-                ar.push({type:type, email:d.email})
-              }
-              emailMap[d.email] = true;
-            })
-            return ar;
-          },[]);
-          var response = await Api().post('/messagemgr/send', 
-            {sender: this.user._id, recipients:recipients, subject: this.message.subject, message: this.message.message});
-          this.dialog = false;
-          if (response.data.success) {
-            EventBus.$emit('global success alert', this.message.subject+' sent.');
-          }
-          this.loadMessages();
-        })();
       }
     }
   }

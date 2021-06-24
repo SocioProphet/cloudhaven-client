@@ -31,10 +31,14 @@ obj.clientFunctionMap = {
   _usersSearch:'this._usersSearch({phrase:"", dateOfBirth:""}, function(users) {});',
   _getUserData:'this._getUserData(pUserIds, userDataIds, function() {});',
   _writeUserData:'this._writeUserData(userId, userDataIdToValueMap, function(results) {});',
+  _writeMultiInstanceUserData: 'this._writeMultiInstanceUserData({owner:"", organizationId:"", key:"", content:""}, function(result) {});',
+  _getMultiInstanceUserData: 'this._getMultiInstanceUserData({owner:"", organizationId:"", key:""}, function(result) {});',
+  _deleteMultiInstanceUserData: 'this._deleteMultiInstanceUserData({owner:"", _id:"", organizationId:"", key:""}, function(result) {});',
   _getUserFile:'this._getUserFile(userId, fileId, function(blob) {});',
   _userFileOperation:'_userFileOperation({operation:"", userId:"", fileType:"", name:"", fileName:"", fileId:"", file:null}, function(results) {});',
   _gotoAppPage:'this._gotoAppPage(page, appParams );',
   _queueUserMessageOrTask:'this._queueUserMessageOrTask({senderId:"", senderEmail:"", recipients:[{to:[],cc:[],bcc:[]}], subject:"", message:"", application:{organizationId:"", applicationId:"", componentId:"", appConfigData:{}}}, function(queueItemId) {});',
+  _queueTask: 'this._queueTask({groupId:"", subject:"", message:"", applicationId:""}, function(result) {});',
   _setUserTaskDisposition:'this._setUserTaskDisposition(queueItemId, params, function(results) {});',
   _deleteUserMessageOrTask:'this._deleteUserMessageOrTask(queueItemId, function(results) {});',
   _addCalendarEntry:'this._addCalendarEntry({title:"", content:"", start:new Date(), durationType:"timed", applicationId:"", componentId:"", appConfigData:{}}, function(calEntryId ) {});',
@@ -189,17 +193,6 @@ var defaultPage = `var uiConfig = {
     }
   },
   components: [],
-  /* uncomment this for the home page if there is a menu navigation to application pages
-  appFrame: {
-    name: 'Skeleton App',
-    appBarStyle: {background: 'linear-gradient(rgb(40, 54, 102) 0%, rgb(37, 114, 210) 100%)'},
-    appBarTextClass: 'yellow--text text--accent-2',
-    nameTextClass: 'white--text',
-    menuItems: [ //These are just examples and need to be replaced by real pages
-      { page: 'home', title: 'Dashboard'},
-      { page: 'widgets', title: 'Widgets'}, 
-    ]
-  },*/
   uiSchema: {
     component: 'container',
     contents: [
