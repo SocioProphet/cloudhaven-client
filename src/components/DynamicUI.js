@@ -303,8 +303,15 @@ function makeComponent( h, metaData, ctx, pScopedProps ) {
       let tmp = getModelValue( rootThis, pScopedProps, metaData.vmodel );
       dataObj.props.value = metaData.ensureDate?ensureDate(tmp):tmp;
       dataObj.on = dataObj.on || {};
+      var chainedInputFunc = dataObj.on.input;
       dataObj.on.input = (val) =>{
         setModelValue( rootThis, pScopedProps, metaData.vmodel, val );
+        (() => {
+          //required so any on:input event handler is not overwritten
+          if (chainedInputFunc) {
+            (chainedInputFunc)(val);
+          }
+        })();
       }
     }
     if (metaData.scopedSlots) {

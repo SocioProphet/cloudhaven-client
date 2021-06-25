@@ -30,7 +30,7 @@
         </v-card-title>
         <v-card-text>
           <v-form ref="appForm" v-model="valid" lazy-validation>
-            <v-text-field v-model="editedItem.componentId" label="Name" required :rules="[rules.required, rules.elementName]"></v-text-field>
+            <v-text-field v-model="editedItem.componentId" label="Component Id" required :rules="[rules.required, rules.elementName]"></v-text-field>
             <v-radio-group v-model="editedItem.source" row label="Source">
               <v-radio label='App Server' value='App Server'></v-radio>
               <v-radio label='CloudHaven' value='CloudHaven'></v-radio>
