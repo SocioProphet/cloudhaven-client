@@ -30,15 +30,15 @@
       <v-dialog v-model="dialog" max-width="1000px" @keydown.esc.prevent="dialog = false" overlay-opacity="0.2">
         <v-card>
           <v-card-title><span class="text-h5">{{editMode=='add'?'Create':'Edit'}} Calendar Entry</span><v-spacer></v-spacer>
-            <v-btn icon @click.stop="deleteEvent"><v-icon>mdi-trash-can</v-icon></v-btn></v-card-title>
+            <v-btn v-if="editMode='edit'" icon @click.stop="deleteEvent"><v-icon>mdi-trash-can</v-icon></v-btn></v-card-title>
           <v-card-text>
             <v-form ref="theForm" v-model="valid" lazy-validation>
               <v-text-field v-model="event.title" label="Title" :rules="[rules.required]"></v-text-field>
-              <v-select v-model="event.type" :items="eventTypes" dense placeholder="event type" :rules="[rules.required]"></v-select>
+              <v-text-field v-model="event.type" label="Event Type"></v-text-field>
               <v-switch label="All Day" v-model="event.allDay"></v-switch>
               <v-dialog v-model="datePickerDlg" max-width="290px" >
                 <template v-slot:activator="{ on, attrs}">
-                  <v-text-field :value="dateDisplay" :label="event.allDay?'Date range':'Date'" prepend-icon="mdi-calendar" readonly 
+                  <v-text-field :value="dateDisplay" :label="event.allDay?'Date Range':'Date'" prepend-icon="mdi-calendar" readonly 
                     v-bind="attrs" v-on="on"></v-text-field>
                 </template>
                   <v-date-picker v-if="event.allDay" v-model="event.dates" range >
@@ -77,23 +77,13 @@ import CHFileViewer from './CHFileViewer.vue'
 import OrganizationAppPane from './OrganizationAppPane.vue'
 import moment from 'moment';
 
-var eventTypeToColorMap = {
-  Meeting: '#00528d',
-  Holiday: '#df009c',
-  PTO: '#ea0109',
-  Travel: '#00b397',
-  Event: '#73c934',
-  Task: '#73c934',
-  Birthday: '#eb7a00',
-  Conference: '#808080'
-};
 var defaultEvent = {
         _id: null,
         type: 'Event',
         dates: [null, null],
         startTime: '08:00',
         endTime: '09:00',
-        color: eventTypeToColorMap['Event'],
+        color: '#73c934',
         allDay: false,
         title: '',
         content: '',
@@ -119,7 +109,7 @@ var defaultEvent = {
         dates: [null,null],
         startTime: '',
         endTime: '',
-        color: eventTypeToColorMap['Event'],
+        color: '#73c934',
         allDay: false,
         title: '',
         content: '',
@@ -151,7 +141,7 @@ var defaultEvent = {
         }
       },
       eventColor() {
-        return eventTypeToColorMap[this.event.type];
+        return '#73c934';
       },
       formTitle () {
         if (!this.event._id) {
@@ -198,7 +188,7 @@ var defaultEvent = {
           var response = await Api().post('/calendarmgr/getevents',{start: start, end: end});
           var events = (response.data||[]).map(e=>(
             {
-              color: eventTypeToColorMap[e.type],
+              color: '#73c934',
               name: e.title,
               start: moment(e.start).toDate(),
               end: e.end?moment(e.end).toDate():null,
@@ -213,11 +203,12 @@ var defaultEvent = {
         this.dialog = false;
       },
       addEvent (dateObj) {
+        debugger;
         if (this.dialog) return;
         this.editMode = 'add';
         this.event = Object.assign({}, defaultEvent);
-        this.event.dates[0] = dateObj.date+'';
-        this.event.dates[1] = dateObj.date+'';
+        this.event.dates[0] = dateObj?dateObj.date+'':moment().format('YYYY-MM-DD');
+        this.event.dates[1] = dateObj?dateObj.date+'':moment().format('YYYY-MM-DD');
         this.dialog = true;
       },
       viewEvent( event ) {
@@ -233,7 +224,7 @@ var defaultEvent = {
         this.event.dates = [moment(dbEvent.start).startOf('day').toISOString().substr(0, 10), end ];
         this.event.startTime = this.event.allDay?'':moment(dbEvent.start).format("HH:mm");
         this.event.endTime = this.event.allDay?'':(dbEvent.end?moment(dbEvent.end).format('HH:mm'):'');
-        this.event.app = {applicationId:"test-app", organizationId:"603ee28599a16849b4870d5b", name:'Test App', url:'http://localhost:3300/api/sandboxapp'},
+//        this.event.app = {applicationId:"test-app", organizationId:"603ee28599a16849b4870d5b", name:'Test App', url:'http://localhost:3300/api/sandboxapp'},
         this.appPage = "home";
         event.nativeEvent.stopPropagation();
         this.dialog = true;
@@ -274,7 +265,7 @@ var defaultEvent = {
         }
         (async () => {
           var e = this.event;
-          var end = this.event.allDay?moment(this.event.dates[1], 'YYYY-MM-DD').add(1, 'day').toDate():moment(this.event.dates[1]+this.event.endTime, 'YYYY-MM-DDHH:mm').toDate();
+          var end = this.event.allDay?moment(this.event.dates[1], 'YYYY-MM-DD').toDate():moment(this.event.dates[1]+this.event.endTime, 'YYYY-MM-DDHH:mm').toDate();
           var start = this.event.allDay?moment(this.event.dates[0], 'YYYY-MM-DD').toDate():moment(this.event.dates[0]+this.event.startTime, 'YYYY-MM-DDHH:mm').toDate();
           var response = await Api().post(`/calendarmgr/${this.event._id?'updateevent':'createevent'}`,
             {

@@ -40,9 +40,10 @@ export default {
     }
   },
   mounted() {
+    debugger;
     var app = this.application || this.$route.params.app;
     if (!app) return;
-    var pApp = {url:app.url, organizationId: app.organizationId, _id: app._id, applicationId:app.applicationId,source:app.source, pages:app.pages};
+    var pApp = {url:app.url, organizationId: app.organizationId, _id: app._id, applicationId:app.applicationId,name: app.name, source:app.source, pages:app.pages};
     var page = this.page || this.$route.params.page || 'home';
     pApp.page = page;
     this.app = Object.assign({}, pApp);

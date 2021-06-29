@@ -46,13 +46,14 @@
       </v-col>
     </v-row>
       <v-dialog v-model="dialog" max-width="95%" @keydown.esc.prevent="dialog = false" overlay-opacity="0.2" >
-        <v-card style="margin-top:15vh">
+        <v-card>
           <v-card-title class="ma-0 py-1 px-2"><span class="text-h5">{{editMode=='edit'?'Create':'View'}} Message</span><v-spacer></v-spacer>
             <v-checkbox v-model="showCC" @input="showCC=!showCC" label="CC" class="ma-0 pa-1"></v-checkbox>
             <v-checkbox v-model="showBCC" @input="showBCC=!showBCC" label="BCC" class="ml-3 my-0 pa-1"></v-checkbox></v-card-title>
           <v-card-text>
             <v-form ref="theForm" v-model="valid" lazy-validation >
-                <v-autocomplete :readonly="editMode=='view'" v-model="to" :items="toOptions" :loading="toIsLoading" :search-input.sync="toSearch"
+                <v-textarea auto-grow rows="1" v-if="editMode=='view'" label="To" :value="to" readonly hide-details/>
+                <v-autocomplete v-else :readonly="editMode=='view'" v-model="to" :items="toOptions" :loading="toIsLoading" :search-input.sync="toSearch"
                   hide-no-data placeholder="type some letters of the email or name" dense label="To" hide-details
                   item-text="email" item-value="_id" return-object @change="toSelected" width="250px"
                 ></v-autocomplete>
@@ -74,8 +75,8 @@
                   <v-chip v-for="user in bccDests" :key="user.key" class="ma-0" close @click:close="bccDelete(user.key)">{{user.email}}</v-chip>
                 </v-chip-group>
               <v-text-field v-model="message.subject" label="Subject" :rules="[rules.required]"></v-text-field>
-              <v-textarea v-model="message.message" label="Message"></v-textarea>
-              <OrganizationAppPane v-if="editMode=='view'" :application="app" :page="page"></OrganizationAppPane>
+              <v-textarea v-model="message.message" label="Message" rows="2" auto-grow></v-textarea>
+              <OrganizationAppPane v-if="editMode=='view'" :key="app.applicationId" :application="app" :page="page"></OrganizationAppPane>
             </v-form>
           </v-card-text>
           <v-card-actions>
@@ -145,7 +146,7 @@ import moment from 'moment';
       bccIsLoading:false,
       bccDests:[],
       uniqueKey:1,
-      app:{applicationId:"test-app", organizationId:"603ee28599a16849b4870d5b", name:'Test App', url:'http://localhost:3300/api/sandboxapp'},
+      app:{applicationId:"", organizationId:"", name:'', url:''},
       page:"home",
       editMode:'edit'
     }),
@@ -305,9 +306,10 @@ import moment from 'moment';
           var messages = (response.data || []);
           messages.sort((a,b)=>(a.date<b.date?-1:(a.date>b.date?1:0)));
           messages = messages.map((m)=>{
+            var msg = Object.assign({},m);
             var sharing = m.sharings.find(s=>(s.recipientType=='to'));
-            var correspondent = sharing.user.name;
-            return {_id:m._id, subject: m.subject, date: m.date, correspondent: correspondent, message:m.message}
+            msg.correspondent = sharing.user.name;
+            return msg;
           })
           this.messages = messages;
         })();
@@ -323,7 +325,25 @@ import moment from 'moment';
       viewMessage (item) {
         this.editMode = 'view';
         this.message = Object.assign({}, item);
-        this.dialog = true;
+        debugger;
+        var toList = item.sharings.reduce((ar,sh)=>{
+          if (sh.recipientType=='to') {
+            ar.push(sh.user.name);
+          }
+          return ar;
+        },[])
+        this.to = toList.join('; ');
+        if (item.organization && item.applicationId) {
+          (async () => {
+            var response = await Api().get('/organizationapplication/getapp/'+item.organization+'/'+item.applicationId);
+            if (response.data.success) {
+              this.app = Object.assign({organizationId:item.organization}, response.data.app);
+            }
+            this.dialog = true;
+          })();
+        } else {
+          this.dialog = true;
+        }
       },
 
       deleteMessage (item) {

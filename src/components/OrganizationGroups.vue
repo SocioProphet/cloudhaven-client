@@ -33,10 +33,12 @@
               <v-data-table :headers="groupMembersHeaders" :items="editedItem.members" hide-default-footer disable-pagination class="elevation-1" >
                 <template v-slot:top>
                   <v-container>
-                    <v-row style="flex-wrap: nowrap;" class="mb-2">
-                      <v-text-field v-model="memberSearchFilter" label="New Member Search Filter" @input="onSearchFilterChange"
+                    <v-row :key="selectKey" style="flex-wrap: nowrap;" class="mb-2">
+                      <v-text-field ref="memberSearchFilter" v-model="memberSearchFilter" label="New Member Search Filter" @input="onSearchFilterChange"
                         persistent-hint hint="Space-separated phrases to be searched in email/first name/last name." class="mr-2"></v-text-field>
-                      <v-select v-model="selectedMember" :label="memberSearchFilter?'Select Member':''" :items="memberOptions" item-value="_id" item-text="name" return-object @change="addMember"/>
+                      <v-select v-model="selectedMembers" :label="memberSearchFilter?'Select Members':''" :items="memberOptions" multiple item-value="_id" item-text="name" return-object
+                        append-outer-icon="mdi-plus" @click:append-outer="addMembers" >
+                      </v-select>
                     </v-row>
                   </v-container>
                 </template>
@@ -82,10 +84,11 @@
     data() {
       return {
         memberSearchFilter:'',
-        selectedMember: null,
+        selectedMembers: null,
         memberOptions: [],
         dialog: false,
         valid: true,
+        selectKey: 1,
         rules: {
           required: value => !!value || 'Required.',
           email: (v) => !v || /^[^@]+@[^.]+\..+$/.test(v) || 'Please enter a valid email.'
@@ -114,7 +117,7 @@
     watch: {
       dialog (val) {
         this.memberSearchFilter = '',
-        this.selectedMember = null,
+        this.selectedMembers = [],
         this.memberOptions = []
         val || this.close()
       }
@@ -136,25 +139,26 @@
         (async () => {
           var response = await Api().post('/usersearch/emailnamesearch', {searchPhrase:this.memberSearchFilter});
           if (response.data) {
-            this.memberOptions = response.data || [];
+            var users = response.data || [];
+            this.memberOptions = users.filter(u=>(!this.editedItem.members.find(m=>(m._id==u._id))));
           }
         })();
 
       },
       openAddMemberDlg() {
-        this.memberSearchFilter = '',
-        this.selectedMember = null,
+        this.selectedMembers = [],
         this.memberOptions = []
       },
-      addMember() {
-        if (this.selectedMember && this.selectedMember._id) {
+      addMembers() {
+        if (this.selectedMembers.length>0) {
           if (!this.editedItem._id) {
-            this.editedItem.members.push(this.selectedMember);
+            this.editedItem.members = this.editedItem.members.concat(this.selectedMembers);
           }
         }
         this.memberSearchFilter = '',
-        this.selectedMember = null,
-        this.memberOptions = []
+        this.selectedMembers = [],
+        this.memberOptions = [];
+        this.selectKey = this.selectKey++;
       },
       deleteMember(item) {
         this.editedItem.members = this.editedItem.members.filter(m=>(m._id!=item._id));

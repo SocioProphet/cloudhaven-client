@@ -849,8 +849,8 @@ function makeMethods( ctx, uiMethods ) {
     })();
   }
 
-  //params: senderId||senderEmail, recipients, subject, message,
-	//        organization, applicationId, componentId, appConfigData
+  //params: senderId||senderEmail, recipients, subject, message, 
+  //        application:{organizationId, applicationId/componentId, appConfigData}
   //recipients = [{type:'[to|cc|bcc]', email:'jsmith@widget.com'}]
   methods._queueUserMessageOrTask = ( params, cb ) => {
     var argValidations = [
