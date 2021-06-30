@@ -16,9 +16,6 @@
         <v-row>
         <v-divider class="ma-4" vertical ></v-divider>
           <v-data-table :headers="headers" :items="tasks" style="width:100%">
-            <template v-slot:[`header.selector`]="{header}">
-              <v-simple-checkbox dense hide-details />
-            </template>
             <template v-slot:item="{ item }">
             <tr @click="viewTask(item)">
               <td >

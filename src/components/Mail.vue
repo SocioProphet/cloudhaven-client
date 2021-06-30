@@ -18,7 +18,7 @@
         <v-divider class="ma-4" vertical ></v-divider>
     <v-data-table :headers="headers" :items="messages" style="width:100%">
       <template v-slot:[`header.selector`]="{header}">
-        <v-simple-checkbox dense hide-details />
+        <v-simple-checkbox :ripple="false" dense hide-details />
       </template>
       <template v-slot:item="{ item }">
        <tr @click="viewMessage(item)">
