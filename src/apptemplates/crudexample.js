@@ -48,65 +48,65 @@ export default `var uiConfig = {
   methods: {
     created: "this.initialize();",
     initialize: {
-      body: '\
-      this._readAppData({table:"Desserts", key:this._currentUser.email }, function(result) {\
-        if (result.success) {\
-          this.desserts = JSON.parse(result.data[0].jsonData);\
-        }\
-      });',
+      body: \`
+      this._readAppData({table:"Desserts", key:this._currentUser.email }, function(result) {
+        if (result.success) {
+          this.desserts = JSON.parse(result.data[0].jsonData);
+        }
+      });\`
     },
     editItem: {
       args: ["item"],
-      body: '\
-        this.editedIndex = this.desserts.indexOf(item);\
-        this.editedItem = Object.assign({}, item);\
-        this.dialog = true;'
+      body: \`
+        this.editedIndex = this.desserts.indexOf(item);
+        this.editedItem = Object.assign({}, item);
+        this.dialog = true;\`
     },
     deleteItem: {
       args: ["item"],
-      body: '\
-        this.editedIndex = this.desserts.indexOf(item);\
-        this.editedItem = Object.assign({}, item);\
-        this.dialogDelete = true;'
+      body: \`
+        this.editedIndex = this.desserts.indexOf(item);
+        this.editedItem = Object.assign({}, item);
+        this.dialogDelete = true;\`
     },
     deleteItemConfirm: {
-      body: '\
-      var deletedName = this.editedItem.name;\
-        this.desserts.splice(this.editedIndex, 1);\
-        this._writeAppData({table:"Desserts", key:this._currentUser.email, dataString:JSON.stringify(this.desserts)}, function(results) {\
-          this._showNotification("Dessert "+deletedName+" deleted.");\
-        });\
-        this.closeDelete();'
+      body: \`
+      var deletedName = this.editedItem.name;
+        this.desserts.splice(this.editedIndex, 1);
+        this._writeAppData({table:"Desserts", key:this._currentUser.email, dataString:JSON.stringify(this.desserts)}, function(results) {
+          this._showNotification("Dessert "+deletedName+" deleted.");
+        });
+        this.closeDelete();\`
     },
     close: {
-      body: '\
-        this.dialog = false;\
-        this.$nextTick(() => {\
-          this.editedItem = Object.assign({}, this.defaultItem);\
-          this.editedIndex = -1;\
-        });'
+      body: \`
+        this.dialog = false;
+        this.$nextTick(() => {
+          this.editedItem = Object.assign({}, this.defaultItem);
+          this.editedIndex = -1;
+        });\`
     },
     closeDelete: {
-      body: '\
-        this.dialogDelete = false;\
-        this.$nextTick(() => {\
-          this.editedItem = Object.assign({}, this.defaultItem);\
-          this.editedIndex = -1;\
-        })'
+      body: \`
+        this.dialogDelete = false;
+        this.$nextTick(() => {
+          this.editedItem = Object.assign({}, this.defaultItem);
+          this.editedIndex = -1;
+        })\`
     },
     save: {
-      body: '\
-        var action = "added";\
-        if (this.editedIndex > -1) {\
-          action = "updated";\
-          Object.assign(this.desserts[this.editedIndex], this.editedItem);\
-        } else {\
-          this.desserts.push(this.editedItem);\
-        }\
-        this._writeAppData({table:"Desserts", key:this._currentUser.email, dataString:JSON.stringify(this.desserts)}, function(results) {\
-        this._showNotification("Dessert "+this.editedItem.name+" "+action+".");\
-        this.close();\
-        });'
+      body: \`
+        var action = "added";
+        if (this.editedIndex > -1) {
+          action = "updated";
+          Object.assign(this.desserts[this.editedIndex], this.editedItem);
+        } else {
+          this.desserts.push(this.editedItem);
+        }
+        this._writeAppData({table:"Desserts", key:this._currentUser.email, dataString:JSON.stringify(this.desserts)}, function(results) {
+        this._showNotification("Dessert "+this.editedItem.name+" "+action+".");
+        this.close();
+        });\`
     }
   },
   filters: {

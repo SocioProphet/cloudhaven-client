@@ -76,7 +76,7 @@
                 </v-chip-group>
               <v-text-field v-model="message.subject" label="Subject" :rules="[rules.required]"></v-text-field>
               <v-textarea v-model="message.message" label="Message" rows="2" auto-grow></v-textarea>
-              <OrganizationAppPane v-if="editMode=='view'" :key="app.applicationId" :application="app" :page="page"></OrganizationAppPane>
+              <OrganizationAppPane v-if="editMode=='view'" :key="app.applicationId" :application="app" :page="page" :standalone="true"></OrganizationAppPane>
             </v-form>
           </v-card-text>
           <v-card-actions>
@@ -146,7 +146,7 @@ import moment from 'moment';
       bccIsLoading:false,
       bccDests:[],
       uniqueKey:1,
-      app:{applicationId:"", organizationId:"", name:'', url:''},
+      app:{_id:'', applicationId:"", name:'', url:'', organization:{_id:'', organizationId:'', name:''}},
       page:"home",
       editMode:'edit'
     }),
@@ -193,7 +193,6 @@ import moment from 'moment';
         loadFolderTree();
       })
       this.loadFolderTree();
-      this.getUnassignedTasks();
     },
     methods: {
       toDelete( key ) {
@@ -285,12 +284,6 @@ import moment from 'moment';
           })
         })();
       },
-      getUnassignedTasks() {
-        (async () => {
-          var response = await Api().get(`/messagemgr/getunassignedtasksforuser/${this.user._id}`);
-          var xxx = response.data;
-        })();
-      },
       loadMessages( folderId ) {
         if (!folderId) {
           folderId = this.active.length>0?this.active[0]:null;
@@ -325,7 +318,6 @@ import moment from 'moment';
       viewMessage (item) {
         this.editMode = 'view';
         this.message = Object.assign({}, item);
-        debugger;
         var toList = item.sharings.reduce((ar,sh)=>{
           if (sh.recipientType=='to') {
             ar.push(sh.user.name);
@@ -337,7 +329,9 @@ import moment from 'moment';
           (async () => {
             var response = await Api().get('/organizationapplication/getapp/'+item.organization+'/'+item.applicationId);
             if (response.data.success) {
-              this.app = Object.assign({organizationId:item.organization}, response.data.app);
+              this.app = Object.assign({organization:item.organization}, response.data.app);
+              this.app.messageOrTask = Object.assign({},this.message);
+              this.app.appConfigData = this.message.appConfigData?JSON.parse(this.message.appConfigData):{}
             }
             this.dialog = true;
           })();

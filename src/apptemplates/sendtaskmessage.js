@@ -38,9 +38,8 @@ export default `var uiConfig = {
     },
     sendTaskMsg: {
       body: \`
-      debugger;
       if (!this.$refs.theForm.validate()) return;
-      this._queueUserMessageOrTask({
+      this._sendMessage({
         senderId:this._currentUser._id,
         recipients:[{type:'to', email:this.selectedUser.email}],
         subject:this.subject,
@@ -79,7 +78,7 @@ export default `var uiConfig = {
           {component: "spacer"},
           {component: "button", props:{elevation:"2", color:"blue darken-1", text:true}, on:{"click.native":"sendTaskMsg"}, contents:[
             {component: "icon", props:{left:true, dark:true}, contents:"mdi-send"},
-            "Save"
+            "Send"
           ]}
         ]}
       ]}

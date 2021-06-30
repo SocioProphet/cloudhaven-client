@@ -441,7 +441,7 @@ function makeMethods( ctx, uiMethods ) {
     if (!checkArguments('_writeAppData', params, cb, argValidations)) return;
     (async () => {
       var response = await Api().post('/appstoremgr/upsert', 
-          {organizationId: app.organizationId, table:params.table, key:params.key, jsonData:params.dataString||''});
+          {organizationId: app.organization._id, table:params.table, key:params.key, jsonData:params.dataString||''});
       if (cb) {
         (cb).call(ctx.rootThis, response.data);
       }
@@ -458,7 +458,7 @@ function makeMethods( ctx, uiMethods ) {
       {name: 'searchOperator', type:'string', enum:['startswith', 'contains']}
     ];
     if (!checkArguments('_readAppData', params, cb, argValidations)) return;
-    var body = {organizationId: app.organizationId, table:params.table};
+    var body = {organizationId: app.organization._id, table:params.table};
     if (params.key) body.key = params.key;
     if (params.searchOperator) body.searchOperator = params.searchOperator;
     (async () => {
@@ -840,7 +840,7 @@ function makeMethods( ctx, uiMethods ) {
     ];
     if (!checkArguments('_addCalendarEntry', params, cb, argValidations)) return;
     (async () => {
-      params.organizationId = app.organizationId;
+      params.organizationId = app.organization.organizationId;
       var response = await Api().post("calendarmgr/appcreateevent", params);
 //      var result = response.data;
       if (cb) {
@@ -852,16 +852,32 @@ function makeMethods( ctx, uiMethods ) {
   //params: senderId||senderEmail, recipients, subject, message, 
   //        application:{organizationId, applicationId/componentId, appConfigData}
   //recipients = [{type:'[to|cc|bcc]', email:'jsmith@widget.com'}]
-  methods._queueUserMessageOrTask = ( params, cb ) => {
+  methods._sendMessage = ( params, cb ) => {
     var argValidations = [
       {name: 'senderId', type:'string'},
       {name: 'senderEmail', type:'string'},
       {name: 'recipients', rules:['required'], type:'array'},
       {name: 'subject', rules:['required', 'nonblank'], type:'string'},
       {name: 'message', rules:['required', 'nonblank'], type:'string'},
+      {name: 'taskGroup', type: 'object'},
       {name: 'application', type:'object'}
     ];
-    if (!checkArguments('_queueUserMessageOrTask', params, cb, argValidations)) return;
+    if (!checkArguments('_sendMessage', params, cb, argValidations)) return;
+    if (params.application) {
+      var appArgValidations = [
+        {name: 'organizationId', rules:['required', 'nonblank'], type:'string'},
+        {name: 'applicationId', rules:['required', 'nonblank'], type:'string'},
+        {name: 'appConfigData', type: 'object'} 
+      ]
+      if (!checkArguments('_sendMessage:application', params.application, cb, appArgValidations)) return;
+    }
+    if (params.taskGroup) {
+      var grpArgValidations = [
+        {name: 'organizationId', rules:['required', 'nonblank'], type:'string'},
+        {name: 'groupName', rules:['required', 'nonblank'], type:'string'}  
+      ]
+      if (!checkArguments('_sendMessage:taskGroup', params.application, cb, grpArgValidations)) return;
+    }
     (async () => {
       if (!params.senderId && !params.senderEmail) {
         params.senderId = this.user._id;
@@ -872,18 +888,57 @@ function makeMethods( ctx, uiMethods ) {
       }
     })();
   }
-  //params: groupId, subject, message
+  //params: senderId, subject, message, taskGroup:{organizationId, groupName}, appplication:{organizationId, applicationId}
   methods._queueTask = (params, cb ) => {
     var argValidations = [
-      {name: 'groupId', rules:['required', 'nonblank'], type:'string'},
-      {name: 'subject', type:'string'},
-      {name: 'message', type:'string'},
-      {name: 'applicationId', type:'string'},
+      {name: 'senderId', type:'string'},
+      {name: 'subject', rules:['required', 'nonblank'], type:'string'},
+      {name: 'message', rules:['required', 'nonblank'], type:'string'},
+      {name: 'taskGroup', rules:['required'], type: 'object'},
+      {name: 'application', rules:['required'], type:'object'}
     ];
     if (!checkArguments('_queueTask', params, cb, argValidations)) return;
+    if (params.taskGroup) {
+      var grpArgValidations = [
+        {name: 'organizationId', rules:['required', 'nonblank'], type:'string'},
+        {name: 'groupName', rules:['required', 'nonblank'], type:'string'}  
+      ]
+      if (!checkArguments('_queueTask:taskGroup', params.taskGroup, cb, grpArgValidations)) return;
+    }
+    if (params.application) {
+      var appArgValidations = [
+        {name: 'organizationId', rules:['required', 'nonblank'], type:'string'},
+        {name: 'applicationId', rules:['required', 'nonblank'], type:'string'},
+        {name: 'appConfigData', type: 'object'}
+      ]
+      if (!checkArguments('_queueTask:application', params.application, cb, appArgValidations)) return;
+    }
     (async () => {
-      var response = await Api().post('/messagemgr/queuetask', params);
-      if (cb) (cb).call(ctx.rootThis, response.data);
+      if (!params.senderId) {
+        params.senderId = ctx.rootThis._currentUser._id;
+      }
+      var response = await Api().post('/messagemgr/queuetask', params );
+      if (cb) {
+        (cb).call(ctx.rootThis, response.data);
+      }
+    })();
+  }
+
+  methods._setTaskOutcome = (params, cb ) => {
+    var argValidations = [
+      {name: 'taskId', rules:['required', 'nonblank'], type:'string'},
+      {name: 'resultStatus', rules:['required', 'nonblank'], type:'string', enum:['Incomplete', 'Completed']},
+      {name: 'resultText', type:'string'}
+    ];
+    if (!checkArguments('_setTaskOutcome', params, cb, argValidations)) return;
+    (async () => {
+      var response = await Api().post('/messagemgr/settaskoutcome', params );
+      if (cb) {
+        if (response.data.success) {
+          EventBus.$emit('taskOutcomeSubmitted');
+        }
+        (cb).call(ctx.rootThis, response.data);
+      }
     })();
   }
 

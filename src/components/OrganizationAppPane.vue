@@ -30,7 +30,9 @@ export default {
   },
   props: {
     application: Object,
-    page: String
+    page: String,
+    messageOrTask: Object,
+    standAlone: {type: Boolean, default: false}
   },
   data() {
     return {
@@ -40,10 +42,20 @@ export default {
     }
   },
   mounted() {
-    debugger;
     var app = this.application || this.$route.params.app;
     if (!app) return;
-    var pApp = {url:app.url, organizationId: app.organizationId, _id: app._id, applicationId:app.applicationId,name: app.name, source:app.source, pages:app.pages};
+    var pApp = {
+      url:app.url,
+      organization: {_id:app.organization._id, organizationId:app.organization.organizationId, name: app.organization.name},
+      _id: app._id,
+      applicationId:app.applicationId,
+      name: app.name,
+      source:app.source,
+      pages:app.pages,
+      messageOrTask: app.messageOrTask,
+      appConfigData: app.appConfigData||{}
+    };
+    if (this.messageOrTask) pApp.messageOrTask = this.messageOrTask;
     var page = this.page || this.$route.params.page || 'home';
     pApp.page = page;
     this.app = Object.assign({}, pApp);
@@ -60,7 +72,7 @@ export default {
         console.log('Home page content syntax error: '+e);
         return;
       }
-      if (this.uiConfig.appFrame) {
+      if (!this.standAlone && this.uiConfig.appFrame) {
         EventBus.$emit('set app frame', Object.assign(this.app, this.uiConfig.appFrame))
       }
       this.getComponents();

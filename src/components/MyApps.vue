@@ -89,7 +89,7 @@ import router from '../router'
       },
       unsubscribe(app) {
         (async () => {
-          var response = await Api().delete(`/usersubscription/${this.user._id}/${app.organizationId}/${app._id}`);
+          var response = await Api().delete(`/usersubscription/${this.user._id}/${app.organization._id}/${app._id}`);
           if (response.data.success) {
             EventBus.$emit('global success alert', `Unsubscribed to ${app.name}.`);
             this.loadMyApps();

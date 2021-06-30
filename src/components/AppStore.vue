@@ -7,7 +7,7 @@
       <v-row no-gutters>
           <v-card class="pa-2 ma-2" elevation="4" v-for="app in applications" :key="app.key" >
             <v-card-title>{{app.name}}</v-card-title>
-            <v-card-subtitle>{{app.organizationName}}</v-card-subtitle>
+            <v-card-subtitle>{{app.organization.name}}</v-card-subtitle>
             <v-card-text>
               <v-img width="150px" :src="app.logoSrc"></v-img>
             </v-card-text>
@@ -67,7 +67,7 @@ import Api from '@/services/Api'
     methods: {
       subscribe(app) {
         (async () => {
-          var postData = {userId: this.user._id, organizationId: app.organizationId, applicationId: app._id};
+          var postData = {userId: this.user._id, organizationId: app.organization._id, applicationId: app._id};
           var response = await Api().post('/usersubscription', postData);
           if (response.data.success) {
             EventBus.$emit('global success alert', `Subscribed to ${app.name}.`);

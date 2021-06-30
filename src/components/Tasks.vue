@@ -10,77 +10,46 @@
     </v-row>
     <v-row>
       <v-col cols="3"  nowrap>
-        Task Queues Goe Here
+        <v-treeview :items="taskFolders" elevation="2" dense activatable :active="active" @update:active="onActivated"></v-treeview>
       </v-col>
       <v-col cols="9" class="justify-start">
         <v-row>
         <v-divider class="ma-4" vertical ></v-divider>
-    <v-data-table :headers="headers" :items="messages" style="width:100%">
-      <template v-slot:[`header.selector`]="{header}">
-        <v-simple-checkbox dense hide-details />
-      </template>
-      <template v-slot:item="{ item }">
-       <tr @click="viewTask(item)">
-         <td style="width:5%" class="align-center"><v-simple-checkbox dense hide-details /></td>
-        <td style="width:10%">
-          <v-row class="justify-center align-center align-stretch">
-          <v-btn icon ><v-icon medium @click.stop="viewTask(item)">mdi-email-open-outline</v-icon></v-btn>
-          <!--v-btn icon >
-          <v-icon
-            medium
-            @click.stop="deleteTask(item)"
-          >
-            mdi-trash-can
-          </v-icon>
-          </v-btn-->
-          </v-row>
-        </td>
-        <td style="width:35%">{{item.subject}}</td>
-        <td style="width:30%">{{item.group}}</td>
-        <td style="width:20%">{{ item.date | datetime }}</td>
-       </tr>
-      </template>
-    </v-data-table>
+          <v-data-table :headers="headers" :items="tasks" style="width:100%">
+            <template v-slot:[`header.selector`]="{header}">
+              <v-simple-checkbox dense hide-details />
+            </template>
+            <template v-slot:item="{ item }">
+            <tr @click="viewTask(item)">
+              <td >
+                <v-row class="justify-center align-center align-stretch">
+                <v-btn v-if="activeList==1" icon ><v-icon medium @click.stop="grabTask(item)">mdi-keyboard-return</v-icon></v-btn>
+                <v-btn v-else-if="activeList==2" icon><v-icon medium @click.stop="grabTask(item)">mdi-hand</v-icon></v-btn>
+                <v-btn icon ><v-icon medium @click.stop="viewTask(item)">mdi-eye-outline</v-icon></v-btn>
+                </v-row>
+              </td>
+              <td style="width:35%">{{item.subject}}</td>
+              <td v-if="activeList==2" style="width:30%">{{item.group.name}}</td>
+              <td v-else style="width:30%">{{item.message.substring(0,20)+(item.message.length>20?'...':'')}}</td>
+              <td style="width:20%">{{ item.date | datetime }}</td>
+            </tr>
+            </template>
+          </v-data-table>
         </v-row>
       </v-col>
     </v-row>
       <v-dialog v-model="dialog" max-width="95%" @keydown.esc.prevent="dialog = false" overlay-opacity="0.2" >
-        <v-card style="margin-top:15vh">
-          <v-card-title class="ma-0 py-1 px-2"><span class="text-h5">{{editMode=='edit'?'Create':'View'}} Message</span><v-spacer></v-spacer>
-            <v-checkbox v-model="showCC" @input="showCC=!showCC" label="CC" class="ma-0 pa-1"></v-checkbox>
-            <v-checkbox v-model="showBCC" @input="showBCC=!showBCC" label="BCC" class="ml-3 my-0 pa-1"></v-checkbox></v-card-title>
+        <v-card >
+          <v-card-title class="ma-0 py-1 px-2"><span class="text-h5">{{task.subject}}</span><v-spacer></v-spacer></v-card-title>
           <v-card-text>
             <v-form ref="theForm" v-model="valid" lazy-validation >
-                <v-autocomplete :readonly="editMode=='view'" v-model="to" :items="toOptions" :loading="toIsLoading" :search-input.sync="toSearch"
-                  hide-no-data placeholder="type some letters of the email or name" dense label="To" hide-details
-                  item-text="email" item-value="_id" return-object @change="toSelected" width="250px"
-                ></v-autocomplete>
-                <v-chip-group show-arrows>
-                <v-chip v-for="user in toDests" :key="user.key" style="display:inline-block" class="ma-0" close @click:close="toDelete(user.key)">{{user.email}}</v-chip>
-                </v-chip-group>
-                <v-autocomplete v-if="editMode=='view' && showCC" class="mt-3" v-model="cc" :items="ccOptions" :loading="ccIsLoading" :search-input.sync="ccSearch"
-                  hide-no-data placeholder="type some letters of the email or name" dense label="CC" hide-details
-                  item-text="email" item-value="_id" return-object @change="ccSelected" width="250px"
-                ></v-autocomplete>
-                <v-chip-group  v-if="showCC" show-arrows>
-                  <v-chip v-for="user in ccDests" :key="user.key" class="ma-0" close @click:close="ccDelete(user.key)">{{user.email}}</v-chip>
-                </v-chip-group>
-                <v-autocomplete v-if="editMode=='view' && showBCC" class="mt-3" v-model="bcc" :items="bccOptions" :loading="bccIsLoading" :search-input.sync="bccSearch"
-                  hide-no-data placeholder="type some letters of the email or name" dense label="BCC" hide-details
-                  item-text="email" item-value="_id" return-object @change="bccSelected" width="250px"
-                ></v-autocomplete>
-                <v-chip-group  v-if="showBCC" show-arrows>
-                  <v-chip v-for="user in bccDests" :key="user.key" class="ma-0" close @click:close="bccDelete(user.key)">{{user.email}}</v-chip>
-                </v-chip-group>
-              <v-text-field v-model="message.subject" label="Subject" :rules="[rules.required]"></v-text-field>
-              <v-textarea v-model="message.message" label="Message"></v-textarea>
-              <OrganizationAppPane v-if="editMode=='view'" :application="app" :page="page"></OrganizationAppPane>
+              <v-textarea readonly :value="task.message" label="Description"></v-textarea>
+              <OrganizationAppPane v-if="activeList!=2" :application="task.app" :page="page" :standAlone="true"></OrganizationAppPane>
             </v-form>
           </v-card-text>
           <v-card-actions>
-            <v-btn elevation="2" color="blue darken-1" text @click.native="cancel">Cancel</v-btn>
             <v-spacer></v-spacer>
-            <v-btn v-if="editMode=='edit'" elevation="2" color="blue darken-1" text @click.native="sendMsg"><v-icon left dark>mdi-content-save</v-icon>Save</v-btn>
+            <v-btn elevation="2" color="blue darken-1" text @click.native="cancel">Close</v-btn>
           </v-card-actions>
         </v-card>
       </v-dialog>
@@ -104,59 +73,52 @@ import moment from 'moment';
       rules: {
           required: value => !!value || 'Required.'
       },
-      headers: [
-        { value: 'selector', sortable:false },
+      taskFolders: [
+        {id:1, name: 'My Tasks'},
+        {id:2, name: 'Unassigned Tasks'},
+        {id:3, name: 'Archived Tasks'}
+      ],
+      myTasksHeaders: [
         { text: 'Actions', sortable: false, align:'center' },
         { text: 'Subject', sortable: true, value:'subject' },
-        { text: 'Group', sortable: true, value: 'group' },
+        { text: 'Message', sortable: true, value: 'message' },
         { text: 'Date', align:'left', sortable:true, value: 'date' }
       ],
-      message: {
+      unassignedTasksHeaders: [
+        { text: 'Actions', sortable: false, align:'center' },
+        { text: 'Subject', sortable: true, value:'subject' },
+        { text: 'Group', sortable: true, value: 'group.name' },
+        { text: 'Date', align:'left', sortable:true, value: 'date' }
+      ],
+      task: {
         _id: null,
         subject: '',
         message: '',
-        date: null
+        date: null,
+        app:{_id:'', applicationId:"", name:'', url:'', organization:{_id:'', organizationId:'', name:''}}
       },
-      folderTree:[],
-      searchText:'',
-      currentFolder: null,
-      messages: [],
-      folderMap: {},
-      active: [],
-      to:null,
-      toSearch:'',
-      toSearchTimeoutId:null,
-      toOptions:[],
-      toIsLoading:false,
-      toDests:[],
-      showCC: false,
-      cc:null,
-      ccSearch:'',
-      ccSearchTimeoutId:null,
-      ccOptions:[],
-      ccIsLoading:false,
-      ccDests:[],
-      showBCC: false,
-      bcc:null,
-      bccSearch:'',
-      bccSearchTimeoutId:null,
-      bccOptions:[],
-      bccIsLoading:false,
-      bccDests:[],
+      myTasks: [],
+      unassignedTasks: [],
+      active: [1],
       uniqueKey:1,
-      app:{applicationId:"test-app", organizationId:"603ee28599a16849b4870d5b", name:'Test App', url:'http://localhost:3300/api/sandboxapp'},
       page:"home",
       editMode:'edit'
     }),
     computed: {
-      activeFolderId() {
-        return this.active.length>0?this.active[0]:null;
+      activeList() {
+        return this.active[0];
       },
-      activeFolder() {
-        return this.activeFolderId?this.folderMap[this.activeFolderId]:{};
+      headers() {
+        return this.activeList!=2?this.myTasksHeaders:this.unassignedTasksHeaders;
       },
-      activeFolderName() {
-        return this.activeFolder?this.activeFolder.name:'';
+      tasks() {
+        if (this.activeList==1) {
+          return this.myTasks.filter(t=>(!t.isDone));
+        } else if (this.activeList==2) {
+          return this.unassignedTasks;
+        } else {
+          return this.myTasks.filter(t=>(t.isDone));
+        }
       },
       formTitle () {
         return `??`;
@@ -165,120 +127,73 @@ import moment from 'moment';
     },
 
     watch: {
-      toSearch( value ) {
-        this.genericLoadUserOptions( 'to', value );
-      },
-      ccSearch( value ) {
-        this.genericLoadUserOptions( 'cc', value );
-      },
-      bccSearch( value ) {
-        this.genericLoadUserOptions( 'bcc', value );
-      },
-      active( actives ) {
-        this.loadTasks( actives.length>0?actives[0]:null);
-      }
     },
 
     mounted () {
-      this.toOptions = [];
-      this.ccOptions = [];
-      this.bccOptions = [];
-      EventBus.$on('messages data refresh', () =>{
-        loadFolderTree();
-      })
-      this.loadFolderTree();
+      this.getMyTasks();
       this.getUnassignedTasks();
+      EventBus.$on('taskOutcomeSubmitted' ,()=>{
+        this.task.isDone = true;
+        this.getMyTasks();
+        this.getUnassignedTasks();
+        this.dialog = false;
+        this.active[0] = 3;
+      })
     },
     methods: {
-      toDelete( key ) {
-        this.toDests = this.toDests.filter(td=>(td.key!=key));
-      },
-      ccDelete( key ) {
-        this.ccDests = this.ccDests.filter(td=>(td.key!=key));
-      },
-      bccDelete( key ) {
-        this.bccDests = this.bccDests.filter(td=>(td.key!=key));
-      },
-      toSelected( user ) {
-        this.onDestSelected( user, 'to');
-      },
-      ccSelected( user ) {
-        this.onDestSelected( user, 'cc');
-      },
-      bccSelected( user ) {
-        this.onDestSelected( user, 'bcc');
-      },
-      onDestSelected( user, type ) {
-        if (user) {
-          user.key = this.uniqueKey++;
-          this[type+'Dests'].push(user);
-        }
-        this[type+'Search'] = '';
-      },
-      genericLoadUserOptions( prefix, value ) {
-        if (this[prefix+'SearchTimeoutId']) {
-          clearTimeout(this[prefix+'SearchTimeoutId']);
-        }
-        this[prefix+'IsLoading'] = value?true:false;
-        if (!value) {
-          this[prefix+'Options'] = [];
-          return;
-        }
-        this[prefix+'SearchTimeoutId'] = setTimeout(() => {
-          this.loadUserOptions( prefix+'Options', value, () => {this[prefix+'IsLoading'] = false;});
-        }, 500);
-      },
-      loadUserOptions( options, searchPhrase, cb ) {
-        if (!searchPhrase) {
-          options = [];
-          return;
-        }
-        var vm = this;
+      grabTask(task) {
         (async () => {
-          try {
-            var response = await Api().post('/usersearch/emailnamesearch', {searchPhrase:searchPhrase});
-
-            vm[options] = (response.data || []).sort((a,b) => {
-              return a.email<b.email?-1:(a.email>b.email?1:0);
-            });
-          } finally {
-//            if (cb) (cb)();
+          var path = `/messagemgr/grabtask/${task._id}/${this.user._id}`;
+          var response = await Api().get(path);
+          if (response.data.success) {
+            this.getMyTasks();
+            this.getUnassignedTasks();
+            EventBus.$emit('global success alert', `Task ${task.subject} grabbed.`);
+          } else if (response.data.errMsg) {
+            EventBus.$emit('global error alert', response.data.errMsg);
           }
         })();
-
       },
       onActivated( activeItems ) {
+        if (activeItems[0]==2) {
+          this.getUnassignedTasks();
+        } else {
+          this.getMyTasks();
+        }
         this.active = activeItems;
-      },
-      getChildren( curFolder, folders ) {
-        curFolder.children = folders.reduce((ar,f)=>{
-          if (f.parentFolder == curFolder.id) {
-            var fObj = {id:f._id, name: f.name, children:[], folder:f};
-            this.folderMap[f._id] = f;
-            this.getChildren( fObj, folders);
-            ar.push( fObj );
-          }
-          return ar;
-        },[]);
       },
       getMyTasks() {
         (async () => {
-          var response = await Api().get('/messagemgr/gettasks/'+this.user._id);
+          var response = await Api().get('/messagemgr/gettasksforuser/'+this.user._id);
+          if (response.data.success) {
+            var myTasks = response.data.tasks.map(t=>(Object.assign(t,{date:moment(t.date).toDate()})));
+            this.myTasks = myTasks;
+          } else if (response.data.errMsg) {
+            EventBus.$emit('global error alert', response.data.errMsg);
+          }
         })();
       },
       getUnassignedTasks() {
         (async () => {
           var response = await Api().get(`/messagemgr/getunassignedtasksforuser/${this.user._id}`);
-          debugger;
-          var xxx = response.data;
+          if (response.data.success) {
+            var tasks = response.data.tasks.map(t=>(Object.assign(t, {date:moment(t.date).toDate()})));
+            this.unassignedTasks = tasks;
+          } else if (response.data.errMsg) {
+            EventBus.$emit('global error alert', response.data.errMsg);
+          }
         })();
       },
       cancel() {
         this.dialog = false;
       },
       viewTask (item) {
-        this.editMode = 'view';
-        this.message = Object.assign({}, item);
+        var task = Object.assign({}, item);
+        if (task.app) {
+          task.app.messageOrTask= item;
+          task.app.appConfigData = item.appConfigData || {};
+        }
+        this.task = task;
         this.dialog = true;
       },
 

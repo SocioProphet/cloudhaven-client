@@ -203,7 +203,6 @@ var defaultEvent = {
         this.dialog = false;
       },
       addEvent (dateObj) {
-        debugger;
         if (this.dialog) return;
         this.editMode = 'add';
         this.event = Object.assign({}, defaultEvent);

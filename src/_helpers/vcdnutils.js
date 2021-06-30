@@ -37,7 +37,7 @@ obj.clientFunctionMap = {
   _getUserFile:'this._getUserFile(userId, fileId, function(blob) {});',
   _userFileOperation:'_userFileOperation({operation:"", userId:"", fileType:"", name:"", fileName:"", fileId:"", file:null}, function(results) {});',
   _gotoAppPage:'this._gotoAppPage(page, appParams );',
-  _queueUserMessageOrTask:'this._queueUserMessageOrTask({senderId:"", senderEmail:"", recipients:[{to:[],cc:[],bcc:[]}], subject:"", message:"", application:{organizationId:"", applicationId:"", componentId:"", appConfigData:{}}}, function(queueItemId) {});',
+  _sendMessage:'this._sendMessage({senderId:"", senderEmail:"", recipients:[{to:[],cc:[],bcc:[]}], subject:"", message:"", application:{organizationId:"", applicationId:"", componentId:"", appConfigData:{}}}, function(queueItemId) {});',
   _queueTask: 'this._queueTask({groupId:"", subject:"", message:"", applicationId:""}, function(result) {});',
   _setUserTaskDisposition:'this._setUserTaskDisposition(queueItemId, params, function(results) {});',
   _deleteUserMessageOrTask:'this._deleteUserMessageOrTask(queueItemId, function(results) {});',
