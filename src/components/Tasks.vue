@@ -148,6 +148,7 @@ import moment from 'moment';
           if (response.data.success) {
             this.getMyTasks();
             this.getUnassignedTasks();
+            this.active[0] = 1;
             EventBus.$emit('global success alert', `Task ${task.subject} grabbed.`);
           } else if (response.data.errMsg) {
             EventBus.$emit('global error alert', response.data.errMsg);
