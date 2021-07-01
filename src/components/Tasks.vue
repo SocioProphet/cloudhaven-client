@@ -20,7 +20,7 @@
             <tr @click="viewTask(item)">
               <td >
                 <v-row class="justify-center align-center align-stretch">
-                <v-btn v-if="activeList==1" icon ><v-icon medium @click.stop="grabTask(item)">mdi-keyboard-return</v-icon></v-btn>
+                <v-btn v-if="activeList==1" icon ><v-icon medium @click.stop="returnTaskToQueue(item)">mdi-keyboard-return</v-icon></v-btn>
                 <v-btn v-else-if="activeList==2" icon><v-icon medium @click.stop="grabTask(item)">mdi-hand</v-icon></v-btn>
                 <v-btn icon ><v-icon medium @click.stop="viewTask(item)">mdi-eye-outline</v-icon></v-btn>
                 </v-row>
@@ -42,6 +42,8 @@
             <v-form ref="theForm" v-model="valid" lazy-validation >
               <v-textarea readonly :value="task.message" label="Description"></v-textarea>
               <OrganizationAppPane v-if="activeList!=2" :application="task.app" :page="page" :standAlone="true"></OrganizationAppPane>
+              <v-text-field v-if="task.resultStatus" :value="task.resultStatus" readonly label="Result Status"/>
+              <v-textarea v-if="task.resultMessage" rows="3" readonly :value="task.resultMessage" label="Results"></v-textarea>
             </v-form>
           </v-card-text>
           <v-card-actions>
@@ -109,6 +111,7 @@ import moment from 'moment';
         return this.activeList!=2?this.myTasksHeaders:this.unassignedTasksHeaders;
       },
       tasks() {
+        debugger;
         if (this.activeList==1) {
           return this.myTasks.filter(t=>(!t.isDone));
         } else if (this.activeList==2) {
@@ -138,6 +141,20 @@ import moment from 'moment';
       })
     },
     methods: {
+      returnTaskToQueue(task) {
+        (async () => {
+          var path = `/messagemgr/returntasktoqueue/${task._id}`;
+          var response = await Api().get(path);
+          if (response.data.success) {
+            this.getMyTasks();
+            this.getUnassignedTasks();
+            this.active[0] = 2;
+            EventBus.$emit('global success alert', `Task ${task.subject} returned to unassigned queue.`);
+          } else if (response.data.errMsg) {
+            EventBus.$emit('global error alert', response.data.errMsg);
+          }
+        })();
+      },
       grabTask(task) {
         (async () => {
           var path = `/messagemgr/grabtask/${task._id}/${this.user._id}`;

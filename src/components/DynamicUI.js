@@ -946,7 +946,6 @@ function makeMethods( ctx, uiMethods ) {
 }
 
 
-
 function makeFilters( ctx, filters ) {
   return filters?Object.keys(filters).reduce((o,m)=>{
     try {
