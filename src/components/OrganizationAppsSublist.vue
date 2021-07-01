@@ -38,7 +38,7 @@
     <v-dialog v-model="dialog" @keydown.esc.prevent="dialog = false" max-width="500px" scrollable overlay-opacity="0.2" >
       <v-card>
         <v-card-title>
-          <span class="text-h5">Application</span>
+          <span class="text-h5">{{editedItem._id?'Edit':'Add'}} Application</span>
         </v-card-title>
         <v-card-text>
           <v-form ref="appForm" v-model="valid" lazy-validation>

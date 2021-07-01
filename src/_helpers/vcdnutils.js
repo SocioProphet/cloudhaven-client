@@ -196,6 +196,7 @@ var defaultPage = `var uiConfig = {
     }
   },
   components: [],
+  mixins: [],
   uiSchema: {
     component: 'container',
     contents: [
@@ -244,6 +245,7 @@ var defaultComponent = `var uiConfig = {
     }
   },
   components: [],
+  mixins: [],
   uiSchema: {
     component: 'sheet',
     contents: [
@@ -257,6 +259,37 @@ var defaultComponent = `var uiConfig = {
   }
 };
 `;
+
+var defaultMixin = `var mixins = {
+  dataModel:{
+    someVar:''
+  },
+  methods: {
+    someFunc: {
+      args:["param1", "param2"],
+      body: 'return "some return value";'
+    }
+  },
+  computed: {
+    someComputedVal: {
+      body: "return this.someVar+'.';"
+    }
+  },
+  watch: {
+    someVar: {
+      args: ["val"],
+      body: "console.log(val);"
+    }
+  },
+  filters: {
+    date: {
+      args: ["value"],
+      body: "return value?this._moment(value).format('l'):'';"
+    }
+  }
+};
+`;
+
 obj.getDefaultPage = () => {
   return defaultPage;
 }
@@ -265,15 +298,28 @@ obj.getDefaultComponent = () => {
   return defaultComponent;
 }
 
+obj.getDefaultMixin = () => {
+  return defaultMixin;
+}
+
 obj.sandboxedStringToJSON = ( src ) => {
-  if (src.indexOf('uiConfig')<0) {
-    throw 'Missing uiConfig object.';
+  if (src.indexOf('var uiConfig')<0) {
+    throw 'Missing "var uiConfig" declaration.';
   }
   var func = Function.apply( null, [src+'\nreturn uiConfig;\n'] );
   return (func)();
 }
 
-obj.checkStructure = ( vcdn, isComponent ) => {
+obj.sandboxedMixinStringToJSON = ( src ) => {
+  if (src.indexOf('var mixins')<0) {
+    throw 'Missing "var mixins" declaration.';
+  }
+  var func = Function.apply( null, [src+'\nreturn mixins;\n'] );
+  return (func)();
+}
+
+obj.checkStructure = ( vcdn, structureType ) => {
+  structureType = structureType || 'page';
   var errors = [];
   function makeFunction( funcType, funcSpec, name ) {
     try {
@@ -451,25 +497,49 @@ obj.checkStructure = ( vcdn, isComponent ) => {
       }
     }
   }
-  var validPropertiesMap = {
-    components:'array',
-//    externalComponents:'array',
-    dataModel:'object',
-    methods:'object',
-    computed:'object',
-    filters:'object',
-    watch:'object',
-    appFrame:'object',
-    uiSchema:'object'
+  var validPropertiesMaps = {
+    page: {
+      components:'array',
+      dataModel:'object',
+      methods:'object',
+      computed:'object',
+      mixins:'array',
+      filters:'object',
+      watch:'object',
+      appFrame:'object',
+      uiSchema:'object'
+    },
+    component: {
+      props: 'object',
+      components:'array',
+      dataModel:'object',
+      methods:'object',
+      computed:'object',
+      mixins:'array',
+      filters:'object',
+      watch:'object',
+      uiSchema:'object'
+    },
+    mixin: {
+      dataModel:'object',
+      methods:'object',
+      computed:'object',
+      filters:'object',
+      watch:'object'
+    }
   };
   Object.keys(vcdn).forEach(p=>{
     var obj = vcdn[p];
+    var validPropertiesMap = validPropertiesMaps[structureType]||{};
     var objType = validPropertiesMap[p];
-    if (!objType && !(isComponent && (p=='props' || p=='componentId' || p=='organizationId')) ) {
+    if (!objType) {
       errors.push(`Invalid root property "${p}" - (${Object.keys(validPropertiesMap).join(', ')})`);
     }
-    if (((objType=='array') && !Array.isArray(obj)) || ((objType=='object') && !isObject(obj))) {
-      errors.push(`Root property ${p} type is invalid (Object or Array required)`);
+    if ((objType=='array') && !Array.isArray(obj)) {
+      errors.push(`Root property ${p} type is invalid (Array expected).`);
+    }
+    if ((objType=='object') && !isObject(obj)) {
+      errors.push(`Root property ${p} type is invalid (Object expected).`);
     }
     if (p == 'components') {
       validateComponents( obj );

@@ -2,7 +2,7 @@
   <div>
     <v-data-table
       :headers="headers"
-      :items="components"
+      :items="mixins"
       hide-default-footer disable-pagination
       class="elevation-1"
     >
@@ -13,24 +13,24 @@
           <v-icon @click.stop="deleteItem(item)">mdi-trash-can</v-icon>
         </td>
         <td v-if="isAdmin">{{item.organizationId}}</td>
-        <td>{{ item.componentId }}</td>
+        <td>{{ item.mixinId }}</td>
         <td>{{ item.source}}</td>
         <td>{{ item.status}}</td>
         <td v-if="isAdmin">{{item.isApproved?'APPROVED':''}}</td>
         </tr>
       </template>
       <template v-slot:[`body.append`]>
-       <v-btn color="primary" dark class="mb-3" @click.native="editItem()">New Component</v-btn>
+       <v-btn color="primary" dark class="mb-3" @click.native="editItem()">New Mixin</v-btn>
       </template>
     </v-data-table>
     <v-dialog v-model="dialog" @keydown.esc.prevent="dialog = false" max-width="100%" persistent scrollable overlay-opacity="0.2">
       <v-card>
         <v-card-title>
-          <span class="text-h5">{{editedItem._id?'Edit':'Add'}} Component</span>
+          <span class="text-h5">{{editedItem._id?'Edit':'Add'}} Mixin</span>
         </v-card-title>
         <v-card-text>
           <v-form ref="appForm" v-model="valid" lazy-validation>
-            <v-text-field v-model="editedItem.componentId" label="Component Id" required :rules="[rules.required, rules.elementName]"></v-text-field>
+            <v-text-field v-model="editedItem.mixinId" label="Mixin Id" required :rules="[rules.required, rules.elementName]"></v-text-field>
             <v-radio-group v-model="editedItem.source" row label="Source">
               <v-radio label='App Server' value='App Server'></v-radio>
               <v-radio label='CloudHaven' value='CloudHaven'></v-radio>
@@ -90,7 +90,7 @@
 
   import { TiptapVuetify, Heading, Bold, Italic, Strike, Underline, Code, Paragraph, BulletList, OrderedList, ListItem, Link, Blockquote, HardBreak, HorizontalRule, History } from 'tiptap-vuetify';
 
-  const defaultDocumentation = "<h2>Description</h2><p>Add a description of this component here...</p><h2>Properties (props)</h2><ul><li><p>prop1 (String)<br>prop1 is for ...</p></li><li><p>prop2 (Object)<br>prop2 is for ...</p></li></ul><h2>Events</h2><ul><li><p>input<br>parameter: the parameter for this event contains...<br>input event occurs when... </p></li><li><p>event2<br>parameter: the parameter for this event contains...<br>event2 occurs when... <br></p></li></ul>";
+  const defaultDocumentation = "<h2>Description</h2><p>Add a description of this mixin here...</p><h2>Properties (props)</h2><ul><li><p>prop1 (String)<br>prop1 is for ...</p></li><li><p>prop2 (Object)<br>prop2 is for ...</p></li></ul><h2>Events</h2><ul><li><p>input<br>parameter: the parameter for this event contains...<br>input event occurs when... </p></li><li><p>event2<br>parameter: the parameter for this event contains...<br>event2 occurs when... <br></p></li></ul>";
 
   export default {
     components: { PrismEditor, TiptapVuetify },
@@ -100,7 +100,7 @@
       valid: true,
       rawHeaders: [
         { text: 'Actions', value: 'name', sortable: false, align:'center', width:"80px" },
-        { text: 'Name (Id)', align: 'left', sortable: true, value: 'componentId' },
+        { text: 'Name (Id)', align: 'left', sortable: true, value: 'mixinId' },
         { text: 'Source', align: 'left', sortable: true, value: 'source' },
         { text: 'Status', align: 'left', sortable:true, name: 'status'}
       ],
@@ -114,14 +114,14 @@
       keyword: '',
       defaultPage: {
         _id: '',
-        componentId: '',
+        mixinId: '',
         source: 'App Server',
         status: 'Draft',
         keywords: [],
         documentation: defaultDocumentation,
-        content: vcdnUtils.getDefaultComponent()
+        content: vcdnUtils.getDefaultMixin()
       },
-      editedItem: {keywords:[], content: vcdnUtils.getDefaultComponent()},
+      editedItem: {keywords:[], content: vcdnUtils.getDefaultMixin()},
       errors: [],
       extensions: [
         History,
@@ -157,23 +157,23 @@
           return this.rawHeaders;
         }
       },
-      components() {
+      mixins() {
         if (this.isAdmin) {
-          var comps = this.organizations.reduce((ar,org)=>{
-            org.components.forEach(c=>{
-              var comp = Object.assign({organizationId:org.organizationId}, c);
-              ar.push(comp);
+          var mixins = this.organizations.reduce((ar,org)=>{
+            org.mixins.forEach(c=>{
+              var mixin = Object.assign({organizationId:org.organizationId}, c);
+              ar.push(mixin);
             })
             return ar;
           },[]);
-          comps = comps.sort((a,b)=>{
-            var aKey = a.organizationName+'-'+a.componentId;
-            var bKey = b.organizationName+'-'+b.componentId;
+          mixins = mixins.sort((a,b)=>{
+            var aKey = a.organizationName+'-'+a.mixinId;
+            var bKey = b.organizationName+'-'+b.mixinId;
             return aKey<bKey?-1:(aKey>bKey?1:0);
           });
-          return comps;
+          return mixins;
         } else {
-          return this.organization.components;
+          return this.organization.mixins;
         }
       },
       isAdmin() {
@@ -188,7 +188,7 @@
     },
 
     mounted () {
-      this.content = vcdnUtils.getDefaultComponent();
+      this.content = vcdnUtils.getDefaultMixin();
       if (this.isAdmin) {
         this.$store.commit('SET_CRUDAPISERVCE', 'organizations');
         this.loadOrganizations();
@@ -216,8 +216,8 @@
         return {
           operation: operation,
           organization_Id:this.organization._id,
-          component_Id: this.editedItem._id,
-          componentId: this.editedItem.componentId,
+          mixin_Id: this.editedItem._id,
+          mixinId: this.editedItem.mixinId,
           source: this.editedItem.source,
           status: this.editedItem.status,
           keywords: this.editedItem.keywords,
@@ -226,11 +226,11 @@
         };
       },
       editItem (item) {
-        if (!this.organization.components) this.organization.components = [];
-        this.editedIndex = item?this.organization.components.findIndex((component) => {return component._id === item._id;}):-1;
+        if (!this.organization.mixins) this.organization.mixins = [];
+        this.editedIndex = item?this.organization.mixins.findIndex((mixin) => {return mixin._id === item._id;}):-1;
         this.editedItem = Object.assign({}, item?item:{
           _id: '',
-          componentId:'',
+          mixinId:'',
           source: 'App Server',
           status: 'Draft',
           keywords: [],
@@ -239,7 +239,7 @@
         });
         if (!item || !Array.isArray(item.keywords)) this.editedItem.keywords = [];
         if (!item || !this.editedItem.content) {
-          this.editedItem.content = vcdnUtils.getDefaultComponent();
+          this.editedItem.content = vcdnUtils.getDefaultMixin();
         }
         if (!item ||!this.editedItem.documentation) {
           this.editedItem.documentation = defaultDocumentation;
@@ -250,22 +250,22 @@
 
       deleteItem (item) {
         var vm = this;
-        const index = this.organization.components.findIndex((component) => {return component._id === item._id;})
-        if (confirm('Are you sure you want to delete '+item.componentId+'?')) {
+        const index = this.organization.mixins.findIndex((mixin) => {return mixin._id === item._id;})
+        if (confirm('Are you sure you want to delete '+item.mixinId+'?')) {
           if (item._id) {
             (async () => {
-              var response = await Api().delete('/organizationcomponent/'+this.organization._id+'/'+item._id);
+              var response = await Api().delete('/organizationmixin/'+this.organization._id+'/'+item._id);
               if (response.data.success) {
-                EventBus.$emit('global success alert', `${item.componentId} deleted.`);
-                vm.$emit('orgCompsChanged', response.data.components);
-                this.organization.components.splice(index, 1);
+                EventBus.$emit('global success alert', `${item.mixinId} deleted.`);
+                vm.$emit('orgMixinsChanged', response.data.mixins);
+                this.organization.mixins.splice(index, 1);
                 this.$store.dispatch('loadRecords', 'organizations');
               } else if (response.data.errMsg) {
                 EventBus.$emit('global error alert', response.data.errMsg );
               }
             })();
           } else {
-            this.organization.components.splice(index, 1);
+            this.organization.mixins.splice(index, 1);
           }
         }
       },
@@ -284,19 +284,19 @@
         var operation = this.editedIndex > -1 ? 'update' : 'add';
         var errors = [];
         try {
-          var uiConfig = vcdnUtils.sandboxedStringToJSON(this.editedItem.content);
-          errors = vcdnUtils.checkStructure(uiConfig, 'component') || [];
+          var uiConfig = vcdnUtils.sandboxedMixinStringToJSON(this.editedItem.content);
+          errors = vcdnUtils.checkStructure(uiConfig, 'mixin') || [];
         } catch (e) {
           errors.push(e+'');
         }
         this.errors = errors;
         if (operation == 'update' || this.organization._id) {
           (async () => {
-            var response = await Api().post('/organizationcomponent', this.createFormData(operation));
+            var response = await Api().post('/organizationmixin', this.createFormData(operation));
             if (response.data.success) {
-              EventBus.$emit('global success alert', `${this.editedItem.componentId} ${operation=='update'?'updated':'added'}.`);
+              EventBus.$emit('global success alert', `${this.editedItem.mixinId} ${operation=='update'?'updated':'added'}.`);
               if (this.errors.length==0) {
-                vm.$emit('orgCompsChanged', response.data.components);
+                vm.$emit('orgMixinsChanged', response.data.mixins);
                 this.dialog = false;
               }
             } else if (response.data.errMsg) {
@@ -304,7 +304,7 @@
             }
           })();
         } else {
-          this.organization.components.push(this.editedItem)
+          this.organization.mixins.push(this.editedItem)
           this.dialog = false;
         }
       }

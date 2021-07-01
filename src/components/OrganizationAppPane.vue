@@ -38,7 +38,8 @@ export default {
     return {
       component: 'VSheet',
       app: {},
-      uiConfig:{components:[]}
+      uiConfig:{components:[]},
+      mixinWork:[]
     }
   },
   mounted() {
@@ -81,7 +82,7 @@ export default {
         var response = await Api().post('/organizationapplication/getapppage', {app:pApp, page:page});
         if (response.data.success) {
           this.uiConfig = Object.assign({},response.data.data);
-          var errors = vcdnUtils.checkStructure(this.uiConfig) || [];
+          var errors = vcdnUtils.checkStructure(this.uiConfig, 'page') || [];
           if (errors.length>0) {
             console.log('Errors:\n'+errors.join('\n'));
             EventBus.$emit('global error alert', 'Syntax errors in page (see console log).');
@@ -99,6 +100,11 @@ export default {
   },
   methods: {
     getComponents() {
+      if (this.uiConfig.mixins && this.uiConfig.mixins.length>0) {
+        var mixinRequests = this.uiConfig.mixins;
+        this.uiConfig.mixins = [];
+        this.mixinWork.push({mixinRequests:mixinRequests, mixinsTarget:this.uiConfig.mixins})
+      }
       var extComps = [];
       findExternalComponents( this.uiConfig.uiSchema, extComps );
       if (extComps) {
@@ -122,7 +128,7 @@ export default {
             
             var gotErrors = false;
             components.forEach(component =>{
-              var errors = vcdnUtils.checkStructure(component, true);
+              var errors = vcdnUtils.checkStructure(_.omit(component, ['organizationId', 'componentId']), 'component');
               if (errors) {
                 console.log('Component "'+component.componentId+'" errors:\n'+errors.join('\n'));
                 gotErrors = true;
@@ -133,12 +139,69 @@ export default {
               return;
             }            
             this.uiConfig.components = components;
+            components.forEach(comp=>{
+              var mixinRequests = [];
+              comp.mixins = comp.mixins||[];
+              comp.mixins.forEach(mxn=>{
+                if (mxn.mixinId) {
+                  mixinRequests.push(mxn);
+                }
+              });
+              if (mixinRequests.length>0) {
+                this.mixinWork.push({mixinRequests:mixinRequests, mixinsTarget:comp.mixins});
+              }
+            })
           }
-          this.component = 'DynamicUI';
+          this.processMixinWork();
         })();
       } else {
-          this.component = 'DynamicUI';
+          this.processMixinWork();
       }
+    },
+    processMixinWork() {
+      var mw = this.mixinWork;
+      if (this.mixinWork.length==0) {
+        this.component = 'DynamicUI';
+        return;
+      }
+      (async () => {
+        var allMixinRequests = this.mixinWork.reduce((ar,mw)=>{
+          ar = ar.concat(mw.mixinRequests);
+          return ar;
+        },[]);
+        var response = await Api().post('/organizationmixin/getmixins', {status: 'Published', mixinRequests:allMixinRequests});
+        if (response.status==200 && response.data.success) {
+          //mixinMap and rawMixinMap(stringSource, organizationId, mixinId)
+          var mixinMap = response.data.mixinMap;
+          var rawMixinMap = response.data.rawMixinMap;
+          var gotErrors = false;
+          this.mixinWork.forEach(work=>{
+            work.mixinRequests.forEach(req=>{
+              var key = req.organizationId+':'+req.mixinId;
+              var mixin = null;
+              if (mixinMap[key]) {
+                mixin = mixinMap[key];
+              } else if (rawMixinMap[key]) {
+                try {
+                  mixin = vcdnUtils.sandboxedMixinStringToJSON(rawMixinMap[key]);
+                } catch(e) {
+                  console.log(`Org ${req.organizationId} - Mixin ${req.mixinId} error: ${e+''}.`);
+                }
+              }
+              var errors = vcdnUtils.checkStructure(mixin, 'mixin');
+              if (errors) {
+                console.log('Mixin "'+req.mixinId+'" errors:\n'+errors.join('\n'));
+                gotErrors = true;
+              }
+              if (!gotErrors && mixin) {
+                work.mixinsTarget.push(mixin);
+              }
+            })
+          })
+          
+        }
+        this.component = 'DynamicUI';
+      })();
     }
   }
 }

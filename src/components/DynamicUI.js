@@ -982,13 +982,43 @@ function makeProps( propsCfg) {
     return mp;
   },{}):{}
 }
+
+function addInMixinsDataModel( cfg, dataObj ) {
+  if (!cfg.mixins || cfg.mixins.length==0) return;
+  cfg.mixins.forEach(mixins=>{
+    if (mixins.dataModel) {
+      Object.keys(mixins.dataModel).forEach(dataItem=>{
+        if (!dataObj[dataItem]) {
+          dataObj[dataItem] = mixins.dataModel[dataItem];
+        }
+      })
+    }
+  })
+}
+function addInMixins( cfg ) {
+  if (!cfg.mixins || cfg.mixins.length==0) return;
+  cfg.mixins.forEach(mixins=>{
+    ['methods', 'computed', 'filters', 'watch'].forEach(rootProp=>{
+      if (mixins[rootProp]) {
+        cfg[rootProp] = cfg[rootProp] || {};
+        Object.keys(mixins[rootProp]).forEach(prop=>{
+          if (!cfg[rootProp][prop]) {
+            cfg[rootProp][prop] = mixins[rootProp][prop];
+          }
+        })
+      }
+    })
+  })
+}
 function makeDynamicComponent( pCtx, cCfg ) {
   var ctx = {rootThis:null, route:pCtx.route, app:pCtx.app};
+  addInMixins(cCfg);
   return Vue.component(cCfg.componentId, {
     props: makeProps( cCfg.props ),
     data() {
       var dataObj = Object.assign({cloudHavenUserId:''},cCfg.dataModel || {});
       dataObj.ctx = ctx || {};
+      addInMixinsDataModel( cCfg, dataObj );
       return dataObj;
     },
     vuetify,
@@ -1104,6 +1134,8 @@ const DynamicUI = Vue.component('DynamicUI', {
     var dataModel = this.uiConfig.dataModel;
     var uiSchema = this.uiConfig.uiSchema;
     var components = this.uiConfig.components;
+    var uiConfig = this.uiConfig;
+    addInMixins(this.uiConfig);
     this.innerVueInstance = new Vue({
       props: this.props || {},
       el: '#dynamicUIDiv',
@@ -1112,6 +1144,7 @@ const DynamicUI = Vue.component('DynamicUI', {
         dataObj.ctx = ctx || {};
         dataObj.components = {};
         dataObj._currentUser = {};
+        addInMixinsDataModel( uiConfig, dataObj );
         return dataObj;
       },
       store: this.$store,

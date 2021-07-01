@@ -111,7 +111,6 @@ import moment from 'moment';
         return this.activeList!=2?this.myTasksHeaders:this.unassignedTasksHeaders;
       },
       tasks() {
-        debugger;
         if (this.activeList==1) {
           return this.myTasks.filter(t=>(!t.isDone));
         } else if (this.activeList==2) {

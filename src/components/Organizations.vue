@@ -34,12 +34,14 @@
         <td>{{item.organization.name}}</td>
         <td>{{item.organization.organizationId}}</td>
         <td>{{item.organization.componentsUrl}}</td>
+        <td>{{item.organization.mixinsUrl}}</td>
        </tr>
       </template>
     </v-data-table>
     <v-tabs dark fixed-tabs background-color="#1E5AC8" color="#FFF10E" class="mt-5">
     <v-tab>Applications</v-tab>
     <v-tab>Components</v-tab>
+    <v-tab>Mixins</v-tab>
     <v-tab>Groups</v-tab>
     <!--v-tab>Members</v-tab-->
     <v-tab-item>
@@ -47,6 +49,9 @@
     </v-tab-item>
     <v-tab-item>
       <OrganizationComponentsSublist :key="key" :organization="activeOrg" @orgCompsChanged="orgCompsChanged"/>
+    </v-tab-item>
+    <v-tab-item>
+      <OrganizationMixinsSublist :key="key" :organization="activeOrg" @orgMixinsChanged="orgMixinsChanged"/>
     </v-tab-item>
     <v-tab-item>
       <OrganizationGroups :organization="isAdmin?cloudHavenOrg:editedOrg.organization" />
@@ -67,6 +72,7 @@
           <v-text-field :readonly="editedOrg.organization.organizationId=='cloudhaven'" v-model="editedOrg.organization.name" label="Name" required :rules="[rules.required]"></v-text-field>
           <v-text-field :readonly="editedOrg.organization.organizationId=='cloudhaven'" v-model="editedOrg.organization.organizationId" label="Id" required :rules="[rules.required]"></v-text-field>
           <v-text-field v-if="editedOrg.organization.organizationId!='cloudhaven'" v-model="editedOrg.organization.componentsUrl" label="Components URL" :rules="[rules.url]"></v-text-field>
+          <v-text-field v-if="editedOrg.organization.organizationId!='cloudhaven'" v-model="editedOrg.organization.mixinsUrl" label="Mixins URL" :rules="[rules.url]"></v-text-field>
         </v-form>
       </v-card-text>
 
@@ -89,12 +95,14 @@ import { EventBus } from '../event-bus.js';
 import OrganizationMembersSublist from './OrganizationMembersSublist.vue'
 import OrganizationAppsSublist from './OrganizationAppsSublist.vue'
 import OrganizationComponentsSublist from './OrganizationComponentsSublist.vue'
+import OrganizationMixinsSublist from './OrganizationMixinsSublist.vue'
 import OrganizationGroups from './OrganizationGroups.vue'
   export default {
     components: {
       OrganizationMembersSublist,
       OrganizationAppsSublist,
       OrganizationComponentsSublist,
+      OrganizationMixinsSublist,
       OrganizationGroups
     },
     data: () => ({
@@ -120,7 +128,8 @@ import OrganizationGroups from './OrganizationGroups.vue'
         { text: 'Is Admin', align:'left', sortable:true, value: 'isAdmin' },
         { text: 'Name', align:'left', sortable:true, value: 'organization.name' },
         { text: 'Organization Id', align:'left', sortable:true, value: 'organization.organizationId' },
-        { text: 'Comonents URL', align:'left', sortable:true, value: 'organization.componentsUrl' }
+        { text: 'Comonents URL', align:'left', sortable:true, value: 'organization.componentsUrl' },
+        { text: 'Mixins URL', align:'left', sortable:true, value: 'organization.mixinsUrl' }
       ],
 /*      editedOrgId: '',
       editedOrg: {
@@ -181,6 +190,9 @@ import OrganizationGroups from './OrganizationGroups.vue'
         this.loadRecords();
       },
       orgCompsChanged() {
+        this.loadRecords();
+      },
+      orgMixinsChanged() {
         this.loadRecords();
       },
       loadRecords() {

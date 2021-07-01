@@ -290,7 +290,7 @@
         var errors = [];
         try {
           var uiConfig = vcdnUtils.sandboxedStringToJSON(this.page.content);
-          errors = vcdnUtils.checkStructure(uiConfig) || [];
+          errors = vcdnUtils.checkStructure(uiConfig, 'page') || [];
         } catch (e) {
           errors.push(e+'');
         }
