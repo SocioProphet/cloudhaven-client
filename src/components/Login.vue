@@ -61,8 +61,8 @@
           </v-tabs>
           <v-sheet v-else max-width="90%" class="justify-center align-center mt-auto mb-auto">
             <v-spacer/>
-            <div class="my-5">Please click the link in the verification email to complete registration and enable your login.<br/><br/>
-            If your verification code is older that 20 minutes, press the button below to get a new verification email and code:
+            <div class="my-5">To complete registration, please check your email system for an email with the subject "CloudHaven account email verification". Open it and click the corresponding link. You will then be redirected to a page where you must enter an organization associated with your account (if it doesn't already exist it will be added otherwise you account will be associated with the existing one).<br/><br/>
+            Note that the verification code (encoded in the link) expires after 10 minutes. If necessary, press the button below to get a new verification email:
             <v-btn primary large dark  color="#00528d" class="mt-5" @click="resendVerificationEmail">Send another verification email</v-btn>
             <v-alert class="mt-4 mx-4" v-if="showVerifEmailSent" dense type="success">Verification email sent.</v-alert>
             </div>
@@ -91,7 +91,7 @@
       this.showVerifEmailSent = false;
     },
     methods: {
-      waitForEmailVerification() {
+/*      waitForEmailVerification() {
          this.showNeedEmailConf = true;
          this.timerId = setInterval(() => {
             this.checkVerificationReceived();
@@ -105,14 +105,14 @@
             this.goHome(response.data.user);
           }
         })();
-      },
+      },*/
       resendVerificationEmail() {
         this.showVerifEmailSent = false;
         (async () => {
           var response = await Api().get('/resendverificationemail/'+(this.loginEmail||this.email));
           if (response.data.success) {
             this.showVerifEmailSent = true;
-            this.waitForEmailVerification();
+//            this.waitForEmailVerification();
           }
         })();
       },
@@ -127,7 +127,7 @@
             }
             var response = await Api().post('/signup', user);
             if (response.data.success) {
-              this.waitForEmailVerification();
+//              this.waitForEmailVerification();
             } else if (response.data.errMsg) {
               this.registerErrMsg = response.data.errMsg;
             }
@@ -158,7 +158,7 @@
           this.$store.dispatch('login', { email, password })
           .then((user) => {
             if (user.status == 'Email Verification Pending') {
-              this.waitForEmailVerification();
+//              this.waitForEmailVerification();
             } else if (user.status == 'Need Organization Assignment') {
               this.$router.push('/createorassignorg');
             } else {
