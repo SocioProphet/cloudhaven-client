@@ -38,7 +38,8 @@ export default new Vuex.Store({
           resolve(resp.data.user);
         })
         .catch(err => {
-          reject(err.response.status)
+          console.log("reloadUser error: "+err);
+          reject(err)
         })
       });
     },
