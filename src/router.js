@@ -20,6 +20,7 @@ import AppPageReset from './components/AppPageReset'
 import OrganizationAppPane from './components/OrganizationAppPane'
 import OrganizationCalendar from './components/OrganizationCalendar'
 import CreateOrAssignOrg from './components/CreateOrAssignOrg'
+import NeedEmailConf from './components/NeedEmailConf'
 
 Vue.use(Router)
 
@@ -40,6 +41,11 @@ let router = new Router({
       path: '/tasks',
       name: 'tasks',
       component: Tasks
+    },
+    {
+      path: '/needemailconf',
+      name: 'NeedEmailConf',
+      component: NeedEmailConf
     },
     {
       path: '/createorassignorg',
@@ -135,12 +141,22 @@ let router = new Router({
 router.beforeEach((to, from, next) => {
   if(to.matched.some(record => (record.name!='login'))) {
     if (store.getters.isLoggedIn) {
+      var xxx = store.state.user;
       if (to.matched[0].props.default && to.matched[0].props.default.apAuthReqd && (
         store.state.user.rolesMap['SYSADMIN']==null)) {
           EventBus.$emit('global success alert', 'Unauthorized access');
           next('/')
           return;
       }
+      if (to.name!='NeedEmailConf' && (store.state.user.status == 'Email Verification Pending' || store.state.user.status == 'Verification Code Expired')) {
+        next('/needemailconf');
+        return;
+      }
+      if (to.name!='CreateOrAssignOrg' && store.state.user.status == 'Need Organization Assignment') {
+        next('/createorassignorg');
+        return;
+      }
+
       next()
       return
     }

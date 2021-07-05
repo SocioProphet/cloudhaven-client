@@ -27,19 +27,21 @@ import { mapState } from 'vuex'
 import { EventBus } from '../event-bus.js';
 import Api from '@/services/Api'
 import router from '../router'
+import appPlaceHolderDataURI from '../includes/appPlaceHolderDataURI.js';
   export default {
     components: {
     },
     data: () => ({
       dialog: false,
       valid: true,
-      rawSubscriptions: []
+      rawSubscriptions: [],
+      appPlaceHolderDataURI:appPlaceHolderDataURI
 
     }),
 
     computed: {
       emptyLogo() {
-        return "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7";
+        return this.appPlaceHolderDataURI;
       },
       applications() {
         return this.rawSubscriptions.map((a)=>{

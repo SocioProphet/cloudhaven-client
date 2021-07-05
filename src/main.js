@@ -107,6 +107,7 @@ Vue.use(VuetifyConfirm, {
   property: '$confirm',
   persistent: true
 });
+
 new Vue({
   vuetify,
   router,

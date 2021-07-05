@@ -14,7 +14,7 @@ export default new Vuex.Store({
     currentRole:'',
     status: '',
     token: localStorage.getItem('token') || '',
-    user: {rolesMap:{}},
+    user: {rolesMap:{}, state:''},
     userSettings: {},
     routerParams: {}
   },
@@ -184,7 +184,7 @@ export default new Vuex.Store({
         state.user = JSON.parse(jsonUser);
       }
       state.currentRole = localStorage.getItem('cloudHavenCurrentRole')
-      if (cb) (cb)()
+      if (cb) (cb)(state.user)
     },
     auth_success(state, payload){
       state.status = 'success';

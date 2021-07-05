@@ -5,14 +5,14 @@
     </v-toolbar>
     <v-layout>
       <v-row no-gutters>
-          <v-card class="pa-2 ma-2" elevation="4" v-for="app in applications" :key="app.key" >
+          <v-card class="pa-0 mx-2" elevation="2" v-for="app in applications" :key="app.key" >
             <v-card-title>{{app.name}}</v-card-title>
             <v-card-subtitle>{{app.organization.name}}</v-card-subtitle>
             <v-card-text>
-              <v-img width="150px" :src="app.logoSrc"></v-img>
+              <v-img class="mx-auto" width="150px" :src="app.logoSrc"></v-img>
             </v-card-text>
             <v-card-actions>
-              <v-btn text color="green darken-1" @click.stop="subscribe(app)" >
+              <v-btn class="mx-auto" text color="green darken-1" @click.stop="subscribe(app)" >
                 Subscribe
               </v-btn>
             </v-card-actions>
@@ -26,6 +26,7 @@
 import { mapState } from 'vuex'
 import { EventBus } from '../event-bus.js';
 import Api from '@/services/Api'
+import appPlaceHolderDataURI from '../includes/appPlaceHolderDataURI.js';
   export default {
     components: {
     },
@@ -37,7 +38,7 @@ import Api from '@/services/Api'
 
     computed: {
       emptyLogo() {
-        return "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7";
+        return appPlaceHolderDataURI;
       },
       ...mapState([ 'user'])
     },

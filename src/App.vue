@@ -94,7 +94,6 @@ import { mapState } from 'vuex'
 import { EventBus } from './event-bus.js';
 import Api from '@/services/Api'
 import router from './router'
-import lodash from 'lodash'
 const CloudHavenAppDetails = {
   name: 'CloudHaven',
   appBarStyle: {background: 'linear-gradient(to bottom, #FFFFFF -100%, #00528d 100%)'},
@@ -160,9 +159,6 @@ export default {
     $route () {
         this.leftDrawer = false;
     },
-    isOrganization() {
-      this.goHome();
-    },
     pwdDialog (val) {
       if (!val) {
         this.closePwdDlg()
@@ -170,7 +166,16 @@ export default {
     }
   },
   beforeCreate() {
-    this.$store.commit('reload_user');
+    this.$store.commit('reload_user', ()=>{
+      this.$store.dispatch('reloadUser')
+      .then (user=>{
+        if (user.status == 'Email Verification Pending') {
+          this.$router.push({ name: 'NeedEmailConf' })        
+        } else if (user.status == 'Need Organization Assignment') {
+          this.$router.push('/createorassignorg');
+        }
+      })
+    })
   },
   mounted() {
     var vm = this;
@@ -195,11 +200,7 @@ export default {
     },
     isLoggedIn : function(){ return this.$store.getters.isLoggedIn},
     ...mapState([ 'user' ]),
-    isOrganization() {
-      return this.user.rolesMap['ORGANIZATION']!=null;
-    },
     menuItems() {
-//      if (this.user.rolesMap['SYSADMIN']) {
       if (this.appDetails.name == CloudHavenAppDetails.name || !this.appDetails.menuItems) {
         return this.user.roles.find(r=>(r=='SYSADMIN'))?CloudHavenAppDetails.sysAdminMenuItems:CloudHavenAppDetails.userMenuItems;
       }
@@ -208,16 +209,6 @@ export default {
         menuItems.push({ name: 'AppPageReset', params: { app:_.omit(this.appDetails,['logo']), page:m.page }, title: m.title })
       })
       return menuItems;
-        /*,
-        { route: 'auditLog', action: '', title: 'Audit Log'},
-        { route: 'eventLog', action: '', title: 'Event Log'}
-      } else if (this.isOrganization) {
-        return [
-        { route: 'organizationcalendar', action: '', title: 'Organization Calendar'},
-        { route: null, action: this.chgPwd, title: 'Change Password'}
-        ];
-      }
-      return [];*/
     }
   },
   methods: {
@@ -292,8 +283,9 @@ export default {
     logout() {
       this.$store.dispatch('logout')
       .then(() => {
-        this.appDetails = Object.assign({}, CloudHavenAppDetails);
-        this.$router.push('/login');
+        window.location="/";
+//        this.appDetails = Object.assign({}, CloudHavenAppDetails);
+//        this.$router.push('/login');
       })
     },
     gotoCloudHaven() {
