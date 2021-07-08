@@ -171,7 +171,7 @@
       },
       goHome(user) {
         EventBus.$emit('set app frame'); //Reset to CloudHaven appFrame
-        this.$router.push(user.subscribedApps.length==0?'/appstore': '/home')
+        this.$router.push(user.roles.find(r=>{'SYSADMIN'})?'/organizations':'/welcome');
       }
     },
     data(){

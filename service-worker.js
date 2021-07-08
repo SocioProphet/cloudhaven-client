@@ -1,7 +1,7 @@
 
 workbox.core.setCacheNameDetails({prefix: "cloudhaven"});
 
-const LATEST_VERSION = 'v0.03'
+const LATEST_VERSION = 'v0.05'
 self.addEventListener('activate', (event) => {
   console.log(`%c ${LATEST_VERSION} `, 'background: #ddd; color: #0000ff')
   if (caches) {

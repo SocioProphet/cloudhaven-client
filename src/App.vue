@@ -53,7 +53,7 @@
         </template>
         <span>Home</span>
       </v-tooltip>
-      <v-tooltip v-if="showHomeIcon" bottom color="#2572d2" light>
+      <v-tooltip bottom color="#2572d2" light>
         <template v-slot:activator="{ on, attrs }">
           <div class="cloudHavenIcon mr-1" @click="gotoCloudHaven" v-bind="attrs" v-on="on"/>
         </template>
@@ -84,7 +84,7 @@
       <router-view/>
     </v-main>
     <v-footer :fixed="fixed" app :style="{background: 'linear-gradient(to top, #FFFFFF -100%, #00528d 100%)'}">
-      <span class="white--text">&copy; CloudHaven @ 2020-2021 &nbsp;&nbsp;(v0.03)</span>
+      <span class="white--text">&copy; CloudHaven @ 2020-2021 &nbsp;&nbsp;(v0.05)</span>
     </v-footer>
   </v-app>
 </template>
@@ -109,10 +109,11 @@ const CloudHavenAppDetails = {
     { route: 'ViewUserData', action: '', title: 'View User Data' }
   ],
   userMenuItems: [
+    { route: 'Welcome', action: '', title: 'Welcome'},
     { route: 'MyApps', action: '', title: 'My Apps' },
     { route: 'AppStore', action: '', title: 'App Store' },
     { route: 'MyProfile', action: '', title: 'My Profile'},
-    { route: 'organizations', action: '', title: 'My Organizations'}
+    { route: 'organizations', action: '', title: 'Develop'}
   ]
 };
 export default {

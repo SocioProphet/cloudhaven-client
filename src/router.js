@@ -21,6 +21,7 @@ import OrganizationAppPane from './components/OrganizationAppPane'
 import OrganizationCalendar from './components/OrganizationCalendar'
 import CreateOrAssignOrg from './components/CreateOrAssignOrg'
 import NeedEmailConf from './components/NeedEmailConf'
+import Welcome from './components/Welcome'
 
 Vue.use(Router)
 
@@ -36,6 +37,11 @@ let router = new Router({
       path: '/mail',
       name: 'mail',
       component: Mail
+    },
+    {
+      path: '/welcome',
+      name: 'Welcome',
+      component: Welcome
     },
     {
       path: '/tasks',
