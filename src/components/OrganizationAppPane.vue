@@ -13,7 +13,6 @@ import vcdnUtils from '../_helpers/vcdnutils.js'
 
 function findExternalComponents( uiSchema, comps ) {
   if (!uiSchema) return;
-  debugger;
   if (Array.isArray(uiSchema)) {
     uiSchema.forEach(e=>{
       findExternalComponents( e, comps );

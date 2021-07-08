@@ -303,7 +303,6 @@
               EventBus.$emit('global success alert',  `${this.page.name} ${operation=='update'?'updated':'added'}.`);
               if (errors.length==0) {
                 this.pageDialog = false;
-                debugger;
                 var newPage = response.data.pages.find(p=>(p.name==this.page.name));
                 this.page._id = newPage._id;
                 vm.$emit('pagesChanged', response.data.pages );

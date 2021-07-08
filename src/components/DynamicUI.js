@@ -364,7 +364,6 @@ function makeComponent( h, metaData, ctx, pScopedProps ) {
     return children;
   }
   if (metaData.component == 'dynamicComponent') {
-    debugger;
     var compKey = (metaData.organizationId||'')+'-'+metaData.componentId;
     if (!ctx.components[compKey]) {
       console.log(`Component ${metaData.componentId} not found.`);
@@ -1051,8 +1050,6 @@ function makeDynamicComponent( pCtx, cCfg ) {
     },
     beforeCreate() {
       if (cCfg.components) {
-        //Should not get here
-        debugger;
         ctx.components = Object.assign({},makeDynamicComponents( ctx, cCfg.components ));
       }
       if (this['beforeCreate']) {
@@ -1137,7 +1134,6 @@ function makeDynamicComponent( pCtx, cCfg ) {
   })
 }
 function makeDynamicComponents( pCtx, components ) {
-  debugger;
   return components.reduce((mp,cCfg)=>{
     mp[(cCfg.organizationId||'')+'-'+cCfg.componentId] = makeDynamicComponent( pCtx, cCfg );
     return mp;
@@ -1156,7 +1152,6 @@ const DynamicUI = Vue.component('DynamicUI', {
     var dataModel = this.uiConfig.dataModel;
     var uiSchema = this.uiConfig.uiSchema;
     var components = this.uiConfig.components;
-    debugger;
     var uiConfig = this.uiConfig;
     addInMixins(this.uiConfig);
     this.innerVueInstance = new Vue({
@@ -1184,7 +1179,6 @@ const DynamicUI = Vue.component('DynamicUI', {
           (this['beforeCreate'])();
         }
         if (components) {
-          debugger;
           ctx.components = Object.assign({},makeDynamicComponents( ctx, components ));
         }
       },
