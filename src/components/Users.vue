@@ -30,8 +30,8 @@
             <v-text-field v-model="editedItem.ssn" label="Social Security Number" :rules="[rules.ssn]"></v-text-field>
             <v-text-field v-if="!editedItem._id" type="password" v-model="editedItem.password" label="Password"></v-text-field>
             <v-select v-model="editedItem.language" :items="['English', 'Spanish']" label="Language" :rules="[rules.required]"></v-select>
-            <v-select v-if="!isOrganization" multiple :items="roleOptions" class="mb-0 pb-0" v-model="editedItem.roles" label="Roles"></v-select>
-            <v-text-field v-if="isOrganization" readonly :value="'Organization'" label="Role"></v-text-field>
+            <v-select multiple :items="roleOptions" class="mb-0 pb-0" v-model="editedItem.roles" label="Roles"></v-select>
+            <v-text-field readonly :value="'Organization'" label="Role"></v-text-field>
             </v-form>
           </v-card-text>
           <v-card-actions>
@@ -149,7 +149,6 @@ import moment from 'moment';
           {value:'SYSADMIN', text:'Administrator'},
           {value:'USER', text:'User'}
       ]
-
     }),
 
     computed: {
@@ -159,10 +158,7 @@ import moment from 'moment';
       formTitle () {
         return this.editedIndex === -1 ? 'New User' : 'Edit User'
       },
-      ...mapState(['organizations', 'users']),
-      isOrganization() {
-        return this.editedItem.roles?this.editedItem.roles.find(r=>(r=='ORGANIZATION'))!=null:false;
-      }
+      ...mapState(['organizations', 'users'])
     },
 
     watch: {

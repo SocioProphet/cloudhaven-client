@@ -154,6 +154,10 @@ router.beforeEach((to, from, next) => {
           next('/')
           return;
       }
+      if (to.name == 'home') {
+        console.log('homePage: '+store.state.user.homePage);
+        next({name:store.state.user.homePage||'Welcone'});
+      }
       if (to.name!='NeedEmailConf' && (store.state.user.status == 'Email Verification Pending' || store.state.user.status == 'Verification Code Expired')) {
         next('/needemailconf');
         return;

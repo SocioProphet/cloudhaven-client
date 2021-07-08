@@ -194,7 +194,7 @@ export default {
   },
   computed: {
     showHomeIcon() {
-      return this.$route.name=='OrganizationAppPane' && this.user.status=='Active'
+      return true; //this.$route.name=='OrganizationAppPane' && this.user.status=='Active'
     },
     appTitle() {
       return this.appDetails.name==CloudHavenAppDetails.name?'': ` ${this.appDetails.name}`

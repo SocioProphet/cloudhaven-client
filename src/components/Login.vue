@@ -159,7 +159,10 @@
             } else if (user.status == 'Need Organization Assignment') {
               this.$router.push('/createorassignorg');
             } else {
-              this.goHome(user);
+              this.$store.dispatch('reloadUser')
+              .then(()=>{
+                this.goHome(user);
+              })
             }
           })
           .catch((error) => {
@@ -171,7 +174,7 @@
       },
       goHome(user) {
         EventBus.$emit('set app frame'); //Reset to CloudHaven appFrame
-        this.$router.push(user.roles.find(r=>{'SYSADMIN'})?'/organizations':'/welcome');
+        this.$router.push({name:'home'});
       }
     },
     data(){

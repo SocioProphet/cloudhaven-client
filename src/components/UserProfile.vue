@@ -15,6 +15,7 @@
               <v-select v-else-if="e.options" v-model="userData[e.id]" :label="e.label" :items="e.options"></v-select>
               <v-text-field v-else :ref="e.id" v-model="userData[e.id]" :label="e.label" :rules="e.validation?[rules[e.validation]]:[]"></v-text-field>
             </div>
+            <v-select :items="homePageOptions" class="mb-0 pb-0" v-model="homePage" label="Home Page" item-value="value" item-text="text"></v-select>
           </v-col>
           <v-col cols="12" md="6" sm="12">
             <div v-for="e in colDDs[1]" :key="e.id">
@@ -25,6 +26,7 @@
             </div>
           </v-col>
         </v-row>
+
       </v-form>
     </v-card-text>
 
@@ -61,7 +63,15 @@ import moment from 'moment';
           phone: (v) => !v || /^(?:(?:\+?1\s*(?:[.-]\s*)?)?(?:\(\s*([2-9]1[02-9]|[2-9][02-8]1|[2-9][02-8][02-9])\s*\)|([2-9]1[02-9]|[2-9][02-8]1|[2-9][02-8][02-9]))\s*(?:[.-]\s*)?)?([2-9]1[02-9]|[2-9][02-9]1|[2-9][02-9]{2})\s*(?:[.-]\s*)?([0-9]{4})(?:\s*(?:#|x\.?|ext\.?|extension)\s*(\d+))?$/.test(v) || 'Please enter a valid phone number.'
       },
       formattedDateOfBirth: '',
-      userData: UserDataDictionary.reduce((o,e)=>{o[e.id] = ''; return o;},{})
+      userData: UserDataDictionary.reduce((o,e)=>{o[e.id] = ''; return o;},{}),
+      homePageOptions: [
+        {value:'Welcome', text:'Welcome'},
+        {value:'MyApps', text: 'My Apps'},
+        {value:'AppStore', text:'App Store'},
+        {value: 'organizations', text:'Develop'}
+      ],
+      homePage:'Welcome'
+
     }),
     computed: {
       colDDs() {
@@ -98,6 +108,15 @@ import moment from 'moment';
             }
           })
         }
+        response = await Api().get('/userdata/getuser/'+this.user._id);
+        if (response.data.success) {
+          var user = response.data.user;
+          var coreUserFields = ["email", "firstName", "middleName", "lastName", "dateOfBirth", "ssn", "language", "homePage"];
+          coreUserFields.forEach(f=>{
+            this.userData[f] = user[f];
+          });
+          this.homePage = user.homePage;
+        }
       })();
     },
     beforeCreate() {
@@ -109,10 +128,12 @@ import moment from 'moment';
       save () {
         this.valid = this.$refs.form.validate();
         if (!this.valid) return;
-        var updates = Object.keys(this.userData).map(p=>({name:p, content:this.userData[p]}));
+        var updates = [].concat(Object.keys(this.userData).map(p=>({name:p, content:this.userData[p]})));
+        updates.push({name:'homePage', content:this.homePage});
         (async () => {
           var response = await Api().post("/userdata/batchupsert", {userId: this.user._id, updates: updates});
           if (response.data.success) {
+            var dummy = await this.$store.dispatch('reloadUser');
             EventBus.$emit('global success alert', `User profile updated.`);
           } else if (response.data.errMsg) {
             EventBus.$emit('global error alert', response.data.errMsg || 'Update failed.');

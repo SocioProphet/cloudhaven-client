@@ -10,10 +10,6 @@ import { deepGet, deepSet } from '../_helpers/deep.js'
 import router from '../router'
 import { EventBus } from '../event-bus.js';
 import moment from 'moment'
-import { mapState } from 'vuex'
-import { parseComponent } from 'vue-template-compiler'
-
-//var coreUserFields = ["email", "name", "firstName", "middleName", "lastName", "dateOfBirth", "ssn", "language"];
 
 function ensureDate( val ) {
   if (!val) return null;
