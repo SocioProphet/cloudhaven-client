@@ -13,7 +13,6 @@ import moment from 'moment'
 //import VueDragDrop from 'vue-drag-drop';
 import Axios from 'axios'
 import { VueMaskDirective } from 'v-mask'
-import VuetifyConfirm from 'vuetify-confirm'
 
 import VueZoomer from 'vue-zoomer'
 Vue.use(VueZoomer);
@@ -97,17 +96,6 @@ Vue.use(TiptapVuetifyPlugin, {
   // optional, default to 'md' (default vuetify icons before v2.0.0)
   iconsGroup: 'mdi'
 });
-Vue.use(VuetifyConfirm, {
-  vuetify,
-  buttonTrueText: 'Yes',
-  buttonFalseText: 'No',
-  color: '#eb7a00',
-  title: 'Please Confirm',
-  width: 350,
-  property: '$confirm',
-  persistent: true
-});
-
 new Vue({
   vuetify,
   router,

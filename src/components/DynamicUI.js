@@ -364,6 +364,7 @@ function makeComponent( h, metaData, ctx, pScopedProps ) {
     return children;
   }
   if (metaData.component == 'dynamicComponent') {
+    debugger;
     var compKey = (metaData.organizationId||'')+'-'+metaData.componentId;
     if (!ctx.components[compKey]) {
       console.log(`Component ${metaData.componentId} not found.`);
@@ -480,6 +481,9 @@ function makeMethods( ctx, uiMethods ) {
         (cb).call(ctx.rootThis, response.data);
       }
     })();
+  };
+  methods._getTiptapExtensions = () => {
+    return vcdnUtils.getTiptapExtensions();
   };
   methods._appGet = (params, cb) => {
     var argValidations = [
@@ -628,25 +632,25 @@ function makeMethods( ctx, uiMethods ) {
       }
     })();
   }
-  methods._getUserData = (pUserIds, userDataIds, cb) => {
+  methods._getUserData = (userIds, userDataIds, cb) => {
     var argValidations = [
-      {name: 'pUserIds', rules:['required'], type:'array'},
+      {name: 'userIds', rules:['required'], type:'array'},
       {name: 'userDataIds', rules:['required'], type:'array'}
     ];
-    if (!checkArguments('_getUserData', {pUserIds:pUserIds, userDataIds:userDataIds}, cb, argValidations)) return;
+    if (!checkArguments('_getUserData', {userIds:userIds, userDataIds:userDataIds}, cb, argValidations)) return;
     if (userDataIds.length==0) {
       if (cb) cb.call(ctx.rootThis, []);
       return;
     };
     (async () => {
-      var response = await Api().post("/userinfo/getusers", {userIds:pUserIds})
+      var response = await Api().post("/userinfo/getusers", {userIds:userIds})
       if (response.data) {
         userMap = response.data.reduce((mp,u)=>{
           mp[u._id] = Object.assign({},u);
           return mp;
         },{});
       }
-      response = await Api().post('/userdata/batchget', {userIds: pUserIds, userDataIds: userDataIds});
+      response = await Api().post('/userdata/batchget', {userIds: userIds, userDataIds: userDataIds});
       if (response.data.success) {
         if (cb) cb.call(ctx.rootThis, response.data.userDataMap);
       }
@@ -832,13 +836,19 @@ function makeMethods( ctx, uiMethods ) {
       {name: 'title', rules:['required', 'nonblank'], type:'string'},
       {name: 'content', rules:['required', 'nonblank'], type:'string'},
       {name: 'start', rules:['required'], type:'date'},
-      {name: 'durationType', rules:['required'], type: 'string', enum:['allday', 'timed']},      
-      {name: 'applicationId', type:'string'},
-      {name: 'componentId', type:'string'},
-      {name: 'appConfigData', type: 'object'},
-
+      {name: 'end', rules:['required'], type:'date'},
+      {name: 'durationType', rules:['required'], type: 'string', enum:['allday', 'timed']},
+      {name: 'application', type: 'object'}
     ];
     if (!checkArguments('_addCalendarEntry', params, cb, argValidations)) return;
+    if (params.application) {
+      var appValidations = [
+        {name: 'applicationId', type:'string'},
+        {name: 'componentId', type:'string'},
+        {name: 'appConfigData', type: 'object'}
+      ];
+      if (!checkArguments('_addCalendarEntry', params.application, cb, appValidations)) return;
+    }
     (async () => {
       params.organizationId = app.organization.organizationId;
       var response = await Api().post("calendarmgr/appcreateevent", params);
@@ -859,7 +869,6 @@ function makeMethods( ctx, uiMethods ) {
       {name: 'recipients', rules:['required'], type:'array'},
       {name: 'subject', rules:['required', 'nonblank'], type:'string'},
       {name: 'message', rules:['required', 'nonblank'], type:'string'},
-      {name: 'taskGroup', type: 'object'},
       {name: 'application', type:'object'}
     ];
     if (!checkArguments('_sendMessage', params, cb, argValidations)) return;
@@ -870,13 +879,6 @@ function makeMethods( ctx, uiMethods ) {
         {name: 'appConfigData', type: 'object'} 
       ]
       if (!checkArguments('_sendMessage:application', params.application, cb, appArgValidations)) return;
-    }
-    if (params.taskGroup) {
-      var grpArgValidations = [
-        {name: 'organizationId', rules:['required', 'nonblank'], type:'string'},
-        {name: 'groupName', rules:['required', 'nonblank'], type:'string'}  
-      ]
-      if (!checkArguments('_sendMessage:taskGroup', params.application, cb, grpArgValidations)) return;
     }
     (async () => {
       if (!params.senderId && !params.senderEmail) {
@@ -922,6 +924,24 @@ function makeMethods( ctx, uiMethods ) {
         (cb).call(ctx.rootThis, response.data);
       }
     })();
+  }
+  methods._deleteMessageOrTask = ( params, cb ) => {
+    var argValidations = [
+      {name: 'messageId', type:'string'},
+      {name: 'taskId', type:'string'}
+    ];
+    if (!params.messageId && !params.taskId) {
+      console.log('_deleteMessageOrTask requires either messageId or taskId in the "params" parameter.');
+      return;
+    }
+    if (!checkArguments('_deleteMessageOrTask', params, cb, argValidations)) return;
+    (async () => {
+      var response = await Api().delete('/messagemgr/deletemsgortask/'+(params.messageId||params.taskId) );
+      if (cb) {
+        (cb).call(ctx.rootThis, response.data);
+      }
+    })();
+
   }
 
   methods._setTaskOutcome = (params, cb ) => {
@@ -1032,6 +1052,7 @@ function makeDynamicComponent( pCtx, cCfg ) {
     beforeCreate() {
       if (cCfg.components) {
         //Should not get here
+        debugger;
         ctx.components = Object.assign({},makeDynamicComponents( ctx, cCfg.components ));
       }
       if (this['beforeCreate']) {
@@ -1116,6 +1137,7 @@ function makeDynamicComponent( pCtx, cCfg ) {
   })
 }
 function makeDynamicComponents( pCtx, components ) {
+  debugger;
   return components.reduce((mp,cCfg)=>{
     mp[(cCfg.organizationId||'')+'-'+cCfg.componentId] = makeDynamicComponent( pCtx, cCfg );
     return mp;
@@ -1134,6 +1156,7 @@ const DynamicUI = Vue.component('DynamicUI', {
     var dataModel = this.uiConfig.dataModel;
     var uiSchema = this.uiConfig.uiSchema;
     var components = this.uiConfig.components;
+    debugger;
     var uiConfig = this.uiConfig;
     addInMixins(this.uiConfig);
     this.innerVueInstance = new Vue({
@@ -1161,6 +1184,7 @@ const DynamicUI = Vue.component('DynamicUI', {
           (this['beforeCreate'])();
         }
         if (components) {
+          debugger;
           ctx.components = Object.assign({},makeDynamicComponents( ctx, components ));
         }
       },

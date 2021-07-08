@@ -176,13 +176,11 @@ import OrganizationGroups from './OrganizationGroups.vue'
       }
     },
 
-    created() {
+    mounted () {
       this.$store.dispatch('reloadUser')
       .then((user)=>{
         this.loadRecords();
       })
-    },
-    mounted () {
     },
 
     methods: {

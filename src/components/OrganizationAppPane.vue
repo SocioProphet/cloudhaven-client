@@ -13,15 +13,22 @@ import vcdnUtils from '../_helpers/vcdnutils.js'
 
 function findExternalComponents( uiSchema, comps ) {
   if (!uiSchema) return;
+  debugger;
   if (Array.isArray(uiSchema)) {
     uiSchema.forEach(e=>{
       findExternalComponents( e, comps );
     })
   } else {
+    console.log("comp="+uiSchema.component)
     if (uiSchema.component == 'dynamicComponent') {
       comps.push({organizationId:uiSchema.organizationId, componentId:uiSchema.componentId});
     }
     findExternalComponents( uiSchema.contents, comps );
+    if (uiSchema.scopedSlots) {
+      Object.keys(uiSchema.scopedSlots).forEach(ss=>{
+        findExternalComponents( uiSchema.scopedSlots[ss], comps );
+      })
+    }
   }
 }
 export default {

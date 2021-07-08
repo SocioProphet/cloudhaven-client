@@ -54,7 +54,7 @@ import router from '../router'
             this.alertMsg = 'Organization created.';
             var dummy = await this.$store.dispatch('reloadUser');
             setTimeout(() => {
-              this.$router.push('/home');
+              this.$router.push('/appstore');
             }, 2000);
           } else {
             this.alertType = 'error';

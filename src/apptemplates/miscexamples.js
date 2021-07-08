@@ -52,46 +52,47 @@ export default `var uiConfig = {
     },
     showFile: {
       args:["item"],
-      body:'\
-        this.userFile.mimeType = item.mimeType;\
-        this.userFile.fileName = item.fileName;\
-        this._getUserFile( {userId:this._currentUser._id, fileId:item._id}, function( fileObj ) {\
-          this.fileBlob = fileObj;\
-          this.displayImage = true;\
-        });\
-      '
+      body:\`
+        this.userFile.mimeType = item.mimeType;
+        this.userFile.fileName = item.fileName;
+        this._getUserFile( {userId:this._currentUser._id, fileId:item._id}, function( fileObj ) {
+          this.fileBlob = fileObj;
+          this.displayImage = true;
+        });
+      \`
     },      
     deleteFile: {
       args:["item"],
-      body:'\
-        this._userFileOperation({operation:"delete", userId:this._currentUser._id, fileId:item._id}, function(result) {\
-          console.log("File delete result: "+result);\
-          this.loadFiles();\
-        });\
-      '
+      body:\`
+        this._userFileOperation({operation:"delete", userId:this._currentUser._id, fileId:item._id}, function(result) {
+          console.log("File delete result: "+result);
+          this.loadFiles();
+        });
+      \`
     },
     onUserFileChange: {
       args: ["file"],
-      body: '\
-        this.userFile.fileName = file.name;\
-        this.userFile.mimeType = file.type;\
-        this.userFile.file = file;\
-      '
+      body: \`
+        this.userFile.fileName = file.name;
+        this.userFile.mimeType = file.type;
+        this.userFile.file = file;
+      \`
     },
     saveFile: {
-    body:'\
-        var params = {\
-          userId: this.cloudHavenUserId,\
-          operation:"add",\
-          name: this.userFile.name || "Not Specified",\
-          fileName: this.userFile.fileName,\
-          fileType: this.userFile.mimeType\
-        };\
-        params.file = this.userFile.file;\
-        this._userFileOperation( params, (results) => {\
-          this.fileDlg = false;\
-          this.loadFiles();\
-        });'
+    body:\`
+        var params = {
+          userId: this.cloudHavenUserId,
+          operation:"add",
+          name: this.userFile.name || "Not Specified",
+          fileName: this.userFile.fileName,
+          fileType: this.userFile.mimeType
+        };
+        params.file = this.userFile.file;
+        this._userFileOperation( params, (results) => {
+          this.fileDlg = false;
+          this.loadFiles();
+        });
+        \`
     },
     onUserFilesTabActive: {
       args:[],
@@ -99,9 +100,11 @@ export default `var uiConfig = {
     },
     loadFiles: {
       args:[],
-      body:'this._getUserFiles(this._currentUser._id, function( files ) {\
-        this.userFiles = (files||[]).map(f=>(Object.assign({fileSize:0},f)));\
-      });'
+      body:\`
+        this._getUserFiles(this._currentUser._id, function( files ) {
+        this.userFiles = (files||[]).map(f=>(Object.assign({fileSize:0},f)));
+      });
+      \`
     },
     onInput:{
       args:["v"],
@@ -109,46 +112,45 @@ export default `var uiConfig = {
     },
     onEmailBlur: {
       args:["event"],
-      body:'\
-        this._lookupUser({email:this.user.email}, function(user) {\
-          if (!user) return;\
-          this.user._id = user._id;\
-          this.user.firstName = user.firstName;\
-          this.user.lastName = user.lastName;\
-          this._getUserData([user._id], this.auxUserFields, function(results) {\
-            var readUserData = results[user._id];\n\
-            if (readUserData) {\n\
-              var xxx = readUserData;\n\
-              readUserData = [].concat(readUserData);\n\
-              xxx = readUserData;\n\
-              readUserData.forEach(ud=>{\n\
-                xxx = ud;\n\
-                var name = ud.name;\n\
-                var content = ud.content;\n\
-                this.user[ud.name] = ud.content;\
-              });\
-            }\
-          });\
-        });\
-      '
+      body:\`
+        this._lookupUser({email:this.user.email}, function(user) {
+          if (!user) return;
+          this.user._id = user._id;
+          this.user.firstName = user.firstName;
+          this.user.lastName = user.lastName;
+          this._getUserData([user._id], this.auxUserFields, function(results) {
+            var readUserData = results[user._id];
+            if (readUserData) {
+              var xxx = readUserData;
+              readUserData = [].concat(readUserData);
+              xxx = readUserData;
+              readUserData.forEach(ud=>{
+                var name = ud.name;
+                var content = ud.content;
+                this.user[ud.name] = ud.content;
+              });
+            }
+          });
+        });
+      \`
     },
     saveUserData: {
-      body:'\
-        var valsMap = this.auxUserFields.reduce((mp,f)=>{\n\
-          mp[f] = this.user[f] || "";\n\
-          return mp;\n\
-        }, {});\n\
-        this._writeUserData(this.user._id, valsMap, function(results) {\n\
-          this._showNotification("User data updated.");\
-        });\
-      '
+      body:\`
+        var valsMap = this.auxUserFields.reduce((mp,f)=>{
+          mp[f] = this.user[f] || "";
+          return mp;
+        }, {});
+        this._writeUserData(this.user._id, valsMap, function(results) {
+          this._showNotification("User data updated.");
+        });
+      \`
     },
     doUsersSearch: {
-      body:'\
-      this._usersSearch({phrase:this.usersSearchFilter}, function(users) {\
-        this.usersSearchItems = users;\
-      });\
-      '
+      body:\`
+      this._usersSearch({phrase:this.usersSearchFilter}, function(users) {
+        this.usersSearchItems = users;
+      });
+      \`
     }
   },
   computed: {

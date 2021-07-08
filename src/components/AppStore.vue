@@ -3,9 +3,9 @@
     <v-toolbar flat color="white">
       <v-toolbar-title>App Store</v-toolbar-title>
     </v-toolbar>
-    <v-layout>
-      <v-row no-gutters>
-          <v-card class="pa-0 mx-2" elevation="2" v-for="app in applications" :key="app.key" >
+    <v-layout class="mx-3">
+      <v-row>
+          <v-card class="pa-0 mx-2 mt-2" elevation="2" v-for="app in applications" :key="app.key" >
             <v-card-title>{{app.name}}</v-card-title>
             <v-card-subtitle>{{app.organization.name}}</v-card-subtitle>
             <v-card-text>

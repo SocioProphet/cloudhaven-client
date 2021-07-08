@@ -2,6 +2,7 @@ import * as VueLib from 'vuetify/lib'
 import CommentsManager from '../components/CommentsManager.vue'
 import CHDateField from '../components/CHDateField.vue'
 import CHFileViewer from '../components/CHFileViewer.vue'
+import { TiptapVuetify, Heading, Bold, Italic, Strike, Underline, Code, Paragraph, BulletList, OrderedList, ListItem, Link, Blockquote, HardBreak, HorizontalRule, History } from 'tiptap-vuetify';
 import _ from 'lodash';
 
 function isObject( obj ) {
@@ -29,7 +30,7 @@ obj.clientFunctionMap = {
   _appPost:'this._appPost({operationId:"", postData:""}, function(results) {});',
   _lookupUser:'this._lookupUser({email:"", ssn:""}, function(user) {});',
   _usersSearch:'this._usersSearch({searchPhrase:"", dateOfBirth:""}, function(users) {});',
-  _getUserData:'this._getUserData(pUserIds, userDataIds, function() {});',
+  _getUserData:'this._getUserData(userIds, userDataIds, function() {});',
   _writeUserData:'this._writeUserData(userId, userDataIdToValueMap, function(results) {});',
   _writeMultiInstanceUserData: 'this._writeMultiInstanceUserData({owner:"", organizationId:"", key:"", content:""}, function(result) {});',
   _getMultiInstanceUserData: 'this._getMultiInstanceUserData({owner:"", organizationId:"", key:""}, function(result) {});',
@@ -37,14 +38,16 @@ obj.clientFunctionMap = {
   _getUserFile:'this._getUserFile(userId, fileId, function(blob) {});',
   _userFileOperation:'_userFileOperation({operation:"", userId:"", fileType:"", name:"", fileName:"", fileId:"", file:null}, function(results) {});',
   _gotoAppPage:'this._gotoAppPage(page, appParams );',
-  _sendMessage:'this._sendMessage({senderId:"", senderEmail:"", recipients:[{to:[],cc:[],bcc:[]}], subject:"", message:"", application:{organizationId:"", applicationId:"", componentId:"", appConfigData:{}}}, function(queueItemId) {});',
+  _sendMessage:'this._sendMessage({senderId:"", senderEmail:"", recipients:[{type:"to"(or "cc" or "bcc"),email:"john@widgetco.com"}], subject:"", message:"", application:{organizationId:"", applicationId:"", appConfigData:{}}}, function(queueItemId) {});',
   _queueTask: 'this._queueTask({groupId:"", subject:"", message:"", applicationId:""}, function(result) {});',
-  _setUserTaskDisposition:'this._setUserTaskDisposition(queueItemId, params, function(results) {});',
-  _deleteUserMessageOrTask:'this._deleteUserMessageOrTask(queueItemId, function(results) {});',
-  _addCalendarEntry:'this._addCalendarEntry({title:"", content:"", start:new Date(), durationType:"timed", applicationId:"", componentId:"", appConfigData:{}}, function(calEntryId ) {});',
+  _setTaskOutcome:'this._setTaskOutcome({taskId:"", resultStatus:"Completed", resultMessage:""}, function(results) {});',
+  _deleteMessageOrTask:'this._deleteUserMessageOrTask({messageId:"" or taskId:""}, function(results) {});',
+  _addCalendarEntry:'this._addCalendarEntry({title:"", content:"", start:new Date(), end: new Date(), durationType:"timed", application:{organizationId:"", applicationId:"", appConfigData:{}}}, function(calEntryId ) {});',
   _showNotification:'this._showNotification("");',
   _showError:'this._showError("");',
   _currentUser: 'this._currentUser',
+  _deepGet: 'this._deepGet(<obj>,<path>)',
+  _deepSet: 'this._deepSet(<obj>,<path>,<value>)',
   _app: 'this._app',
   _moment: 'this.moment()'
   };
@@ -126,6 +129,7 @@ obj.uiElementToVueCompMap = {
   radioGroup: VueLib['VRadioGroup'],
   rating: VueLib['VRating'],
   responsive: VueLib['VResponsive'],
+  richTextField: TiptapVuetify,
   row: VueLib['VRow'],
   select: VueLib['VSelect'],
   sheet: VueLib['VSheet'],
@@ -166,6 +170,29 @@ obj.uiElementToVueCompMap = {
   conversation: CommentsManager,
   dateField: CHDateField,
   fileViewer: CHFileViewer
+}
+obj.getTiptapExtensions = () => {
+  return [
+    History,
+    Blockquote,
+    Link,
+    Underline,
+    Strike,
+    Italic,
+    ListItem,
+    BulletList,
+    OrderedList,
+    [Heading, {
+      options: {
+        levels: [1, 2, 3]
+      }
+    }],
+    Bold,
+    Code,
+    HorizontalRule,
+    Paragraph,
+    HardBreak
+  ];
 }
 var defaultPage = `var uiConfig = {
   dataModel:{
@@ -356,7 +383,7 @@ obj.checkStructure = ( vcdn, structureType ) => {
         var validProps = {args:true, body:true};
         Object.keys(methodObj).forEach(prop =>{
           if (!validProps[prop]) {
-            methodErrors.push(`Invalid ${funcType} property "${p}" - (args and/or body required)`);
+            methodErrors.push(`Invalid ${funcType} property "${prop}" - (args and/or body required)`);
             if (prop == 'args') {
               if (!Array.isArray(methodObj[prop])) {
                 methodErrors.push(`${funcType} ${methodName} property ${prop} type is invalid (must be array).`);

@@ -286,7 +286,7 @@
         e.preventDefault();
         var vm = this;
         if (!this.$refs.pageForm.validate()) return;
-        var operation = this.editedIndex > -1 ? 'update' : 'add';
+        var operation = this.page._id ? 'update' : 'add';
         var errors = [];
         try {
           var uiConfig = vcdnUtils.sandboxedStringToJSON(this.page.content);
@@ -303,6 +303,9 @@
               EventBus.$emit('global success alert',  `${this.page.name} ${operation=='update'?'updated':'added'}.`);
               if (errors.length==0) {
                 this.pageDialog = false;
+                debugger;
+                var newPage = response.data.pages.find(p=>(p.name==this.page.name));
+                this.page._id = newPage._id;
                 vm.$emit('pagesChanged', response.data.pages );
               }
               EventBus.$emit('global success alert', `${this.page.name} ${this.editedIndex > -1?'updated':'added'}${errors.length>0?' with errors':''}.`);
@@ -312,9 +315,12 @@
           })();
         } else {
           var pages = [].concat(this.application.pages);
+          pages = pages.filter(p=>(p._id || p.name!=this.page.name));
           pages.push({name:this.page.name, content: this.page.content});
           vm.$emit('pagesChanged', pages );
-          this.pageDialog = false;
+          if (errors.length==0) {
+            this.pageDialog = false;
+          }
         }
       }
     },
