@@ -18,7 +18,6 @@ function findExternalComponents( uiSchema, comps ) {
       findExternalComponents( e, comps );
     })
   } else {
-    console.log("comp="+uiSchema.component)
     if (uiSchema.component == 'dynamicComponent') {
       comps.push({organizationId:uiSchema.organizationId, componentId:uiSchema.componentId});
     }

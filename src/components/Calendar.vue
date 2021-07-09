@@ -32,6 +32,7 @@
           <v-card-title><span class="text-h5">{{editMode=='add'?'Create':'Edit'}} Calendar Entry</span><v-spacer></v-spacer>
             <v-btn v-if="editMode='edit'" icon @click.stop="deleteEvent"><v-icon>mdi-trash-can</v-icon></v-btn></v-card-title>
           <v-card-text>
+            [[{{event.applicationId}}]]
             <v-form ref="theForm" v-model="valid" lazy-validation>
               <v-text-field v-model="event.title" label="Title" :rules="[rules.required]"></v-text-field>
               <v-text-field v-model="event.type" label="Event Type"></v-text-field>
@@ -114,17 +115,15 @@ var defaultEvent = {
         title: '',
         content: '',
         dateText: null,
-        app: {},
+        app: {organization:{}},
         appPage: null
       },
       searchText:'',
       events: [],
-      curDate: new Date(),
       calendarMode: 'month',
       calendarModes: ['month', 'week', 'day', '4day'],
       weekday: [0, 1, 2, 3, 4, 5, 6],
       events: [],
-      names: ['Meeting', 'Holiday', 'PTO', 'Travel', 'Event', 'Birthday', 'Conference'],
       editMode: 'add',
       lastStart: null,
       lastEnd: null
@@ -225,6 +224,12 @@ var defaultEvent = {
         this.event.endTime = this.event.allDay?'':(dbEvent.end?moment(dbEvent.end).format('HH:mm'):'');
 //        this.event.app = {applicationId:"test-app", organizationId:"603ee28599a16849b4870d5b", name:'Test App', url:'http://localhost:3300/api/sandboxapp'},
         this.appPage = "home";
+        if (dbEvent.applicationId && dbEvent.organization) {
+          var app = dbEvent.organization.applications.find(a=>(a.applicationId==dbEvent.applicationId));
+          app.organizationId = dbEvent.organization.organizationId;
+          app.organization = Object.assign({},dbEvent.organization);
+          this.event.app = Object.assign({},app);
+        }
         event.nativeEvent.stopPropagation();
         this.dialog = true;
       },
@@ -252,6 +257,7 @@ var defaultEvent = {
       },
       save () {
         if (!this.$refs.theForm.validate()) return;
+        this.event.durationType == this.event.allDay?'allday':'timed';
         if (!this.event.allDay) {
           if (!this.event.startTime) {
             alert('Please enter a start time.');

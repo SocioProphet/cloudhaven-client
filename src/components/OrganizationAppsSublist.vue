@@ -48,7 +48,7 @@
               <v-radio label='App Server' value='App Server'></v-radio>
               <v-radio label='CloudHaven' value='CloudHaven'></v-radio>
             </v-radio-group>
-            <v-text-field v-model="editedItem.url" label="URL" required :rules="editedItem.source=='App Server'?[rules.required]:[]"></v-text-field>
+            <v-text-field v-if="editedItem.source=='App Server'" v-model="editedItem.url" label="URL" required :rules="editedItem.source=='App Server'?[rules.required]:[]"></v-text-field>
             <v-radio-group v-model="editedItem.status" row label="Status">
               <v-radio label='Draft' value='Draft'></v-radio>
               <v-radio label='Published' value='Published'></v-radio>

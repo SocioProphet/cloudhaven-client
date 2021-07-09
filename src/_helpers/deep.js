@@ -16,7 +16,7 @@ export function deepGet( obj, path ) {
   return curObj;
 }
 export function deepSet( obj, path, val ) {
-  if (!obj || !path) return null;
+  if (!obj || !path || path.indexOf('[')>0) return undefined;
   var parts = path.split(".");
   var lastEl = parts.pop();
   var setObj = obj;

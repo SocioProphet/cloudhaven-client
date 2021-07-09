@@ -81,7 +81,7 @@
               <v-text-field v-model="page.name" label="Name" required :rules="[rules.required]"></v-text-field>
             </v-col>
             <v-col cols="3">
-              <v-select v-model="template" label="Template" :items="['Default','CRUD Example', 'Send Task Message', 'Queue Task to Group', 'Task Completer', 'Misc Examples']" @input="onTemplateChange"></v-select>
+              <v-select v-model="template" label="Template" :items="['Default','CRUD Example', 'Send Task Message', 'Create Calendar Event', 'Queue Task to Group', 'Task Completer', 'Misc Examples']" @input="onTemplateChange"></v-select>
             </v-col>
             <v-col cols="6" class="justify-end align-end">
               <div style="text-align:right" class="mb-0 black--text">Type "<span style="background-color:yellow"><b>%%%</b></span>" in the page to select and insert a system function.</div>
@@ -113,6 +113,7 @@
   import { PrismEditor } from 'vue-prism-editor';
   import vcdnUtils from '../_helpers/vcdnutils.js'
   import sendTaskMsg from '../apptemplates/sendtaskmessage.js'
+  import createCalendarEvent from '../apptemplates/createcalendarevent.js'
   import crudExample from '../apptemplates/crudexample.js'
   import miscExamples from '../apptemplates/miscexamples.js'
   import queueTaskToGroup from '../apptemplates/queuetasktogroup.js'
@@ -163,6 +164,8 @@
           this.page.content = miscExamples;
         } else if (this.template == 'Send Task Message') {
           this.page.content = sendTaskMsg;
+        } else if (this.template == 'Create Calendar Event') {
+          this.page.content = createCalendarEvent;
         } else if (this.template == 'Queue Task to Group') {
           this.page.content = queueTaskToGroup;
         } else if (this.template == 'Task Completer') {

@@ -147,7 +147,7 @@ function makeComponent( h, metaData, ctx, pScopedProps ) {
               if (key == "rules") {
                 dataObj[k].rules = _.isString(val)?getModelValue( rootThis, pScopedProps, val):val.map(f=>rootThis[f]);
               } else if (k == 'props' && key == "value") {
-                let tmp = getModelValue( rootThis, pScopedProps, val);
+                var tmp = getModelValue( rootThis, pScopedProps, val);
                 dataObj[k][key] = metaData.ensureDate?ensureDate(tmp):tmp;
               } else {
                 dataObj[k][key] = getModelValue( rootThis, pScopedProps, val);
@@ -291,12 +291,12 @@ function makeComponent( h, metaData, ctx, pScopedProps ) {
     }
     if (metaData[':value']) {
       dataObj.props = dataObj.props || {};
-      let tmp = getModelValue( rootThis, pScopedProps, metaData[':value'] );
+      var tmp = getModelValue( rootThis, pScopedProps, metaData[':value'] );
       dataObj.props.value = metaData.ensureDate?ensureDate(tmp):tmp;
     }
     if (metaData.vmodel) {
       dataObj.props = dataObj.props || {};
-      let tmp = getModelValue( rootThis, pScopedProps, metaData.vmodel );
+      var tmp = getModelValue( rootThis, pScopedProps, metaData.vmodel );
       dataObj.props.value = metaData.ensureDate?ensureDate(tmp):tmp;
       dataObj.on = dataObj.on || {};
       var chainedInputFunc = dataObj.on.input;
