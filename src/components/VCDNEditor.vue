@@ -4,7 +4,7 @@
       <v-toolbar-title class="mr-3">VCDN Editor</v-toolbar-title>
       <v-spacer></v-spacer>
     </v-toolbar>
-    <v-treeview :items="rootNodes" elevation="2" dense activatable :open="open" :active="active" hoverable @update:active="onActivated">
+    <v-treeview :items="rootNodes" elevation="2" dense class="mt-3" activatable :open="open" :active="active" hoverable @update:active="onActivated">
       <template v-slot:label="{ item, active }">
         <div v-if="item.root=='dataModel'">
           <span >{{item.name}}{{item.value?(' : '+item.value):''}}
@@ -12,22 +12,15 @@
             <v-icon v-if="item.level>0 && item.name" @click.stop="editPropertyDlg(item)">mdi-pencil</v-icon>
             <v-icon @click.stop="deleteItem(item)" class="ml-2">mdi-trash-can</v-icon>
           </span>
-          <v-sheet v-if="propDialog && (propObj.editMode=='add' || editId==item.id)" elevation="3" width="300px" max-width="300px">
-            <v-card>
-              <v-card-title>{{propObj.title}}</v-card-title>
-              <v-card-text>
-                <v-form ref="propForm" v-model="propFormValid">
-                  <v-text-field label="Name" placeholder="Enter property name." v-model="propObj.name" :rules="[rules.required, rules.validPropName]"></v-text-field>
-                  <v-text-field label="Value (optional)" placedholder="Enter (non-object) value." v-model="propObj.value" :rules="[rules.required, rules.validPropValue]"></v-text-field>
-                <!--{{setFocus('propObj_'+item.id)}}-->
-                </v-form>
-              </v-card-text>
-              <v-card-actions>
-                <v-btn elevation="2" color="blue darken-1" text @click.native="propDialog=false">Cancel</v-btn>
-                <v-spacer></v-spacer>
-                <v-btn elevation="2" color="blue darken-1" text @click.native.stop="saveProperty()"><v-icon left dark>mdi-content-save</v-icon>Save</v-btn>
-              </v-card-actions>
-            </v-card>
+          <v-sheet v-if="propDialog && (propObj.editMode=='add' || editId==item.id)" elevation="1" width="300px" max-width="300px">
+            <v-form ref="propForm" v-model="propFormValid">
+            <div class="d-flex justify-left mb-2">
+              <v-text-field :id="propObj.id" label="Property" single-line dense v-model="propObj.name" :rules="[rules.required, rules.validPropName]"></v-text-field><span class="mx-2 pb-0 pt-1"> <b>:</b> </span>
+              <v-text-field label="Value" persistent-hint hint="(optional)" single-line dense v-model="propObj.value" :rules="[rules.required, rules.validPropValue]"></v-text-field>
+                <v-btn icon @click.native.stop="saveProperty()"><v-icon>mdi-content-save</v-icon></v-btn>
+                <v-btn icon @click.native="propDialog=false"><v-icon>mdi-close-thick</v-icon></v-btn>{{propObj.name?'':setFocus(propObj.id)}}
+            </div>
+            </v-form>
           </v-sheet>
         </div>
         <div v-else-if="isFunctionType(item)">
@@ -46,7 +39,7 @@
           <span >{{item.name}}
             <v-icon v-if="canHaveChild(item)" @click.stop="addComponentDlg(item)">mdi-plus-thick</v-icon>
             <v-icon v-if="item.level>0 && item.name" class="ml-2" @click.stop="editComponentDlg(item)">mdi-pencil</v-icon>
-            <v-btn v-if="item.level>0" x-small class="ml-2" elevation="1" @click.stop="addSlot(item)"><v-icon small>mdi-plus</v-icon>slot</v-btn>
+            <v-btn v-if="item.level>0" x-small class="ml-2" elevation="1" @click.stop="addSlotDlg(item)"><v-icon small>mdi-plus</v-icon>slot</v-btn>
             <v-icon @click.stop="deleteItem(item)" class="ml-2">mdi-trash-can</v-icon>
           </span>
         </div>
@@ -261,6 +254,7 @@ function validateFunction( body, argList) {
       addPropertyDlg(parent) {
         this.propObj.editMode = 'add';
         this.editId = '';
+        this.propObj.id = 'prop_'+this.initId();
         this.propObj.title  = `New ${(parent.name.charAt(parent.name.length-1)=='s')?parent.name.substring(0, parent.name.length-1):parent.name} property`;
         this.propObj.parent = parent;
         this.propObj.name = '';
@@ -284,7 +278,7 @@ function validateFunction( body, argList) {
           this.active = [id+''];
         } else {
           item.name = this.propObj.name;
-          item.value = this.probObj.value;
+          item.value = this.propObj.value;
         }
         this.propDialog = false;
       },
