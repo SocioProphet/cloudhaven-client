@@ -307,9 +307,6 @@ import moment from 'moment';
           this.messages = messages;
         })();
       },
-      cancel() {
-        this.dialog = false;
-      },
       addMessage (item) {
         this.editMode = 'edit';
         this.message = Object.assign({}, item);

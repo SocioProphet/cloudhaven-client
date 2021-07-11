@@ -110,7 +110,6 @@
   import _ from 'lodash';
   import Api from '@/services/Api'
   import { EventBus } from '../event-bus.js';
-  import { PrismEditor } from 'vue-prism-editor';
   import vcdnUtils from '../_helpers/vcdnutils.js'
   import sendTaskMsg from '../apptemplates/sendtaskmessage.js'
   import createCalendarEvent from '../apptemplates/createcalendarevent.js'
@@ -118,9 +117,8 @@
   import miscExamples from '../apptemplates/miscexamples.js'
   import queueTaskToGroup from '../apptemplates/queuetasktogroup.js'
   import taskCompleter from '../apptemplates/taskcompleter.js'
+  import { PrismEditor } from 'vue-prism-editor';
   import 'vue-prism-editor/dist/prismeditor.min.css'; // import the styles somewhere
- 
-  // import highlighting library (you can use any library you want just return html string)
   import { highlight, languages } from 'prismjs/components/prism-core';
   import 'prismjs/components/prism-clike';
   import 'prismjs/components/prism-javascript';
@@ -146,7 +144,6 @@
 
     mounted () {
       this.clientFunctions = Object.keys(vcdnUtils.clientFunctionMap);
-      this.clientFunctions.unshift('[component]');
       this.componentSearchNameFilter = '';
       this.allComponentKeywords = [];
       this.componentSearchKeywords = [],

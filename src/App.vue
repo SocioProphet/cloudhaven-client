@@ -1,4 +1,4 @@
-<template>
+05<template>
   <v-app light>
   <v-dialog v-model="pwdDialog" max-width="500px" @keydown.esc.prevent="pwdDialog = false" >
     <v-card>
@@ -84,7 +84,7 @@
       <router-view/>
     </v-main>
     <v-footer :fixed="fixed" app :style="{background: 'linear-gradient(to top, #FFFFFF -100%, #00528d 100%)'}">
-      <span class="white--text">&copy; CloudHaven @ 2020-2021 &nbsp;&nbsp;(v0.05)</span>
+      <span class="white--text">&copy; CloudHaven @ 2020-2021 &nbsp;&nbsp;(v0.06)</span>
     </v-footer>
   </v-app>
 </template>
@@ -106,7 +106,8 @@ const CloudHavenAppDetails = {
     { route: 'organizations', action: '', title: 'Organizations' },
     { route: 'users', action: '', title: 'Users' },
     { route: 'userFiles', action: '', title: 'User Files' },
-    { route: 'ViewUserData', action: '', title: 'View User Data' }
+    { route: 'ViewUserData', action: '', title: 'View User Data' },
+    { route: 'VCDNEditorTester', action: '', title: 'VCDN Editor Tester' }
   ],
   userMenuItems: [
     { route: 'Welcome', action: '', title: 'Welcome'},

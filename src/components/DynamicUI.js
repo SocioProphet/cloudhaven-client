@@ -1058,6 +1058,7 @@ function makeDynamicComponent( pCtx, cCfg ) {
       ctx.rootThis._route = ctx.route;
       ctx.rootThis._appParams = deepGet(this.$route, "params.appParams")
       ctx.rootThis._moment = moment;
+      ctx.rootThis._ = _;
     if (this['created']) {
         (this['created'])();
       }
@@ -1187,6 +1188,7 @@ const DynamicUI = Vue.component('DynamicUI', {
         ctx.rootThis._app = ctx.app;
         ctx.rootThis._appParams = deepGet(this.$route, "params.appParams")
         ctx.rootThis._moment = moment;
+        ctx.rootThis._ = _;
         if (this['created']) {
           (this['created'])();
         }

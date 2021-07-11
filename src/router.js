@@ -22,6 +22,7 @@ import OrganizationCalendar from './components/OrganizationCalendar'
 import CreateOrAssignOrg from './components/CreateOrAssignOrg'
 import NeedEmailConf from './components/NeedEmailConf'
 import Welcome from './components/Welcome'
+import VCDNEditorTester from './components/VCDNEditorTester'
 
 Vue.use(Router)
 
@@ -32,6 +33,11 @@ let router = new Router({
       name: 'home',
       component: MyApps,
       alias: '/home'
+    },
+    {
+      path: '/vcdneditortester',
+      name: 'VCDNEditorTester',
+      component: VCDNEditorTester
     },
     {
       path: '/mail',
