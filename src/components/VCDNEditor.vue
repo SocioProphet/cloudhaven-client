@@ -12,12 +12,15 @@
             <v-icon v-if="item.level>0 && item.name" @click.stop="editPropertyDlg(item)">mdi-pencil</v-icon>
             <v-icon @click.stop="deleteItem(item)" class="ml-2">mdi-trash-can</v-icon>
           </span>
-          <v-sheet v-if="propDialog && (propObj.editMode=='add' || editId==item.id)" elevation="1" width="300px" max-width="300px">
+          <v-sheet v-if="propDialog && active" elevation="1" width="300px" max-width="300px">
             <v-form ref="propForm" v-model="propFormValid">
             <div class="d-flex justify-left mb-2">
-              <v-text-field :id="propObj.id" label="Property" single-line dense v-model="propObj.name" :rules="[rules.required, rules.validPropName]"></v-text-field><span class="mx-2 pb-0 pt-1"> <b>:</b> </span>
-              <v-text-field label="Value" persistent-hint hint="(optional)" single-line dense v-model="propObj.value" :rules="[rules.required, rules.validPropValue]"></v-text-field>
-                <v-btn icon @click.native.stop="saveProperty()"><v-icon>mdi-content-save</v-icon></v-btn>
+              <v-text-field :id="propObj.id" label="Property" single-line dense v-model="propObj.name" :rules="[rules.required, rules.validPropName]"
+                @keyup.enter.prevent="saveProperty" @click.stop=""></v-text-field>
+              <span v-if="canHavePropertyValue" class="mx-2 pb-0 pt-1"> <b>:</b> </span>
+              <v-text-field v-if="canHavePropertyValue" label="Value" persistent-hint hint="(optional)" single-line dense v-model="propObj.value" 
+                :rules="[rules.validPropValue]" @keyup.enter.prevent="saveProperty" @click.stop=""></v-text-field>
+                <v-btn icon @click.native.stop="saveProperty"><v-icon>mdi-content-save</v-icon></v-btn>
                 <v-btn icon @click.native="propDialog=false"><v-icon>mdi-close-thick</v-icon></v-btn>{{propObj.name?'':setFocus(propObj.id)}}
             </div>
             </v-form>
@@ -36,12 +39,21 @@
             </v-form>
         </div>
         <div v-else-if="item.root=='uiSchema'">
-          <span >{{item.name}}
+          <span >{{item.isSlot?'<':''}}{{item.name}}{{item.isSlot?'>':''}}
             <v-icon v-if="canHaveChild(item)" @click.stop="addComponentDlg(item)">mdi-plus-thick</v-icon>
-            <v-icon v-if="item.level>0 && item.name" class="ml-2" @click.stop="editComponentDlg(item)">mdi-pencil</v-icon>
-            <v-btn v-if="item.level>0" x-small class="ml-2" elevation="1" @click.stop="addSlotDlg(item)"><v-icon small>mdi-plus</v-icon>slot</v-btn>
+            <v-icon v-if="item.level>0 && item.name" class="ml-2" @click.stop="editSlotDlg(item)">mdi-pencil</v-icon>
+            <v-btn v-if="item.level>0 && !item.isSlot" x-small class="ml-2" elevation="1" @click.stop="addSlotDlg(item)"><v-icon small>mdi-plus</v-icon>slot</v-btn>
             <v-icon @click.stop="deleteItem(item)" class="ml-2">mdi-trash-can</v-icon>
           </span>
+          <v-sheet v-if="slotDialog && active" elevation="1" width="300px" max-width="300px">
+            <v-form ref="slotForm" v-model="slotFormValid">
+            <div class="d-flex justify-left mb-2">
+              <v-text-field :id="slotObj.id" label="Slot" single-line dense v-model="slotObj.name" :rules="[rules.required, rules.validPropName]" @keyup.enter.prevent="saveSlot" @click.stop=""></v-text-field>
+                <v-btn icon @click.native.stop="saveSlot()"><v-icon>mdi-content-save</v-icon></v-btn>
+                <v-btn icon @click.native="slotDialog=false"><v-icon>mdi-close-thick</v-icon></v-btn>{{slotObj.name?'':setFocus(slotObj.id)}}
+            </div>
+            </v-form>
+          </v-sheet>
         </div>
       </template>
     </v-treeview>
@@ -92,7 +104,7 @@
           </v-form>
         </v-card-text>
         <v-card-actions>
-          <v-btn elevation="2" color="blue darken-1" text @click.native="cancel">Cancel</v-btn>
+          <v-btn elevation="2" color="blue darken-1" text @click.native="compDialog=false">Cancel</v-btn>
           <v-spacer></v-spacer>
           <v-btn elevation="2" color="blue darken-1" text @click.native="saveComponent()"><v-icon left dark>mdi-content-save</v-icon>Save</v-btn>
         </v-card-actions>
@@ -131,11 +143,10 @@ function validateFunction( body, argList) {
     },
     data: () => ({
       propertyDlg: false,
-      propObj:{editMode:'add', title:'', name:'', value:''},
+      propObj:{editMode:'add', name:'', value:'', children:[]},
       funcObj:{editMode:'add', title:'', parent:{}, newArg:'', name:'', arguments:[], body:''},
       funcDialog: false,
       propDialog: false,
-      editId:'',
       valid: true,
       propFormValid: true,
       clientFuncSelectDialog: false,
@@ -143,8 +154,11 @@ function validateFunction( body, argList) {
       clientFunction:'',
       bodyErrMsg:'',
       compDialog:false,
+      slotDialog: false,
+      slotObj: {editMode:'add', isSlot:true, id:'', name:'', children:[]},
+      slotFormValid: true,
       compFormValid:true,
-      compObj:{name:'', properties:''},
+      compObj:{editMode:'add', title:'', id:'', name:'', properties:'', children:[]},
       rules: {
           required: value => !!value || 'Required.',
           validPropName: value => !value || /^[a-zA-Z$_][a-zA-Z0-9$_-]*$/.test(value) || 'Invalid property name.',
@@ -173,6 +187,9 @@ function validateFunction( body, argList) {
       componentList: []
     }),
     computed: {
+      canHavePropertyValue() {
+        return this.propObj.editMode == 'add' || this.editedItem.children.length==0;
+      },
       ...mapState(['user'])
     },
 
@@ -200,6 +217,23 @@ function validateFunction( body, argList) {
       this.componentList = Object.keys(vcdnUtils.uiElementToVueCompMap).sort((a,b)=>(a<b?-1:(a>b?1:0)));
     },
     methods: {
+      sortChildren( item ) {
+        item.children = item.children.sort((a,b)=>{
+          var aS = a.isSlot?0:1;
+          var bS = b.isSlot?0:1;
+          var aN = a.name.toLowerCase();
+          var bN = b.name.toLowerCase();
+          return aS<bS?-1:(aS>bS?1:(aN<bN?-1:(aN>bN?1:0)))
+        })
+      },
+      resetValidation( formName ) {
+        this.$nextTick(()=>{
+          this.$refs[formName].resetValidation();
+        })
+      },
+      isActive(id) {
+        return this.active.length==1 && this.active[0]==id;
+      },
       onClientFunctionSelect( clientFunction ) {
         if (clientFunction) {
           var script = vcdnUtils.clientFunctionMap[clientFunction];
@@ -253,37 +287,44 @@ function validateFunction( body, argList) {
       },
       addPropertyDlg(parent) {
         this.propObj.editMode = 'add';
-        this.editId = '';
+        this.active = [parent.id+''];
+        this.propObj.activeId = parent.id;
         this.propObj.id = 'prop_'+this.initId();
         this.propObj.title  = `New ${(parent.name.charAt(parent.name.length-1)=='s')?parent.name.substring(0, parent.name.length-1):parent.name} property`;
         this.propObj.parent = parent;
         this.propObj.name = '';
         this.propObj.value = '';
         this.propDialog = true;
+        this.resetValidation( 'propForm' );
       },
       editPropertyDlg(item) {
-        this.editId = item.id;
+        this.editedItem = item;
+        this.active = [item.id+''];
+        this.propObj.activeId = item.id;
         this.propObj.editMode = 'edit';
         this.propObj.title  = `Edit property ${item.name}`;
         this.propObj.name = item.name;
         this.propObj.value = item.value;
         this.propDialog = true;
       },
-      saveProperty( item ) {
+      saveProperty() {
         if (!this.$refs.propForm.validate()) return;
         if (this.propObj.editMode == 'add') {
           this.open.push(this.propObj.parent.id);
           var id = this.initId();
-          this.propObj.parent.children.push({id:id, value:this.propObj.value, name:this.propObj.name, root:this.propObj.parent.root, level:this.propObj.parent.level+1});
+          this.propObj.parent.children.push(Object.assign({},{id:id, value:this.propObj.value, name:this.propObj.name, root:this.propObj.parent.root, level:this.propObj.parent.level+1, children:[]}));
+          this.sortChildren( this.propObj.parent );
           this.active = [id+''];
         } else {
-          item.name = this.propObj.name;
-          item.value = this.propObj.value;
+          this.editedItem.name = this.propObj.name;
+          this.editedItem.value = this.propObj.value;
         }
         this.propDialog = false;
       },
       addFunctionDlg(parent) {
         this.editedItem = parent;
+        this.active = [parent.id+''];
+        this.funcObj.activeId = parent.id;
         this.bodyErrMsg = '';
         this.funcObj.editMode = 'add';
         this.funcObj.title  = `New ${(parent.name.charAt(parent.name.length-1)=='s')?parent.name.substring(0, parent.name.length-1):parent.name}`;
@@ -292,8 +333,11 @@ function validateFunction( body, argList) {
         this.funcObj.arguments = parent.root=='watch'?["newVal", "oldVal"]:(parent.root=='filters'?["value"]:[]);
         this.funcObj.body = '';
         this.funcDialog = true;
+        this.resetValidation( 'funcForm' );
       },
       editFunctionDlg(item) {
+        this.active = [item.id+''];
+        this.funcObj.activeId = item.id;
         this.editedItem = item;
         this.bodyErrMsg = '';
         var type = (item.name.charAt(item.name.length-1)=='s')?item.name.substring(0, item.name.length-1):item.name;
@@ -312,7 +356,8 @@ function validateFunction( body, argList) {
         if (this.funcObj.editMode == 'add') {
           this.open.push(this.funcObj.parent.id);
           var id = this.initId();
-          this.funcObj.parent.children.push({id:id, arguments:this.funcObj.arguments, body:this.funcObj.body, name:this.funcObj.name, root:this.funcObj.parent.root, level:this.funcObj.parent.level+1});
+          this.funcObj.parent.children.push(Object.assign({},{id:id, arguments:this.funcObj.arguments, body:this.funcObj.body, name:this.funcObj.name, root:this.funcObj.parent.root, level:this.funcObj.parent.level+1}));
+          this.sortChildren( this.funcObj.parent );
           this.active = [id+''];
         } else {
           this.editedItem.title = this.funcObj.title;
@@ -323,6 +368,7 @@ function validateFunction( body, argList) {
       },
       addComponentDlg(parent) {
         this.editedItem = parent;
+        this.active = [parent.id+''];
         this.compObj = {name:'', properties:
 `{
   props:{},
@@ -333,9 +379,12 @@ function validateFunction( body, argList) {
         this.compObj.editMode = 'add';
         this.compObj.parent = parent;
         this.compDialog = true;
+        this.resetValidation( 'compForm' );
       },
       editComponentDlg(item) {
         this.editedItem = item;
+        this.active = [item.id+''];
+        this.compObj.activeId = item.id;
         this.compObj.editMode = 'edit';
         this.compObj.title  = `Edit ${item.name}`;
         this.compDialog = true;
@@ -345,13 +394,43 @@ function validateFunction( body, argList) {
         if (this.compObj.editMode == 'add') {
           this.open.push(this.compObj.parent.id);
           var id = this.initId();
-          this.compObj.parent.children.push({id:id, name:this.compObj.name, properties:this.compObj.properties, root:this.compObj.parent.root, level:this.compObj.parent.level+1});
+          this.compObj.parent.children.push(Object.assign({}, {id:id, name:this.compObj.name, properties:this.compObj.properties, root:this.compObj.parent.root, level:this.compObj.parent.level+1, children:[]}));
+          this.sortChildren( this.compObj.parent );
           this.active = [id+''];
         } else {
           this.editedItem.title = this.compObj.title;
           this.editedItem.properties = this.compObj.properties;
         }
         this.compDialog = false;
+      },
+      addSlotDlg( parent ) {
+        this.active = [parent.id+''];
+        this.slotObj.editMode = 'add';
+        this.slotObj.id = 'prop_'+this.initId();
+        this.slotObj.name = '';
+        this.slotObj.parent = parent;
+        this.slotDialog = true;
+        this.resetValidation( 'slotForm' );
+      },
+      editSlotDlg(item) {
+        this.editedItem = item;
+        this.active = [item.id+''];
+        this.slotObj.editMode = 'edit';
+        this.slotObj.name = item.name;
+        this.slotDialog = true;
+      },
+      saveSlot() {
+        if (!this.$refs.slotForm.validate()) return;
+        if (this.slotObj.editMode == 'add') {
+          this.open.push(this.slotObj.parent.id);
+          var id = this.initId();
+          this.slotObj.parent.children.push(Object.assign({},{id:id, isSlot:true, name:this.slotObj.name, root:this.slotObj.parent.root, level:this.slotObj.parent.level+1, children:[]}));
+          this.sortChildren( this.slotObj.parent );
+          this.active = [id+''];
+        } else {
+          this.editedItem.name = this.slotObj.name;
+        }
+        this.slotDialog = false;
       },
       findParentInBranch( node, id ) {
         if (!node || !node.children) return null;
