@@ -30,46 +30,6 @@
         </v-card-text>
       </v-card>
     </v-dialog>
-    <v-dialog v-model="componentSelectDialog" @keydown.esc.prevent="componentSelectDialog = false" max-width="800px" scrollable overlay-opacity="0.2">
-      <v-card>
-        <v-card-title>Insert a Component</v-card-title>
-        <v-card-text>
-          <v-form ref="componentSearchForm">
-            <v-text-field class="mb-3" v-model="componentSearchNameFilter" label="Name Filter" persistent-hint hint="Search for components with this phrase in the name."
-              @input="onNameFilterChange"></v-text-field>
-            <v-combobox v-model="componentSearchKeywords" :items="allComponentKeywords" label="Search by keyword" multiple chips @input="fetchComponents"></v-combobox>
-            <v-data-table :items="components" :headers="componentHeaders" class="mt-2 elevation-1">
-              <template v-slot:item="{ item }">
-                <tr @click="insertComponent(item)">
-                  <td><v-btn @click.stop="insertComponent(item)">Insert</v-btn></td>
-                  <td>{{ item.organizationName }}</td>
-                  <td>{{ item.componentId }}</td>
-                  <td><v-btn @click.stop="showDocumentation(item)">Show</v-btn></td>
-                </tr>
-              </template>
-            </v-data-table>
-          </v-form>
-        </v-card-text>
-          <v-card-actions>
-            <v-spacer></v-spacer>
-            <v-btn elevation="2" color="blue darken-1" text @click.native="componentSelectDialog=false">Cancel/Close</v-btn>
-            <!--v-spacer></v-spacer>
-            <v-btn elevation="2" color="blue darken-1" text @click.native="fetchComponents">Search</v-btn-->
-          </v-card-actions>
-      </v-card>
-    </v-dialog>
-    <v-dialog v-model="documentationDialog" @keydown.esc.prevent="componentSelectDialog = false" max-width="900px" scrollable overlay-opacity="0.2">
-      <v-card>
-        <v-card-title>{{documentationItem.componentName}}</v-card-title>
-        <v-card-text>
-          <span v-html="documentationItem.documentation"></span>
-        </v-card-text>
-          <v-card-actions>
-            <v-spacer></v-spacer>
-            <v-btn elevation="2" color="blue darken-1" text @click.native="documentationDialog = false">Close</v-btn>
-          </v-card-actions>
-      </v-card>
-    </v-dialog>
     <v-dialog v-model="pageDialog" @keydown.esc.prevent="pageDialog = false" max-width="100%" scrollable overlay-opacity="0.2" persistent>
       <v-card>
         <v-card-title>
@@ -93,7 +53,7 @@
             <prism-editor class="my-editor" v-model="page.content" :highlight="highlighter" line-numbers :rules="[rules.required]" @input="onPageChange"></prism-editor>
           </v-form>
         </v-card-text>
-
+        <ComponentSelectDialog :show="componentSelectDialog" @onSelect="insertComponent"/>
         <v-card-actions>
           <v-btn elevation="2" color="blue darken-1" text @click.native="pageDialog=false">Cancel</v-btn>
           <v-spacer></v-spacer>
@@ -123,8 +83,9 @@
   import 'prismjs/components/prism-clike';
   import 'prismjs/components/prism-javascript';
   import 'prismjs/themes/prism-funky.css'; // import syntax highlighting styles
+  import ComponentSelectDialog from './ComponentSelectDialog'
   export default {
-    components: { PrismEditor },
+    components: { PrismEditor, ComponentSelectDialog },
     props: {
       organizationId: String,
       application: Object
@@ -144,10 +105,6 @@
 
     mounted () {
       this.clientFunctions = Object.keys(vcdnUtils.clientFunctionMap);
-      this.componentSearchNameFilter = '';
-      this.allComponentKeywords = [];
-      this.componentSearchKeywords = [],
-      this.components = [];
       this.valid = true;
     },
 
@@ -169,26 +126,6 @@
           this.page.content = taskCompleter;
         }
       },
-      onNameFilterChange() {
-        if (this.timeoutId) {
-          clearTimeout(this.timeoutId);
-        }
-        this.timeoutId = setTimeout(() => {
-          this.fetchComponents();
-        }, 500);
-      },
-      fetchComponents() {
-        (async () => {
-          var response = await Api().post('/organizationcomponent/searchcomponents',
-            {keywordsFilter: this.componentSearchKeywords, nameFilter: this.componentSearchNameFilter});
-          if (response.data.success) {
-            this.components = response.data.components;
-          } else if (response.data.errMsg) {
-            EventBus.$emit('global error alert', response.data.errMsg );
-          }
-        })();
-
-      },
       onClientFunctionSelect( clientFunction ) {
         if (clientFunction) {
           var script = vcdnUtils.clientFunctionMap[clientFunction];
@@ -203,10 +140,6 @@
         this.page.content = this.page.content.replace('~~~', `{component: 'dynamicComponent', organizationId:'${item.organizationId}', componentId: '${item.componentId}'}`);
         this.componentSelectDialog = false;
       },
-      showDocumentation(item) {
-        this.documentationItem = item;
-        this.documentationDialog = true;
-      },
       onPageChange( value ) {
         var found = value.indexOf('%%%')>=0;
         if (found) {
@@ -214,17 +147,6 @@
         }
         var found = value.indexOf('~~~')>=0;
         if (found) {
-          if (this.allComponentKeywords.length==0) {
-            (async () => {
-              var response = await Api().get('/organizationcomponent/getcomponentkeywords');
-              if (response.data.success) {
-                this.allComponentKeywords = response.data.keywords;
-              } else if (response.data.errMsg) {
-                EventBus.$emit('global error alert', response.data.errMsg );
-              }
-            })();
-          }
-          this.fetchComponents();
           this.componentSelectDialog = true;
         }
       },
@@ -329,23 +251,11 @@
       pageDialog: false,
       clientFuncSelectDialog: false,
       componentSelectDialog: false,
-      componentSearchNameFilter: '',
-      allComponentKeywords: [],
-      componentSearchKeywords: [],
-      components: [],
-      documentationDialog: false,
-      documentationItem: {},
       valid: true,
       headers: [
         { text: 'Actions', value: 'name', sortable: false, align:'center' },
         { text: 'Name', align: 'left', sortable: true, value: 'name' },
         { text: 'Length', align: 'right', sortable: true, value: 'content.length' }
-      ],
-      componentHeaders: [
-        { text: "Insert", align:'left', sortable:false},
-        { text: 'Organization', align: 'left', sortable: true, value: 'organizationName' },
-        { text: 'Component', align: 'left', sortable: true, value: 'componentName' },
-        { text: "Documentation", align:'left', sortable:false}
       ],
       rules: {
           required: value => !!value || 'Required.'

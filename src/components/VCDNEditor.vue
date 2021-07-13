@@ -41,7 +41,7 @@
         <div v-else-if="item.root=='uiSchema'">
           <span >{{item.isSlot?'<':''}}{{item.name}}{{item.isSlot?'>':''}}
             <v-icon v-if="canHaveChild(item)" @click.stop="addComponentDlg(item)">mdi-plus-thick</v-icon>
-            <v-icon v-if="item.level>0 && item.name" class="ml-2" @click.stop="editSlotDlg(item)">mdi-pencil</v-icon>
+            <v-icon v-if="item.level>0 && item.name" class="ml-2" @click.stop="item.isSlot?editSlotDlg(item):editComponentDlg(item)">mdi-pencil</v-icon>
             <v-btn v-if="item.level>0 && !item.isSlot" x-small class="ml-2" elevation="1" @click.stop="addSlotDlg(item)"><v-icon small>mdi-plus</v-icon>slot</v-btn>
             <v-icon @click.stop="deleteItem(item)" class="ml-2">mdi-trash-can</v-icon>
           </span>
@@ -99,8 +99,10 @@
         <v-card-title>{{compObj.title}}</v-card-title>
         <v-card-text>
           <v-form ref="compForm" @click.stop=""  v-model="valid" lazy-validation >
-            <v-select v-model="compObj.name" label="Component " :items="componentList" :rules="[rules.required]"></v-select>
+            <v-select v-model="compObj.name" label="Component " :items="componentList" :rules="[rules.required]" @input="onCompSelect"></v-select>
             <v-textarea class="mt-2" rows="4" auto-grow v-model="compObj.properties" label="Properties" :rules="[rules.required, rules.validCompProps]"></v-textarea>
+            <v-text-field v-if="compObj.dynamicComponent.componentId" dense label="Oeganization Id" :value="compObj.dynamicComponent.organizationId" readonly />
+            <v-text-field v-if="compObj.dynamicComponent.componentId" dense label="Component Id" :value="compObj.dynamicComponent.componentId" readonly />
           </v-form>
         </v-card-text>
         <v-card-actions>
@@ -110,6 +112,7 @@
         </v-card-actions>
       </v-card>
     </v-dialog>
+    <ComponentSelectDialog :show="componentSelectDialog" @onSelect="insertComponent" />
   </div>
 </template>
 
@@ -125,6 +128,7 @@ import { highlight, languages } from 'prismjs/components/prism-core';
 import 'prismjs/components/prism-clike';
 import 'prismjs/components/prism-javascript';
 import 'prismjs/themes/prism-funky.css'; // import syntax highlighting styles
+import ComponentSelectDialog from './ComponentSelectDialog'
 
 function validateFunction( body, argList) {
   var partsList = argList?argList.concat([body]):[body];
@@ -137,7 +141,7 @@ function validateFunction( body, argList) {
 }
 
   export default {
-    components: { PrismEditor },
+    components: { PrismEditor, ComponentSelectDialog },
     props: {
       type: String
     },
@@ -158,7 +162,7 @@ function validateFunction( body, argList) {
       slotObj: {editMode:'add', isSlot:true, id:'', name:'', children:[]},
       slotFormValid: true,
       compFormValid:true,
-      compObj:{editMode:'add', title:'', id:'', name:'', properties:'', children:[]},
+      compObj:{editMode:'add', title:'', id:'', name:'', properties:'', children:[], dynamicComponent:{}},
       rules: {
           required: value => !!value || 'Required.',
           validPropName: value => !value || /^[a-zA-Z$_][a-zA-Z0-9$_-]*$/.test(value) || 'Invalid property name.',
@@ -184,7 +188,9 @@ function validateFunction( body, argList) {
       rootNodes:[],
       active: [],
       open:[],
-      componentList: []
+      componentList: [],
+      componentSelectDialog: false,
+      dynCompKey: 1
     }),
     computed: {
       canHavePropertyValue() {
@@ -214,9 +220,24 @@ function validateFunction( body, argList) {
         items.push(this.rootNode('uiSchema'));
       }
       this.rootNodes = items;
-      this.componentList = Object.keys(vcdnUtils.uiElementToVueCompMap).sort((a,b)=>(a<b?-1:(a>b?1:0)));
+      this.componentList = ['dynamicComponent'].concat(Object.keys(vcdnUtils.uiElementToVueCompMap).sort((a,b)=>(a<b?-1:(a>b?1:0))));
     },
     methods: {
+      onCompSelect() {
+          this.componentSelectDialog = false;
+        if (this.compObj.name == 'dynamicComponent') {
+          console.log('chg to dynamicComponent, dlg='+this.componentSelectDialog);
+          this.componentSelectDialog = true;
+          this.dynCompKey = this.dynCompKey+1;
+          this.$forceUpdate();
+        } else {
+          this.compObj.dynamicComponent = {};
+        }
+      },
+      insertComponent(item) {
+        this.compObj.dynamicComponent = item;
+        this.componentSelectDialog = false;
+      },
       sortChildren( item ) {
         item.children = item.children.sort((a,b)=>{
           var aS = a.isSlot?0:1;
@@ -375,18 +396,20 @@ function validateFunction( body, argList) {
   vmodel:'',
   class:'',
   on:{}
-}`};
+}`, dynamicComponent:{}};
         this.compObj.editMode = 'add';
         this.compObj.parent = parent;
         this.compDialog = true;
         this.resetValidation( 'compForm' );
       },
       editComponentDlg(item) {
+        this.componentSelectDialog = false;
         this.editedItem = item;
         this.active = [item.id+''];
         this.compObj.activeId = item.id;
         this.compObj.editMode = 'edit';
         this.compObj.title  = `Edit ${item.name}`;
+        this.compObj.dynamicComponent = item.dynamicComponent;
         this.compDialog = true;
       },
       saveComponent() {
@@ -394,13 +417,21 @@ function validateFunction( body, argList) {
         if (this.compObj.editMode == 'add') {
           this.open.push(this.compObj.parent.id);
           var id = this.initId();
-          this.compObj.parent.children.push(Object.assign({}, {id:id, name:this.compObj.name, properties:this.compObj.properties, root:this.compObj.parent.root, level:this.compObj.parent.level+1, children:[]}));
+          this.compObj.parent.children.push(Object.assign({}, 
+              { id:id,
+                name:this.compObj.name,
+                properties:this.compObj.properties,
+                root:this.compObj.parent.root,
+                level:this.compObj.parent.level+1,
+                children:[],
+                dynamicComponent: this.compObj.dynamicComponent}));
           this.sortChildren( this.compObj.parent );
           this.active = [id+''];
         } else {
           this.editedItem.title = this.compObj.title;
           this.editedItem.properties = this.compObj.properties;
         }
+        this.dynCompKey = this.dynCompKey+1;
         this.compDialog = false;
       },
       addSlotDlg( parent ) {
