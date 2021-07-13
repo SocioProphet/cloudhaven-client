@@ -21,6 +21,7 @@ var validHtmlTags = [
 ]
 
 var obj = {};
+obj.validHtmlTags = validHtmlTags;
 obj.clientFunctionMap = {
   _writeAppData:'this._writeAppData({table:"", key:"", dataString:""}, function(results) {});',
   _readAppData :'this._readAppData({table:"", key:"", searchOperator:"contains"}, function(data) {});',

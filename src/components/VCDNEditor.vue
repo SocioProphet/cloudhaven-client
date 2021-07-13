@@ -42,7 +42,7 @@
           <span >{{item.isSlot?'<':''}}{{item.name}}{{item.isSlot?'>':''}}
             <v-icon v-if="canHaveChild(item)" @click.stop="addComponentDlg(item)">mdi-plus-thick</v-icon>
             <v-icon v-if="item.level>0 && item.name" class="ml-2" @click.stop="item.isSlot?editSlotDlg(item):editComponentDlg(item)">mdi-pencil</v-icon>
-            <v-btn v-if="item.level>0 && !item.isSlot" x-small class="ml-2" elevation="1" @click.stop="addSlotDlg(item)"><v-icon small>mdi-plus</v-icon>slot</v-btn>
+            <v-btn v-if="item.level>0 && !item.isSlot && !isHtmlElement(item.name)" x-small class="ml-2" elevation="1" @click.stop="addSlotDlg(item)"><v-icon small>mdi-plus</v-icon>slot</v-btn>
             <v-icon @click.stop="deleteItem(item)" class="ml-2">mdi-trash-can</v-icon>
           </span>
           <v-sheet v-if="slotDialog && active" elevation="1" width="300px" max-width="300px">
@@ -57,6 +57,9 @@
         </div>
       </template>
     </v-treeview>
+        <div>
+          JSON:<br/><span v-html="jsonHtml"/>
+        </div>
     <v-dialog v-model="clientFuncSelectDialog" @keydown.esc.prevent="clientFuncSelectDialog = false" max-width="500px" scrollable overlay-opacity="0.2">
       <v-card>
         <v-card-title>Available Functions</v-card-title>
@@ -99,7 +102,8 @@
         <v-card-title>{{compObj.title}}</v-card-title>
         <v-card-text>
           <v-form ref="compForm" @click.stop=""  v-model="valid" lazy-validation >
-            <v-select v-model="compObj.name" label="Component " :items="componentList" :rules="[rules.required]" @input="onCompSelect"></v-select>
+            <v-select v-model="componentSelection" label="Component" :items="componentList" @input="onCompSelect"></v-select>
+            <v-select v-model="htmlElementSelection" label="HTML Element" :items="htmlElementList" @input="onHtmlElSelect"></v-select>
             <v-textarea class="mt-2" rows="4" auto-grow v-model="compObj.properties" label="Properties" :rules="[rules.required, rules.validCompProps]"></v-textarea>
             <v-text-field v-if="compObj.dynamicComponent.componentId" dense label="Oeganization Id" :value="compObj.dynamicComponent.organizationId" readonly />
             <v-text-field v-if="compObj.dynamicComponent.componentId" dense label="Component Id" :value="compObj.dynamicComponent.componentId" readonly />
@@ -129,6 +133,8 @@ import 'prismjs/components/prism-clike';
 import 'prismjs/components/prism-javascript';
 import 'prismjs/themes/prism-funky.css'; // import syntax highlighting styles
 import ComponentSelectDialog from './ComponentSelectDialog'
+import JSON5 from 'json5'
+import _ from 'lodash'
 
 function validateFunction( body, argList) {
   var partsList = argList?argList.concat([body]):[body];
@@ -189,19 +195,12 @@ function validateFunction( body, argList) {
       active: [],
       open:[],
       componentList: [],
+      componentSelection:'',
+      htmlElementList: [],
+      htmlElementSelection:'',
       componentSelectDialog: false,
       dynCompKey: 1
     }),
-    computed: {
-      canHavePropertyValue() {
-        return this.propObj.editMode == 'add' || this.editedItem.children.length==0;
-      },
-      ...mapState(['user'])
-    },
-
-    watch: {
-    },
-
     mounted () {
       this.clientFunctions = Object.keys(vcdnUtils.clientFunctionMap);
       var items = [
@@ -220,11 +219,104 @@ function validateFunction( body, argList) {
         items.push(this.rootNode('uiSchema'));
       }
       this.rootNodes = items;
-      this.componentList = ['dynamicComponent'].concat(Object.keys(vcdnUtils.uiElementToVueCompMap).sort((a,b)=>(a<b?-1:(a>b?1:0))));
+      this.componentList = [''].concat(Object.keys(vcdnUtils.uiElementToVueCompMap).sort((a,b)=>(a<b?-1:(a>b?1:0))).concat(['dynamicComponent']));
+      this.htmlElementList = [''].concat(vcdnUtils.validHtmlTags);
+    },
+    computed: {
+      jsonHtml() {
+        return this.json.replace(/\n/g,"<br/>").replace(/ /g,"&nbsp;");
+      },
+      json() {
+        var j = {};
+        this.rootNodes.forEach(rn=>{
+          j[rn.name] = {};
+          if (rn.name=='dataModel') {
+            rn.children.forEach(dmChild=>{
+              this.dataModelToJson(j.dataModel, dmChild);
+            });
+          } else if (this.isFunctionType(rn)) {
+            rn.children.forEach(fNode=>{
+              this.functionToJson( j[rn.name], fNode);
+            })
+          } else if (rn.name=='uiSchema') {
+            if (rn.children && rn.children.length>0) {
+              var node = (rn.children.length>1)?{name:'div', contents:rn.children}:rn.children[0]
+              j[rn.name] = this.uiSchemaToJson( node );
+            }
+          }
+        });
+        return JSON5.stringify(j, null, 2);
+      },
+      canHavePropertyValue() {
+        return this.propObj.editMode == 'add' || this.editedItem.children.length==0;
+      },
+      ...mapState(['user'])
     },
     methods: {
+      isHtmlElement(el) {
+        return this.htmlElementList.indexOf(el)>=0;
+      },
+      makeComponent( node ) {
+        var comp = {component:node.name};
+        if (node.oranizationId && node.componentId) {
+          comp.oranizationId = node.oranizationId;
+          comp.componentId = node.componentId;
+        }
+        var propsObj = null;
+        try {
+          propsObj = JSON5.parse(node.properties);
+        } catch (e) {
+          propsObj = {properties_parse_error:e+''};
+        }
+        return Object.assign(comp, propsObj);
+      },
+      uiSchemaToJson( node) {
+        var j = this.makeComponent( node );
+        if (node.children && node.children.length>0) {
+          var contents = node.children.filter(c=>(!c.isSlot));
+          if (contents.length>0) {
+            j.contents = contents.reduce((ar, c)=>{
+              ar.push(this.uiSchemaToJson(c));
+              return ar;
+            },[]);
+          }
+          var slots = node.children.filter(c=>(c.isSlot));
+          if (slots.length>0) {
+            j.scopedSlots = {};
+            slots.forEach(s=>{
+              j.scopedSlots[s.name] = (s.children||[]).reduce((ar,c)=>{
+                ar.push(this.uiSchemaToJson(c))
+                return ar;
+              },[]);
+              if (j.scopedSlots[s.name].length==0) {
+                j.scopedSlots[s.name] = {}
+              } else if (j.scopedSlots[s.name].length==1) {
+                j.scopedSlots[s.name] = j.scopedSlots[s.name][0];
+              }
+            })
+          }
+        }
+        return j;
+      },
+      functionToJson( json, node) {
+        json[node.name] = {};
+        if (node.arguments && node.arguments.length>0) {
+          json[node.name].args = node.arguments;
+        }
+        json[node.name].body = node.body;
+      },
+      dataModelToJson( json, node) {
+        json[node.name] = node.value?node.value:{};
+        if (node.children.length>0 && !node.value) {
+          node.children.forEach(chNode=>{
+            this.dataModelToJson( json[node.name], chNode);
+          })
+        }
+      },
       onCompSelect() {
-          this.componentSelectDialog = false;
+        this.componentSelectDialog = false;
+        this.compObj.name = this.componentSelection;
+        this.htmlElementSelection = '';
         if (this.compObj.name == 'dynamicComponent') {
           console.log('chg to dynamicComponent, dlg='+this.componentSelectDialog);
           this.componentSelectDialog = true;
@@ -233,6 +325,10 @@ function validateFunction( body, argList) {
         } else {
           this.compObj.dynamicComponent = {};
         }
+      },
+      onHtmlElSelect() {
+        this.componentSelection = '';
+        this.compObj.name = this.htmlElementSelection;
       },
       insertComponent(item) {
         this.compObj.dynamicComponent = item;
@@ -390,6 +486,8 @@ function validateFunction( body, argList) {
       addComponentDlg(parent) {
         this.editedItem = parent;
         this.active = [parent.id+''];
+        this.componentSelection = '';
+        this.htmlElementSelection = '';
         this.compObj = {name:'', properties:
 `{
   props:{},
@@ -410,10 +508,16 @@ function validateFunction( body, argList) {
         this.compObj.editMode = 'edit';
         this.compObj.title  = `Edit ${item.name}`;
         this.compObj.dynamicComponent = item.dynamicComponent;
+        this.componentSelection = this.componentList.indexOf(this.compObj.name)>=0?this.compObj.name:'';
+        this.htmlElementSelection = this.isHtmlElement(this.compObj.name)?this.compObj.name:'';
         this.compDialog = true;
       },
       saveComponent() {
         if (!this.$refs.compForm.validate()) return;
+        if (!this.compObj.name) {
+          alert('Please select either a component or an HTML ELement.');
+          return;
+        }
         if (this.compObj.editMode == 'add') {
           this.open.push(this.compObj.parent.id);
           var id = this.initId();
@@ -428,6 +532,11 @@ function validateFunction( body, argList) {
           this.sortChildren( this.compObj.parent );
           this.active = [id+''];
         } else {
+          if (this.compObj.name=='dynamicComponent') {
+            this.editedItem.organizationId = this.compObj.organizationId;
+            this.editedItem.componentId = this.compObj.componentId;
+          }
+          this.editedItem.name = this.compObj.name
           this.editedItem.title = this.compObj.title;
           this.editedItem.properties = this.compObj.properties;
         }
@@ -455,7 +564,15 @@ function validateFunction( body, argList) {
         if (this.slotObj.editMode == 'add') {
           this.open.push(this.slotObj.parent.id);
           var id = this.initId();
-          this.slotObj.parent.children.push(Object.assign({},{id:id, isSlot:true, name:this.slotObj.name, root:this.slotObj.parent.root, level:this.slotObj.parent.level+1, children:[]}));
+          this.slotObj.parent.children.push(Object.assign({},
+              { id:id,
+                isSlot:true,
+                name:this.slotObj.name,
+                root:this.slotObj.parent.root,
+                level:this.slotObj.parent.level+1,
+                children:[]
+              }
+          ));
           this.sortChildren( this.slotObj.parent );
           this.active = [id+''];
         } else {
