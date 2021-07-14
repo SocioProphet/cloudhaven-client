@@ -57,10 +57,18 @@
         <v-card-actions>
           <v-btn elevation="2" color="blue darken-1" text @click.native="pageDialog=false">Cancel</v-btn>
           <v-spacer></v-spacer>
+          <v-btn elevation="2" color="blue darken-1" text @click.native.stop="openTreeEditor"><v-icon left dark>mdi-file-tree</v-icon>Tree Editor</v-btn>
+          <v-spacer></v-spacer>
           <v-btn elevation="2" color="blue darken-1" text @click.native.stop="save($event)"><v-icon left dark>mdi-content-save</v-icon>Save</v-btn>
         </v-card-actions>
         <v-textarea v-if="errors.length>0" wrap="off" light color="red--text text--darken-2" class="mx-5 mt-4" label="Errors" :value="errors.join('\n')">
         </v-textarea>
+      </v-card>
+    </v-dialog>
+    <v-dialog v-model="treeEditorDlg" @keydown.esc.prevent="pageDialog = false" max-width="95%" scrollable overlay-opacity="0.2" persistent>
+      <v-card>
+        <v-card-title>Tree Editor for "{{page.name}}" Page</v-card-title>
+          <VCDNEditor type="Application" :source="page.content" @changed="onTreeEditorChange"/>
       </v-card>
     </v-dialog>
   </div>
@@ -84,8 +92,9 @@
   import 'prismjs/components/prism-javascript';
   import 'prismjs/themes/prism-funky.css'; // import syntax highlighting styles
   import ComponentSelectDialog from './ComponentSelectDialog'
+  import VCDNEditor from './VCDNEditor.vue'
   export default {
-    components: { PrismEditor, ComponentSelectDialog },
+    components: { PrismEditor, ComponentSelectDialog, VCDNEditor },
     props: {
       organizationId: String,
       application: Object
@@ -109,6 +118,12 @@
     },
 
     methods: {
+      openTreeEditor() {
+        this.treeEditorDlg=true;
+      },
+      onTreeEditorChange( json ) {
+        this.page.content = json;
+      },
       onTemplateChange() {
         if (this.template == 'Default') {
           this.page.content = vcdnUtils.getDefaultPage();
@@ -251,6 +266,7 @@
       pageDialog: false,
       clientFuncSelectDialog: false,
       componentSelectDialog: false,
+      treeEditorDlg: false,
       valid: true,
       headers: [
         { text: 'Actions', value: 'name', sortable: false, align:'center' },

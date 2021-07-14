@@ -1,9 +1,6 @@
 <template>
-  <div class="mt-3">
-      <v-toolbar dense elevation="5">
-      <v-toolbar-title class="mr-3">VCDN Editor</v-toolbar-title>
-      <v-spacer></v-spacer>
-    </v-toolbar>
+  <div>
+    <v-alert type="error" v-if="srcParseErrMsg" :value="srcParseErrMsg"/>
     <v-treeview :items="rootNodes" elevation="2" dense class="mt-3" activatable :open="open" :active="active" hoverable @update:active="onActivated">
       <template v-slot:label="{ item, active }">
         <div v-if="item.root=='dataModel'">
@@ -26,7 +23,7 @@
             </v-form>
           </v-sheet>
         </div>
-        <div v-else-if="isFunctionType(item)">
+        <div v-else-if="isFunctionType(item.root)">
           <span>{{item.name}}
             <v-icon v-if="canHaveChild(item)" @click.stop="addFunctionDlg(item)">mdi-plus-thick</v-icon>
             <v-icon v-if="item.level>0 && item.name" @click.stop="editFunctionDlg(item)">mdi-pencil</v-icon>
@@ -57,9 +54,6 @@
         </div>
       </template>
     </v-treeview>
-        <div>
-          JSON:<br/><span v-html="jsonHtml"/>
-        </div>
     <v-dialog v-model="clientFuncSelectDialog" @keydown.esc.prevent="clientFuncSelectDialog = false" max-width="500px" scrollable overlay-opacity="0.2">
       <v-card>
         <v-card-title>Available Functions</v-card-title>
@@ -70,12 +64,12 @@
         </v-card-text>
       </v-card>
     </v-dialog>
-    <v-dialog v-model="funcDialog" @keydown.esc.prevent="funcDialog = false" overlay-opacity="0.2" elevation="3">
+    <v-dialog v-model="funcDialog" @keydown.esc.prevent="funcDialog = false" overlay-opacity="0.2" elevation="3" retain-focus>
       <v-card>
         <v-card-title>{{funcObj.title}}</v-card-title>
         <v-card-text>
           <v-form ref="funcForm" @click.stop=""  v-model="valid" lazy-validation >
-            <v-text-field style="width:300px" dense v-model="funcObj.name" label="Name" :rules="[rules.required, rules.validFuncName]" @click.stop="" ></v-text-field>
+            <v-text-field id="funcName" style="width:300px" dense v-model="funcObj.name" label="Name" :rules="[rules.required, rules.validFuncName]" @click.stop="" ></v-text-field>
             <v-sheet v-if="editedItem.root=='methods' || editedItem.root=='watch' || editedItem.root=='filters'" elevation="1" class="justify-left">
             <v-text-field v-if="editedItem.root=='methods'" style="max-width:300px;" label="Arguments" class="mr-2" placeholder="Enter a new argument." persistent-hint hint="Enter an argument name and then press Enter." v-model="funcObj.newArg" @click.stop=""
               :rules="[rules.validArgument]" @keyup.enter.prevent="checkArgument"></v-text-field>
@@ -86,6 +80,7 @@
             </v-chip-group>
             </v-sheet>
             <prism-editor class="my-editor mt-2" v-model="funcObj.body" :highlight="highlighter" line-numbers :rules="[rules.required, rules.validFuncBody]" @input="onPageChange"></prism-editor>
+            {{setFocus('funcName')}}
             <v-alert type="error" v-if="bodyErrMsg">{{bodyErrMsg}}</v-alert>
             <!--v-textarea rows="4" auto-grow label="Body" v-model="funcObj.body" @click.stop="" :rules="[rules.required, rules.validFuncBody]"></v-textarea-->
           </v-form>
@@ -97,16 +92,17 @@
         </v-card-actions>
       </v-card>
     </v-dialog>
-    <v-dialog v-model="compDialog" width="600px" @keydown.esc.prevent="compDialog = false" overlay-opacity="0.2" elevation="3">
+    <v-dialog v-model="compDialog" width="600px" @keydown.esc.prevent="compDialog = false" overlay-opacity="0.2" elevation="3" retain-focus>
       <v-card>
         <v-card-title>{{compObj.title}}</v-card-title>
         <v-card-text>
           <v-form ref="compForm" @click.stop=""  v-model="valid" lazy-validation >
-            <v-select v-model="componentSelection" label="Component" :items="componentList" @input="onCompSelect"></v-select>
+            <v-select id="componentSelector" v-model="componentSelection" label="Component" :items="componentList" @input="onCompSelect"></v-select>
             <v-select v-model="htmlElementSelection" label="HTML Element" :items="htmlElementList" @input="onHtmlElSelect"></v-select>
             <v-textarea class="mt-2" rows="4" auto-grow v-model="compObj.properties" label="Properties" :rules="[rules.required, rules.validCompProps]"></v-textarea>
             <v-text-field v-if="compObj.dynamicComponent.componentId" dense label="Oeganization Id" :value="compObj.dynamicComponent.organizationId" readonly />
             <v-text-field v-if="compObj.dynamicComponent.componentId" dense label="Component Id" :value="compObj.dynamicComponent.componentId" readonly />
+            {{setFocus( 'componentSelector' )}}
           </v-form>
         </v-card-text>
         <v-card-actions>
@@ -121,8 +117,6 @@
 </template>
 
 <script>
-// js valid property regex ^[a-zA-Z$_][a-zA-Z0-9$_]*$
-
 import { mapState } from 'vuex'
 import { EventBus } from '../event-bus.js';
 import vcdnUtils from '../_helpers/vcdnutils.js'
@@ -149,7 +143,8 @@ function validateFunction( body, argList) {
   export default {
     components: { PrismEditor, ComponentSelectDialog },
     props: {
-      type: String
+      type: String,
+      source: String
     },
     data: () => ({
       propertyDlg: false,
@@ -199,11 +194,15 @@ function validateFunction( body, argList) {
       htmlElementList: [],
       htmlElementSelection:'',
       componentSelectDialog: false,
-      dynCompKey: 1
+      dynCompKey: 1,
+      wasChanged: false,
+      srcParseErrMsg:''
     }),
     mounted () {
       this.clientFunctions = Object.keys(vcdnUtils.clientFunctionMap);
-      var items = [
+      debugger;
+      var rootNodes = this.parseSource(this.source);
+/*      var items = [
         this.rootNode('dataModel'),
         this.rootNode('methods'),
         this.rootNode('computed'),
@@ -217,15 +216,13 @@ function validateFunction( body, argList) {
       } else if (this.type == 'Application') {
         items.push(this.rootNode('mixins'));
         items.push(this.rootNode('uiSchema'));
-      }
-      this.rootNodes = items;
+      }*/
+      this.rootNodes = rootNodes; //items;
       this.componentList = [''].concat(Object.keys(vcdnUtils.uiElementToVueCompMap).sort((a,b)=>(a<b?-1:(a>b?1:0))).concat(['dynamicComponent']));
       this.htmlElementList = [''].concat(vcdnUtils.validHtmlTags);
+      this.wasChanged = false;
     },
     computed: {
-      jsonHtml() {
-        return this.json.replace(/\n/g,"<br/>").replace(/ /g,"&nbsp;");
-      },
       json() {
         var j = {};
         this.rootNodes.forEach(rn=>{
@@ -234,7 +231,7 @@ function validateFunction( body, argList) {
             rn.children.forEach(dmChild=>{
               this.dataModelToJson(j.dataModel, dmChild);
             });
-          } else if (this.isFunctionType(rn)) {
+          } else if (this.isFunctionType(rn.root)) {
             rn.children.forEach(fNode=>{
               this.functionToJson( j[rn.name], fNode);
             })
@@ -252,7 +249,111 @@ function validateFunction( body, argList) {
       },
       ...mapState(['user'])
     },
+    watch: {
+      json( val ) {
+        this.$emit('changed', val);
+      }
+    },
     methods: {
+      parseSource( src ) {
+        var o = null;
+        this.srcParseErrMsg = '';
+/*        var testObj = {
+          dataModel:{
+            aaa: {
+              bbb: {
+                ccc: "new Date()"
+              },
+              ddd: "true"
+            },
+            eee:"[]"
+          },
+          methods: {
+            test: {
+              args:["aaa", "bbb"],
+              body:`
+              var x = 1234;
+              var y = 5678;
+              `
+            },
+            test2: {
+              args:["aaa2", "bbb2"],
+              body:`
+              var x = 21234;
+              var y = 25678;
+              `
+            }
+          },
+          computed: {
+            theVal: {
+              body:`
+              return 1234;
+              `
+            }
+          },
+          watch: {
+            someVal: {
+              args:["newVal", "oldVal"],
+              body:`
+                this.doSomething();
+              `
+            }
+          },
+          filters: {
+            f: {
+              args: ["val"],
+              body:`
+              return '['+val+']';
+              `
+            }
+          }
+        }*/
+        try {
+          o = /*testObj;*/ (Function.apply( null, [src+' return uiConfig;']))();
+          debugger;
+        } catch (e) {
+          debugger;
+          this.srcParseErrMsg = "Source error: "+e;
+          return;
+        }
+        debugger;
+        var rootNodes = Object.keys(o).reduce((ar,k)=>{
+          var node = this.rootNode(k);
+          ar.push(node);
+          if (node.name == 'dataModel') {
+            this.parseDataModel(node, o[k], 0, {curId:this.initId()});
+          } else if (this.isFunctionType(node.name)) {
+            debugger;
+            this.parseFunction(k, node, o[k], 0, {curId:this.initId()});
+          } else if (node.name=='uiSchema') {
+
+          }
+          return ar;
+        },[]);
+        return rootNodes;
+      },
+      parseFunction(root, node,  obj, level, ctx ) {
+        level = level+1;
+        Object.keys(obj).forEach(k=>{
+          ctx.curId++
+          var funcObj = obj[k];
+          var childNode = {id:ctx.curId, name:k, arguments:funcObj.args, body:funcObj.body, root:root, level:level};
+          node.children.push(childNode);
+        })
+      },
+      parseDataModel(node,  obj, level, ctx ) {
+        level = level+1;
+        if ((typeof obj)=='object' && !Array.isArray(obj)) {
+          Object.keys(obj).forEach(k=>{
+            ctx.curId++
+            var childNode = {id:ctx.curId, name:k, root:'dataModel', level:level, children:[]};
+            node.children.push(childNode);
+            this.parseDataModel(childNode, obj[k], level, ctx)
+          })
+        } else {
+          node.value = obj;
+        }
+      },
       isHtmlElement(el) {
         return this.htmlElementList.indexOf(el)>=0;
       },
@@ -318,7 +419,6 @@ function validateFunction( body, argList) {
         this.compObj.name = this.componentSelection;
         this.htmlElementSelection = '';
         if (this.compObj.name == 'dynamicComponent') {
-          console.log('chg to dynamicComponent, dlg='+this.componentSelectDialog);
           this.componentSelectDialog = true;
           this.dynCompKey = this.dynCompKey+1;
           this.$forceUpdate();
@@ -377,14 +477,23 @@ function validateFunction( body, argList) {
       setFocus( id ) {
         this.$nextTick(()=>{
           var el = document.getElementById(id);
-          el.focus();
+          if (el) {
+            el.focus();
+          } else {
+            setTimeout(()=>{
+              var el = document.getElementById(id);
+              if (el) {
+                el.focus();
+              }
+            }, 2000);
+          }
         })
         return '';
       },
       canHaveChild( item ) {
         return (
           (item.root == 'dataModel' && !item.value) ||
-          (this.isFunctionType(item) && item.level==0) ||
+          (this.isFunctionType(item.root) && item.level==0) ||
           (item.root == 'uiSchema')
         )
       },
@@ -399,8 +508,8 @@ function validateFunction( body, argList) {
       initId() {
         return (new Date().getTime())+'';
       },
-      isFunctionType( item ) {
-        return ['methods', 'computed', 'watch', 'filters'].indexOf(item.root)>=0;
+      isFunctionType( key ) {
+        return ['methods', 'computed', 'watch', 'filters'].indexOf(key)>=0;
       },
       addPropertyDlg(parent) {
         this.propObj.editMode = 'add';
@@ -429,13 +538,22 @@ function validateFunction( body, argList) {
         if (this.propObj.editMode == 'add') {
           this.open.push(this.propObj.parent.id);
           var id = this.initId();
-          this.propObj.parent.children.push(Object.assign({},{id:id, value:this.propObj.value, name:this.propObj.name, root:this.propObj.parent.root, level:this.propObj.parent.level+1, children:[]}));
+          this.propObj.parent.children.push(Object.assign({},
+            { id:id,
+            value:this.propObj.value,
+            name:this.propObj.name,
+            root:this.propObj.parent.root,
+            level:this.propObj.parent.level+1,
+            children:[]
+            }
+          ));
           this.sortChildren( this.propObj.parent );
           this.active = [id+''];
         } else {
           this.editedItem.name = this.propObj.name;
           this.editedItem.value = this.propObj.value;
         }
+        this.wasChanged = true;
         this.propDialog = false;
       },
       addFunctionDlg(parent) {
@@ -457,7 +575,7 @@ function validateFunction( body, argList) {
         this.funcObj.activeId = item.id;
         this.editedItem = item;
         this.bodyErrMsg = '';
-        var type = (item.name.charAt(item.name.length-1)=='s')?item.name.substring(0, item.name.length-1):item.name;
+        var type = (item.root.charAt(item.root.length-1)=='s')?item.root.substring(0, item.root.length-1):item.root;
         this.funcObj.editMode = 'edit';
         this.funcObj.title  = `Edit ${type} ${item.name}`;
         this.funcObj.name = item.name;
@@ -481,6 +599,7 @@ function validateFunction( body, argList) {
           this.editedItem.arguments = this.funcObj.arguments;
           this.editedItem.body = this.funcObj.body;
         }
+        this.wasChanged = true;
         this.funcDialog = false;
       },
       addComponentDlg(parent) {
@@ -541,6 +660,7 @@ function validateFunction( body, argList) {
           this.editedItem.properties = this.compObj.properties;
         }
         this.dynCompKey = this.dynCompKey+1;
+        this.wasChanged = true;
         this.compDialog = false;
       },
       addSlotDlg( parent ) {
@@ -578,6 +698,7 @@ function validateFunction( body, argList) {
         } else {
           this.editedItem.name = this.slotObj.name;
         }
+        this.wasChanged = true;
         this.slotDialog = false;
       },
       findParentInBranch( node, id ) {
@@ -593,6 +714,7 @@ function validateFunction( body, argList) {
       },
       deleteItem( item ) {
         if (!confirm(`Are you sure you want to delete ${item.name}?`)) return;
+        this.wasChanged = true;
         if (item.level==0) {
           var index = this.rootNodes.findIndex(n=>(n.id=item.id));
           this.rootNodes.splice(index,1);
