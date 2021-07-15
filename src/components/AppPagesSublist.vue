@@ -66,10 +66,7 @@
       </v-card>
     </v-dialog>
     <v-dialog v-model="treeEditorDlg" @keydown.esc.prevent="pageDialog = false" max-width="95%" scrollable overlay-opacity="0.2" persistent>
-      <v-card>
-        <v-card-title>Tree Editor for "{{page.name}}" Page</v-card-title>
-          <VCDNEditor type="Application" :source="page.content" @changed="onTreeEditorChange"/>
-      </v-card>
+      <VCDNEditor :key="page.content" type="Application" :name="page.name" :source="page.content" @changed="onTreeEditorChange" @cancelTreeEditor="treeEditorDlg = false" @saveTreeEditor="onTreeEditorSave"/>
     </v-dialog>
   </div>
 </template>
@@ -122,7 +119,14 @@
         this.treeEditorDlg=true;
       },
       onTreeEditorChange( json ) {
-        this.page.content = json;
+      },
+      onTreeEditorSave( json ) {
+        var tmp = json+'';
+        debugger;
+        this.treeEditorDlg = false;
+        setTimeout(()=>{
+          this.page.content = tmp;
+        }, 2000)
       },
       onTemplateChange() {
         if (this.template == 'Default') {

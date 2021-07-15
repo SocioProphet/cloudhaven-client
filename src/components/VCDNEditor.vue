@@ -1,10 +1,13 @@
 <template>
   <div>
+  <v-card>
+    <v-card-title>Tree Editor for {{type}} "{{name}}"</v-card-title>
+    <v-card-text>
     <v-alert type="error" v-if="srcParseErrMsg" :value="srcParseErrMsg"/>
     <v-treeview :items="rootNodes" elevation="2" dense class="mt-3" activatable :open="open" :active="active" hoverable @update:active="onActivated">
       <template v-slot:label="{ item, active }">
         <div v-if="item.root=='dataModel'">
-          <span >{{item.name}}{{item.value?(' : '+item.value):''}}
+          <span >{{item.name}}{{item.value!=null?(' : '+item.value):''}}
             <v-icon v-if="canHaveChild(item)" @click.stop="addPropertyDlg(item)">mdi-plus-thick</v-icon>
             <v-icon v-if="item.level>0 && item.name" @click.stop="editPropertyDlg(item)">mdi-pencil</v-icon>
             <v-icon @click.stop="deleteItem(item)" class="ml-2">mdi-trash-can</v-icon>
@@ -54,6 +57,13 @@
         </div>
       </template>
     </v-treeview>
+    </v-card-text>
+    <v-card-actions>
+      <v-btn elevation="2" color="blue darken-1" text @click.native="$emit('cancelTreeEditor')">Cancel</v-btn>
+      <v-spacer></v-spacer>
+      <v-btn elevation="2" color="blue darken-1" text @click.native.stop="$emit('saveTreeEditor', json)"><v-icon left dark>mdi-content-save</v-icon>Save</v-btn>
+    </v-card-actions>
+  </v-card>
     <v-dialog v-model="clientFuncSelectDialog" @keydown.esc.prevent="clientFuncSelectDialog = false" max-width="500px" scrollable overlay-opacity="0.2">
       <v-card>
         <v-card-title>Available Functions</v-card-title>
@@ -130,6 +140,101 @@ import ComponentSelectDialog from './ComponentSelectDialog'
 import JSON5 from 'json5'
 import _ from 'lodash'
 
+function parseWhiteSpace( content, ctx ) {
+  content = content.substring(ctx.curPos);
+  var found = content.match(/^[\s,\n\r]*/)
+  if (found && found.index==0 && found.length>0) { //got white space
+    ctx.s += found[0];
+    ctx.curPos += found[0].length;
+  }
+}
+function parsePropName( content, ctx ) {
+  content = content.substring(ctx.curPos);
+  var found = content.match(/^[a-zA-Z$_][a-zA-Z0-9$_-]*/);
+  if (found && found.index==0 && found.length>0) { //got property name
+    ctx.s += found[0];
+    ctx.curPos += found[0].length;
+  }
+}
+function parseColon( content, ctx ) {
+  content = content.substring(ctx.curPos);
+  if (content.charAt(0) == ':') {
+    ctx.s += ':';
+    ctx.curPos++;
+  }
+}
+function parsePropValue( content, ctx ) {
+  content = content.substring(ctx.curPos);
+  var val = '';
+  var idx = 0;
+  var isString = false;
+  while (idx<content.length) {
+    var curChar = content.charAt(idx);
+    if (curChar == "'" || curChar == '"' || curChar == "`") {
+      isString = true;
+      val += curChar;
+      idx++;
+      var strDelim = curChar;
+      while(idx<content.length) {
+        curChar = content.charAt(idx);
+        val += curChar;
+        idx++;
+        if (curChar == '\\') {
+          curChar = content.charAt(idx);
+          val += curChar;
+          idx++;
+        }
+        if (curChar== strDelim) {
+          break;
+        }
+      }
+    } else if (curChar == ',' || curChar == '}') {
+      var trimmedVal = val.trim();
+      var whiteSpace = val.substring(trimmedVal.length);
+      if (!isString && trimmedVal) {
+        trimmedVal = "'" + trimmedVal + "'";
+      }
+      ctx.curPos += (val.length+1);
+      ctx.s += trimmedVal + whiteSpace + curChar;    
+      return curChar;
+    } else {
+      val += curChar;
+      idx++;
+    }
+  }
+  return null;
+}
+function prepDataModelVals( content) {
+  var ctx = { curPos: 0, s:'', level:0}
+  const regex = /(dataModel\s*:\s*\{)/;
+  const found = content.match(regex);
+  var idx = found.index;
+  var start = found.length==2?(found.index + found[0].length):-1;
+  if (start<0) return content;
+  ctx.s = content.substring(0, start);
+  content = content.substring( start );
+  var level = 0;
+  while (ctx.curPos<content.length) {
+    parseWhiteSpace(content, ctx );
+    parsePropName( content, ctx );
+    parseWhiteSpace(content, ctx );
+    parseColon(content, ctx );
+    parseWhiteSpace(content, ctx );
+    if (content.charAt(ctx.curPos)=='{') {
+      ctx.level++;
+      ctx.s += '{';
+      ctx.curPos++;
+    } else {
+      var termChar = parsePropValue( content, ctx );
+      if (termChar == '}' || termChar === null) {
+        if (ctx.level == 0) break;
+        ctx.level--;
+      }
+    }
+  }
+  return ctx.s + content.substring(ctx.curPos);
+}
+
 function validateFunction( body, argList) {
   var partsList = argList?argList.concat([body]):[body];
   try {
@@ -144,6 +249,7 @@ function validateFunction( body, argList) {
     components: { PrismEditor, ComponentSelectDialog },
     props: {
       type: String,
+      name: String,
       source: String
     },
     data: () => ({
@@ -200,8 +306,10 @@ function validateFunction( body, argList) {
     }),
     mounted () {
       this.clientFunctions = Object.keys(vcdnUtils.clientFunctionMap);
-      debugger;
-      var rootNodes = this.parseSource(this.source);
+      var s = prepDataModelVals(this.source);
+      var rootNodes = this.parseSource(s);
+      this.active = [];
+      this.open = [];
 /*      var items = [
         this.rootNode('dataModel'),
         this.rootNode('methods'),
@@ -218,6 +326,7 @@ function validateFunction( body, argList) {
         items.push(this.rootNode('uiSchema'));
       }*/
       this.rootNodes = rootNodes; //items;
+      this.srcParseErrMsg = '';
       this.componentList = [''].concat(Object.keys(vcdnUtils.uiElementToVueCompMap).sort((a,b)=>(a<b?-1:(a>b?1:0))).concat(['dynamicComponent']));
       this.htmlElementList = [''].concat(vcdnUtils.validHtmlTags);
       this.wasChanged = false;
@@ -226,6 +335,7 @@ function validateFunction( body, argList) {
       json() {
         var j = {};
         this.rootNodes.forEach(rn=>{
+          if (rn.name == 'components') return;
           j[rn.name] = {};
           if (rn.name=='dataModel') {
             rn.children.forEach(dmChild=>{
@@ -242,7 +352,9 @@ function validateFunction( body, argList) {
             }
           }
         });
-        return JSON5.stringify(j, null, 2);
+        var s = JSON5.stringify(j, null, 2);
+        var s = 'var uiConfig = '+s.replace(/"~%~/g, "`").replace(/~%~"/g, "`").replace(/~%n%~/g, "\n");
+        return s;
       },
       canHavePropertyValue() {
         return this.propObj.editMode == 'add' || this.editedItem.children.length==0;
@@ -256,74 +368,23 @@ function validateFunction( body, argList) {
     },
     methods: {
       parseSource( src ) {
+        debugger;
         var o = null;
         this.srcParseErrMsg = '';
-/*        var testObj = {
-          dataModel:{
-            aaa: {
-              bbb: {
-                ccc: "new Date()"
-              },
-              ddd: "true"
-            },
-            eee:"[]"
-          },
-          methods: {
-            test: {
-              args:["aaa", "bbb"],
-              body:`
-              var x = 1234;
-              var y = 5678;
-              `
-            },
-            test2: {
-              args:["aaa2", "bbb2"],
-              body:`
-              var x = 21234;
-              var y = 25678;
-              `
-            }
-          },
-          computed: {
-            theVal: {
-              body:`
-              return 1234;
-              `
-            }
-          },
-          watch: {
-            someVal: {
-              args:["newVal", "oldVal"],
-              body:`
-                this.doSomething();
-              `
-            }
-          },
-          filters: {
-            f: {
-              args: ["val"],
-              body:`
-              return '['+val+']';
-              `
-            }
-          }
-        }*/
         try {
-          o = /*testObj;*/ (Function.apply( null, [src+' return uiConfig;']))();
-          debugger;
+          o = /*testObj;*/ (Function.apply( null, [src+'\nreturn uiConfig;']))();
         } catch (e) {
           debugger;
           this.srcParseErrMsg = "Source error: "+e;
           return;
         }
-        debugger;
         var rootNodes = Object.keys(o).reduce((ar,k)=>{
+          if (['dataModel', 'methods', 'computed', 'watch', 'filters', 'mixins', 'uiSchema'].indexOf(k)<0) return ar;
           var node = this.rootNode(k);
           ar.push(node);
           if (node.name == 'dataModel') {
             this.parseDataModel(node, o[k], 0, {curId:this.initId()});
           } else if (this.isFunctionType(node.name)) {
-            debugger;
             this.parseFunction(k, node, o[k], 0, {curId:this.initId()});
           } else if (node.name=='uiSchema') {
 
@@ -404,10 +465,10 @@ function validateFunction( body, argList) {
         if (node.arguments && node.arguments.length>0) {
           json[node.name].args = node.arguments;
         }
-        json[node.name].body = node.body;
+        json[node.name].body = "~%~"+(node.body||'').replace(/\n/g, '~%n%~')+"~%~";
       },
       dataModelToJson( json, node) {
-        json[node.name] = node.value?node.value:{};
+        json[node.name] = (node.children && node.children.length>0)?{}:node.value;
         if (node.children.length>0 && !node.value) {
           node.children.forEach(chNode=>{
             this.dataModelToJson( json[node.name], chNode);
