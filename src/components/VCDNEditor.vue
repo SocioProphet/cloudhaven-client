@@ -368,13 +368,11 @@ function validateFunction( body, argList) {
     },
     methods: {
       parseSource( src ) {
-        debugger;
         var o = null;
         this.srcParseErrMsg = '';
         try {
           o = /*testObj;*/ (Function.apply( null, [src+'\nreturn uiConfig;']))();
         } catch (e) {
-          debugger;
           this.srcParseErrMsg = "Source error: "+e;
           return;
         }

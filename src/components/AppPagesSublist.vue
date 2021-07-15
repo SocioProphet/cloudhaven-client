@@ -122,7 +122,6 @@
       },
       onTreeEditorSave( json ) {
         var tmp = json+'';
-        debugger;
         this.treeEditorDlg = false;
         setTimeout(()=>{
           this.page.content = tmp;
