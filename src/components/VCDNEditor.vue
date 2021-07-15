@@ -7,21 +7,15 @@
     <v-treeview :items="rootNodes" elevation="2" dense class="mt-3" activatable :open="open" :active="active" hoverable @update:active="onActivated">
       <template v-slot:label="{ item, active }">
         <div v-if="item.root=='dataModel'">
-          <span >{{item.name}}{{item.value!=null?(' : '+item.value):''}}
-            <v-icon v-if="canHaveChild(item)" @click.stop="addPropertyDlg(item)">mdi-plus-thick</v-icon>
-            <v-icon v-if="item.level>0 && item.name" @click.stop="editPropertyDlg(item)">mdi-pencil</v-icon>
+          <span >{{item.name}}
+            <v-icon @click.stop="editDataModelDlg(item)">mdi-pencil</v-icon>
             <v-icon @click.stop="deleteItem(item)" class="ml-2">mdi-trash-can</v-icon>
           </span>
-          <v-sheet v-if="propDialog && active" elevation="1" width="300px" max-width="300px">
+          <v-sheet v-if="propDialog && active" elevation="1" width="600px" max-width="600px">
             <v-form ref="propForm" v-model="propFormValid">
             <div class="d-flex justify-left mb-2">
-              <v-text-field :id="propObj.id" label="Property" single-line dense v-model="propObj.name" :rules="[rules.required, rules.validPropName]"
-                @keyup.enter.prevent="saveProperty" @click.stop=""></v-text-field>
-              <span v-if="canHavePropertyValue" class="mx-2 pb-0 pt-1"> <b>:</b> </span>
-              <v-text-field v-if="canHavePropertyValue" label="Value" persistent-hint hint="(optional)" single-line dense v-model="propObj.value" 
-                :rules="[rules.validPropValue]" @keyup.enter.prevent="saveProperty" @click.stop=""></v-text-field>
-                <v-btn icon @click.native.stop="saveProperty"><v-icon>mdi-content-save</v-icon></v-btn>
-                <v-btn icon @click.native="propDialog=false"><v-icon>mdi-close-thick</v-icon></v-btn>{{propObj.name?'':setFocus(propObj.id)}}
+              <v-textarea :id="propObj.id" v-model="item.value" dense single-line :rules="[rules.required, rules.validateDataModel]" @click.stop=""></v-textarea>
+                <v-btn icon @click.native="closeDataModelDlg"><v-icon>mdi-close-thick</v-icon></v-btn>
             </div>
             </v-form>
           </v-sheet>
@@ -189,13 +183,8 @@ function parsePropValue( content, ctx ) {
         }
       }
     } else if (curChar == ',' || curChar == '}') {
-      var trimmedVal = val.trim();
-      var whiteSpace = val.substring(trimmedVal.length);
-      if (!isString && trimmedVal) {
-        trimmedVal = "'" + trimmedVal + "'";
-      }
       ctx.curPos += (val.length+1);
-      ctx.s += trimmedVal + whiteSpace + curChar;    
+      ctx.s += val + curChar;    
       return curChar;
     } else {
       val += curChar;
@@ -211,8 +200,7 @@ function prepDataModelVals( content) {
   var idx = found.index;
   var start = found.length==2?(found.index + found[0].length):-1;
   if (start<0) return content;
-  ctx.s = content.substring(0, start);
-  content = content.substring( start );
+  content = '{'+ content.substring( start );
   var level = 0;
   while (ctx.curPos<content.length) {
     parseWhiteSpace(content, ctx );
@@ -227,23 +215,14 @@ function prepDataModelVals( content) {
     } else {
       var termChar = parsePropValue( content, ctx );
       if (termChar == '}' || termChar === null) {
-        if (ctx.level == 0) break;
         ctx.level--;
+        if (ctx.level == 0) break;
       }
     }
   }
-  return ctx.s + content.substring(ctx.curPos);
+  return 'dataModel: '+'`'+ctx.s + '`' + content.substring(ctx.curPos);
 }
 
-function validateFunction( body, argList) {
-  var partsList = argList?argList.concat([body]):[body];
-  try {
-    Function.apply( null, partsList);
-    return null;
-  } catch (e) {
-    return e+'';
-  }
-}
 
   export default {
     components: { PrismEditor, ComponentSelectDialog },
@@ -273,11 +252,6 @@ function validateFunction( body, argList) {
       rules: {
           required: value => !!value || 'Required.',
           validPropName: value => !value || /^[a-zA-Z$_][a-zA-Z0-9$_-]*$/.test(value) || 'Invalid property name.',
-          validPropValue: value => {
-            if (!value) return true;
-            var result = validateFunction(value)
-            return result === null? true: result;
-          },
           validArgument: value => !value || /^[a-zA-Z$_][a-zA-Z0-9$_-]*$/.test(value) || 'Invalid argument name.',
           validFuncName: value => !value || /^[a-zA-Z][a-zA-Z0-9$_-]*$/.test(value) || 'Invalid function name.',
           validFuncBody: value => {
@@ -289,6 +263,15 @@ function validateFunction( body, argList) {
             if (!value) return true;
             var result = validateFunction( 'var x = ' + value );
             return result === null? true: result;
+          },
+          validateDataModel: value => {
+            if (!value) return true;
+            try {
+              var x = JSON5.parse(value);
+              return true;
+            } catch(e) {
+              return e+'';
+            }
           }
       },
       editedItem: {},
@@ -306,8 +289,7 @@ function validateFunction( body, argList) {
     }),
     mounted () {
       this.clientFunctions = Object.keys(vcdnUtils.clientFunctionMap);
-      var s = prepDataModelVals(this.source);
-      var rootNodes = this.parseSource(s);
+      var rootNodes = this.parseSource(this.source);
       this.active = [];
       this.open = [];
 /*      var items = [
@@ -380,8 +362,8 @@ function validateFunction( body, argList) {
           if (['dataModel', 'methods', 'computed', 'watch', 'filters', 'mixins', 'uiSchema'].indexOf(k)<0) return ar;
           var node = this.rootNode(k);
           ar.push(node);
-          if (node.name == 'dataModel') {
-            this.parseDataModel(node, o[k], 0, {curId:this.initId()});
+          if (node.name == 'dataModel') { //prepDataModelVals???
+            node.value = JSON.stringify(o[k]);
           } else if (this.isFunctionType(node.name)) {
             this.parseFunction(k, node, o[k], 0, {curId:this.initId()});
           } else if (node.name=='uiSchema') {
@@ -400,7 +382,7 @@ function validateFunction( body, argList) {
           node.children.push(childNode);
         })
       },
-      parseDataModel(node,  obj, level, ctx ) {
+/*      parseDataModel(node,  obj, level, ctx ) {
         level = level+1;
         if ((typeof obj)=='object' && !Array.isArray(obj)) {
           Object.keys(obj).forEach(k=>{
@@ -412,7 +394,7 @@ function validateFunction( body, argList) {
         } else {
           node.value = obj;
         }
-      },
+      },*/
       isHtmlElement(el) {
         return this.htmlElementList.indexOf(el)>=0;
       },
@@ -466,12 +448,7 @@ function validateFunction( body, argList) {
         json[node.name].body = "~%~"+(node.body||'').replace(/\n/g, '~%n%~')+"~%~";
       },
       dataModelToJson( json, node) {
-        json[node.name] = (node.children && node.children.length>0)?{}:node.value;
-        if (node.children.length>0 && !node.value) {
-          node.children.forEach(chNode=>{
-            this.dataModelToJson( json[node.name], chNode);
-          })
-        }
+        json[node.name] = JSON.parse(node.value);
       },
       onCompSelect() {
         this.componentSelectDialog = false;
@@ -570,7 +547,7 @@ function validateFunction( body, argList) {
       isFunctionType( key ) {
         return ['methods', 'computed', 'watch', 'filters'].indexOf(key)>=0;
       },
-      addPropertyDlg(parent) {
+/*      addPropertyDlg(parent) {
         this.propObj.editMode = 'add';
         this.active = [parent.id+''];
         this.propObj.activeId = parent.id;
@@ -581,37 +558,15 @@ function validateFunction( body, argList) {
         this.propObj.value = '';
         this.propDialog = true;
         this.resetValidation( 'propForm' );
-      },
-      editPropertyDlg(item) {
+      },*/
+//      editPropertyDlg(item) {
+      editDataModelDlg(item) {
         this.editedItem = item;
         this.active = [item.id+''];
-        this.propObj.activeId = item.id;
-        this.propObj.editMode = 'edit';
-        this.propObj.title  = `Edit property ${item.name}`;
-        this.propObj.name = item.name;
-        this.propObj.value = item.value;
         this.propDialog = true;
       },
-      saveProperty() {
+      closeDataModelDlg() {
         if (!this.$refs.propForm.validate()) return;
-        if (this.propObj.editMode == 'add') {
-          this.open.push(this.propObj.parent.id);
-          var id = this.initId();
-          this.propObj.parent.children.push(Object.assign({},
-            { id:id,
-            value:this.propObj.value,
-            name:this.propObj.name,
-            root:this.propObj.parent.root,
-            level:this.propObj.parent.level+1,
-            children:[]
-            }
-          ));
-          this.sortChildren( this.propObj.parent );
-          this.active = [id+''];
-        } else {
-          this.editedItem.name = this.propObj.name;
-          this.editedItem.value = this.propObj.value;
-        }
         this.wasChanged = true;
         this.propDialog = false;
       },
