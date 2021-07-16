@@ -134,6 +134,16 @@ import ComponentSelectDialog from './ComponentSelectDialog'
 import JSON5 from 'json5'
 import _ from 'lodash'
 
+function validateFunction( body, argList) {
+  var partsList = argList?argList.concat([body]):[body];
+  try {
+    Function.apply( null, partsList);
+    return null;
+  } catch (e) {
+    return e+'';
+  }
+}
+
 function parseWhiteSpace( content, ctx ) {
   content = content.substring(ctx.curPos);
   var found = content.match(/^[\s,\n\r]*/)
@@ -198,6 +208,7 @@ function prepDataModelVals( content) {
   const regex = /(dataModel\s*:\s*\{)/;
   const found = content.match(regex);
   var idx = found.index;
+  var prefix = content.substring(0, found.index);
   var start = found.length==2?(found.index + found[0].length):-1;
   if (start<0) return content;
   content = '{'+ content.substring( start );
@@ -220,7 +231,7 @@ function prepDataModelVals( content) {
       }
     }
   }
-  return 'dataModel: '+'`'+ctx.s + '`' + content.substring(ctx.curPos);
+  return prefix + 'dataModel: '+'`'+ctx.s + '`' + content.substring(ctx.curPos);
 }
 
 
@@ -232,6 +243,7 @@ function prepDataModelVals( content) {
       source: String
     },
     data: () => ({
+      vm: null,
       propertyDlg: false,
       propObj:{editMode:'add', name:'', value:'', children:[]},
       funcObj:{editMode:'add', title:'', parent:{}, newArg:'', name:'', arguments:[], body:''},
@@ -267,7 +279,7 @@ function prepDataModelVals( content) {
           validateDataModel: value => {
             if (!value) return true;
             try {
-              var x = JSON5.parse(value);
+              var x = (Function.apply(null, ['var x = '+value]))();
               return true;
             } catch(e) {
               return e+'';
@@ -288,6 +300,7 @@ function prepDataModelVals( content) {
       srcParseErrMsg:''
     }),
     mounted () {
+      this.vm = this;
       this.clientFunctions = Object.keys(vcdnUtils.clientFunctionMap);
       var rootNodes = this.parseSource(this.source);
       this.active = [];
@@ -320,9 +333,7 @@ function prepDataModelVals( content) {
           if (rn.name == 'components') return;
           j[rn.name] = {};
           if (rn.name=='dataModel') {
-            rn.children.forEach(dmChild=>{
-              this.dataModelToJson(j.dataModel, dmChild);
-            });
+            j.dataModel = '%~%'+rn.value+'%~%';
           } else if (this.isFunctionType(rn.root)) {
             rn.children.forEach(fNode=>{
               this.functionToJson( j[rn.name], fNode);
@@ -335,7 +346,8 @@ function prepDataModelVals( content) {
           }
         });
         var s = JSON5.stringify(j, null, 2);
-        var s = 'var uiConfig = '+s.replace(/"~%~/g, "`").replace(/~%~"/g, "`").replace(/~%n%~/g, "\n");
+        var s = 'var uiConfig = '+s.replace(/["']~%~/g, "`").replace(/~%~["']/g, "`").replace(/~%n%~/g, "\n");
+        s = s.replace(/["']%~%/g, "").replace(/%~%["']/g, "").replace(/\\n/g,'\n');
         return s;
       },
       canHavePropertyValue() {
@@ -350,6 +362,7 @@ function prepDataModelVals( content) {
     },
     methods: {
       parseSource( src ) {
+        src = prepDataModelVals( src );
         var o = null;
         this.srcParseErrMsg = '';
         try {
@@ -363,11 +376,11 @@ function prepDataModelVals( content) {
           var node = this.rootNode(k);
           ar.push(node);
           if (node.name == 'dataModel') { //prepDataModelVals???
-            node.value = JSON.stringify(o[k]);
+            node.value = o[k];
           } else if (this.isFunctionType(node.name)) {
             this.parseFunction(k, node, o[k], 0, {curId:this.initId()});
           } else if (node.name=='uiSchema') {
-
+            this.parseSchema(node, o[k], 0, {curId:this.initId()});
           }
           return ar;
         },[]);
@@ -395,6 +408,44 @@ function prepDataModelVals( content) {
           node.value = obj;
         }
       },*/
+      /*{ id:id,
+                name:this.compObj.name,
+                properties:this.compObj.properties,
+                root:this.compObj.parent.root,
+                level:this.compObj.parent.level+1,
+                children:[],
+                dynamicComponent: this.compObj.dynamicComponent}));*/
+      parseSchema(parentNode,  obj, level, ctx ) {
+        debugger;
+        level++;
+        ctx.curId++
+        var node = {id:ctx.curId, name: obj.component, root:'uiSchema', level:level, children:[]};
+        parentNode.children.push(node);
+        if (obj.componentId) {
+          node.dynamicComponent = {organizationId:obj.organizationId, componentId: obj.componentId};
+        }
+        if (obj.contents) {
+            obj.contents.forEach(cObj=>{
+              this.parseSchema( node, cObj, level, ctx );
+            })
+        }
+        if (obj.scopedSlots) {
+          Object.keys(obj.scopedSlots).forEach(scopedSlotName=>{
+            var scopedSlotObj = obj.scopedSlots[scopedSlotName];
+            ctx.curId++;
+            var ssNode = {id:ctx.curId, name: scopedSlotName, root:'uiSchema', isSlot:true, level:level, children:[]}
+            node.children.push(ssNode);
+            if (Array.isArray(scopedSlotObj)) {
+              scopedSlotObj.forEach(ssObj=>{
+                this.parseSchema( ssNode, ssObj, level+1, ctx);
+              })
+            } else {
+              this.parseSchema( ssNode, scopedSlotObj, level+1, ctx);
+            }
+          })
+        }
+        obj.properties = JSON5.stringify(_.omit(obj, ['component', 'organizationId', 'componentId', 'contents', 'scopedSlots']));
+      },
       isHtmlElement(el) {
         return this.htmlElementList.indexOf(el)>=0;
       },
@@ -448,7 +499,7 @@ function prepDataModelVals( content) {
         json[node.name].body = "~%~"+(node.body||'').replace(/\n/g, '~%n%~')+"~%~";
       },
       dataModelToJson( json, node) {
-        json[node.name] = JSON.parse(node.value);
+        json[node.name] = node.value;
       },
       onCompSelect() {
         this.componentSelectDialog = false;
