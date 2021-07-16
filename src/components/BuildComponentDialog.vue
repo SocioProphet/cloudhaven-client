@@ -6,6 +6,9 @@
         <v-card-text>
           <v-form ref="componentForm">
             <v-select id="componentSelector" v-model="componentSelection" label="Component" :items="componentList" @input="onCompSelect"></v-select>
+            <v-select v-model="selectedProps" multiple label="Properties" :items="propsOptions"></v-select>
+            <v-select v-model="selectedSlots" multiple label="Slots" :items="slotsOptions"></v-select>
+            <v-select v-model="selectedEvents" multiple label="Events" :items="eventsOptions"></v-select>
             <v-select v-model="htmlElementSelection" label="HTML Element" :items="htmlElementList" @input="onHtmlElSelect"></v-select>
             <v-select v-model="addlProperties" multiple label="Additional Properties" :items="properties" @input="onPropsSelection"></v-select>
             <v-card>
@@ -77,16 +80,24 @@ export default {
     timeoutId: '',
     componentList: [],
     componentSelection:'',
+    selectedProps:[],
+    selectedSlots:[],
+    selectedEvents:[],
     htmlElementList: [],
     htmlElementSelection:'',
-    properties: ['props', 'attrs', 'class', 'style', 'content', 'scopedSlots', 'on', 'ref', 'domProps', 'nativeOn' ],
+    properties: ['attrs', 'class', 'style', 'content', 'ref', 'domProps', 'nativeOn' ],
     componentHeaders: [
       { text: "Insert", align:'left', sortable:false},
       { text: 'Organization', align: 'left', sortable: true, value: 'organizationName' },
       { text: 'Component', align: 'left', sortable: true, value: 'componentName' },
       { text: "Documentation", align:'left', sortable:false}
     ],
-    component: {component:''}
+    component: {component:''},
+    compMetaData: {
+      props:[],
+      slots:[],
+      events:[]
+    }
   }),
   watch: {
     show(show) {
@@ -110,6 +121,13 @@ export default {
     }
   },
   mounted() {
+    this.componentSelection = '',
+    this.htmlElementSelection = '',
+    this.dynamicComponentSelection = Object.assign({}, {organizationId:'', componentId:''}),
+    this.compMetaData = Object.assign({},{props:[], slots:[], events:[] }),
+    this.selectedProps = [],
+    this.selectedSlots = [],
+    this.selectedEvents = [],
     this.componentSearchNameFilter = '';
     this.allComponentKeywords = [];
     this.componentSearchKeywords = [],
@@ -118,8 +136,27 @@ export default {
     this.htmlElementList = [''].concat(vcdnUtils.validHtmlTags);
   },
   computed: {
+    propsOptions() {
+      return this.compMetaData.props.map(p=>(p.name))
+    },
+    slotsOptions() {
+      return this.compMetaData.slots.map(p=>(p.name))
+    },
+    eventsOptions() {
+      return this.compMetaData.events.map(p=>(p.name))
+    },
     stringifiedComponent() {
-      return JSON5.stringify(this.component, null, 1);
+      var component = Object.assign({},this.component);
+      if (this.selectedProps.length>0) {
+        component.props = this.selectedProps.reduce((mp,p)=>{mp[p]=""; return mp;},{});
+      }
+      if (this.selectedSlots.length>0) {
+        component.scopedSlots = this.selectedSlots.reduce((mp,p)=>{mp[p]={}; return mp;},{});
+      }
+      if (this.selectedEvents.length>0) {
+        component.on = this.selectedEvents.reduce((mp,p)=>{mp[p]=""; return mp;},{});
+      }
+      return JSON5.stringify(component, null, 1).replace(/\n/g,"").replace(/,\s*}/g," }");
     }
   },
   methods: {
@@ -137,9 +174,24 @@ export default {
         this.htmlElementSelection = '';
         this.dynamicComponentSelection = {organizationId:'', componentId:''};
         this.component = Object.assign({},{component:this.componentSelection});
+        this.fetchComponentMetaData();
+      },
+      fetchComponentMetaData() {
+        (async () => {
+            var response = await Api().get('/componentmetadata/vuetify/'+this.componentSelection);
+            if (response.data.success) {
+              this.compMetaData = Object.assign({},_.pick(response.data.metaData, ['props', 'slots', 'events']));
+            } else if (response.data.errMsg) {
+              EventBus.$emit('global error alert', response.data.errMsg);
+            }
+        })();
       },
       onHtmlElSelect() {
         this.componentSelection = '';
+        this.selectedProps = [],
+        this.selectedSlots = [],
+        this.selectedEvents = [],
+        this.compMetaData = Object.assign({},{props:[], slots:[], events:[]});
         this.component = Object.assign({},{component:this.htmlElementSelection});
         this.dynamicComponentSelection = {organizationId:'', componentId:''};
       },
@@ -149,8 +201,6 @@ export default {
       },
       insert() {
         var s = this.stringifiedComponent;
-        s = s.replace(/\n/g,"").replace(/,}/g," }");
-        debugger;
         this.$emit('onSelect', s);
         this.$nextTick(()=>{
           this.componentDialog = false;
@@ -165,7 +215,6 @@ export default {
         }, 500);
       },
       onDynamicComponentSelect(item) {
-        debugger;
         this.dynamicComponents.forEach(c=>{
           if (c.id != item.id) {
             c.selected = false;

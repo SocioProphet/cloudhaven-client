@@ -53,7 +53,7 @@
             <prism-editor class="my-editor" v-model="page.content" :highlight="highlighter" line-numbers :rules="[rules.required]" @input="onPageChange"></prism-editor>
           </v-form>
         </v-card-text>
-        <ComponentSelectDialog :show="componentSelectDialog" @onSelect="insertComponent" @cancel="componentSelectDialog=false"/>
+        <BuildComponentDialog :show="buildComponentDialog" @onSelect="insertComponent" @cancel="buildComponentDialog=false"/>
         <v-card-actions>
           <v-btn elevation="2" color="blue darken-1" text @click.native="pageDialog=false">Cancel</v-btn>
           <!--v-spacer></v-spacer>
@@ -88,10 +88,10 @@
   import 'prismjs/components/prism-clike';
   import 'prismjs/components/prism-javascript';
   import 'prismjs/themes/prism-funky.css'; // import syntax highlighting styles
-  import ComponentSelectDialog from './ComponentSelectDialog'
+  import BuildComponentDialog from './BuildComponentDialog'
 //  import VCDNEditor from './VCDNEditor.vue'
   export default {
-    components: { PrismEditor, ComponentSelectDialog /*, VCDNEditor*/ },
+    components: { PrismEditor, BuildComponentDialog /*, VCDNEditor*/ },
     props: {
       organizationId: String,
       application: Object
@@ -112,7 +112,7 @@
     mounted () {
       this.clientFunctions = Object.keys(vcdnUtils.clientFunctionMap);
       this.valid = true;
-      this.componentSelectDialog = false;
+      this.buildComponentDialog = false;
     },
 
     methods: {
@@ -157,7 +157,7 @@
       },
       insertComponent( comp ) {
         this.page.content = this.page.content.replace('~~~', comp);
-        this.componentSelectDialog = false;
+        this.buildComponentDialog = false;
       },
       onPageChange( value ) {
         var found = value.indexOf('%%%')>=0;
@@ -166,10 +166,10 @@
         }
         var found = value.indexOf('~~~')>=0;
         if (found) {
-          this.componentSelectDialog = true;
+          this.buildComponentDialog = true;
           setTimeout(()=>{
-            this.componentSelectDialog = false;
-            console.log('componentSelectDialog set false');
+            this.buildComponentDialog = false;
+            console.log('buildComponentDialog set false');
           }, 2000)
         }
       },
@@ -273,7 +273,7 @@
       timeoutId: null,
       pageDialog: false,
       clientFuncSelectDialog: false,
-      componentSelectDialog: false,
+      buildComponentDialog: false,
       treeEditorDlg: false,
       valid: true,
       headers: [

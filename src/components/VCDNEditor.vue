@@ -1,6 +1,6 @@
 <template>
   <div>
-  <v-card>
+  <!--v-card>
     <v-card-title>Tree Editor for {{type}} "{{name}}"</v-card-title>
     <v-card-text>
     <v-alert type="error" v-if="srcParseErrMsg" :value="srcParseErrMsg"/>
@@ -86,7 +86,6 @@
             <prism-editor class="my-editor mt-2" v-model="funcObj.body" :highlight="highlighter" line-numbers :rules="[rules.required, rules.validFuncBody]" @input="onPageChange"></prism-editor>
             {{setFocus('funcName')}}
             <v-alert type="error" v-if="bodyErrMsg">{{bodyErrMsg}}</v-alert>
-            <!--v-textarea rows="4" auto-grow label="Body" v-model="funcObj.body" @click.stop="" :rules="[rules.required, rules.validFuncBody]"></v-textarea-->
           </v-form>
         </v-card-text>
         <v-card-actions>
@@ -116,12 +115,12 @@
         </v-card-actions>
       </v-card>
     </v-dialog>
-    <ComponentSelectDialog :show="componentSelectDialog" @onSelect="insertComponent" />
+    <ComponentSelectDialog :show="componentSelectDialog" @onSelect="insertComponent" /-->
   </div>
 </template>
 
 <script>
-import { mapState } from 'vuex'
+/*import { mapState } from 'vuex'
 import { EventBus } from '../event-bus.js';
 import vcdnUtils from '../_helpers/vcdnutils.js'
 import { PrismEditor } from 'vue-prism-editor';
@@ -146,7 +145,7 @@ function validateFunction( body, argList) {
 
 function parseWhiteSpace( content, ctx ) {
   content = content.substring(ctx.curPos);
-  var found = content.match(/^[\s,\n\r]*/)
+  var found = content.match(/^[\s,\n\r][type asterisk here]/)
   if (found && found.index==0 && found.length>0) { //got white space
     ctx.s += found[0];
     ctx.curPos += found[0].length;
@@ -154,7 +153,7 @@ function parseWhiteSpace( content, ctx ) {
 }
 function parsePropName( content, ctx ) {
   content = content.substring(ctx.curPos);
-  var found = content.match(/^[a-zA-Z$_][a-zA-Z0-9$_-]*/);
+  var found = content.match(/^[a-zA-Z$_][a-zA-Z0-9$_-][type asterisk here]/);
   if (found && found.index==0 && found.length>0) { //got property name
     ctx.s += found[0];
     ctx.curPos += found[0].length;
@@ -305,21 +304,6 @@ function prepDataModelVals( content) {
       var rootNodes = this.parseSource(this.source);
       this.active = [];
       this.open = [];
-/*      var items = [
-        this.rootNode('dataModel'),
-        this.rootNode('methods'),
-        this.rootNode('computed'),
-        this.rootNode('watch'),
-        this.rootNode('filters'),
-      ]
-      if (this.type == 'Component') {
-        items.unshift(this.rootNode('props'));
-        items.push(this.rootNode('mixins'));
-        items.push(this.rootNode('uiSchema'));
-      } else if (this.type == 'Application') {
-        items.push(this.rootNode('mixins'));
-        items.push(this.rootNode('uiSchema'));
-      }*/
       this.rootNodes = rootNodes; //items;
       this.srcParseErrMsg = '';
       this.componentList = [''].concat(Object.keys(vcdnUtils.uiElementToVueCompMap).sort((a,b)=>(a<b?-1:(a>b?1:0))).concat(['dynamicComponent']));
@@ -366,7 +350,7 @@ function prepDataModelVals( content) {
         var o = null;
         this.srcParseErrMsg = '';
         try {
-          o = /*testObj;*/ (Function.apply( null, [src+'\nreturn uiConfig;']))();
+          o = (Function.apply( null, [src+'\nreturn uiConfig;']))();
         } catch (e) {
           this.srcParseErrMsg = "Source error: "+e;
           return;
@@ -395,28 +379,7 @@ function prepDataModelVals( content) {
           node.children.push(childNode);
         })
       },
-/*      parseDataModel(node,  obj, level, ctx ) {
-        level = level+1;
-        if ((typeof obj)=='object' && !Array.isArray(obj)) {
-          Object.keys(obj).forEach(k=>{
-            ctx.curId++
-            var childNode = {id:ctx.curId, name:k, root:'dataModel', level:level, children:[]};
-            node.children.push(childNode);
-            this.parseDataModel(childNode, obj[k], level, ctx)
-          })
-        } else {
-          node.value = obj;
-        }
-      },*/
-      /*{ id:id,
-                name:this.compObj.name,
-                properties:this.compObj.properties,
-                root:this.compObj.parent.root,
-                level:this.compObj.parent.level+1,
-                children:[],
-                dynamicComponent: this.compObj.dynamicComponent}));*/
       parseSchema(parentNode,  obj, level, ctx ) {
-        debugger;
         level++;
         ctx.curId++
         var node = {id:ctx.curId, name: obj.component, root:'uiSchema', level:level, children:[]};
@@ -598,18 +561,6 @@ function prepDataModelVals( content) {
       isFunctionType( key ) {
         return ['methods', 'computed', 'watch', 'filters'].indexOf(key)>=0;
       },
-/*      addPropertyDlg(parent) {
-        this.propObj.editMode = 'add';
-        this.active = [parent.id+''];
-        this.propObj.activeId = parent.id;
-        this.propObj.id = 'prop_'+this.initId();
-        this.propObj.title  = `New ${(parent.name.charAt(parent.name.length-1)=='s')?parent.name.substring(0, parent.name.length-1):parent.name} property`;
-        this.propObj.parent = parent;
-        this.propObj.name = '';
-        this.propObj.value = '';
-        this.propDialog = true;
-        this.resetValidation( 'propForm' );
-      },*/
 //      editPropertyDlg(item) {
       editDataModelDlg(item) {
         this.editedItem = item;
@@ -811,8 +762,6 @@ function prepDataModelVals( content) {
       saveIt () {
         if (!this.$refs.theForm.validate()) return;
         (async () => {
-/*          var response = await Api().post('/messagemgr/send', 
-            {sender: this.user._id, recipients:recipients, subject: this.message.subject, message: this.message.message});*/
           this.funcDialog = false;
           if (response.data.success) {
             EventBus.$emit('global success alert', '');
@@ -820,7 +769,7 @@ function prepDataModelVals( content) {
         })();
       }
     }
-  }
+  }*/
 </script>
 
 <style>
