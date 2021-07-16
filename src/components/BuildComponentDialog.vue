@@ -85,7 +85,7 @@ export default {
     selectedEvents:[],
     htmlElementList: [],
     htmlElementSelection:'',
-    properties: ['attrs', 'class', 'style', 'content', 'ref', 'domProps', 'nativeOn' ],
+    properties: ['attrs', 'class', 'style', 'content', 'ref', 'domProps', 'nativeOn', 'template' ],
     componentHeaders: [
       { text: "Insert", align:'left', sortable:false},
       { text: 'Organization', align: 'left', sortable: true, value: 'organizationName' },
