@@ -6,9 +6,9 @@
         <v-card-text>
           <v-form ref="componentForm">
             <v-select id="componentSelector" v-model="componentSelection" label="Component" :items="componentList" @input="onCompSelect"></v-select>
-            <v-select v-model="selectedProps" multiple label="Properties" :items="propsOptions"></v-select>
-            <v-select v-model="selectedSlots" multiple label="Slots" :items="slotsOptions"></v-select>
-            <v-select v-model="selectedEvents" multiple label="Events" :items="eventsOptions"></v-select>
+            <v-select v-if="propsOptions.length>0" v-model="selectedProps" multiple label="Properties" :items="propsOptions"></v-select>
+            <v-select v-if="slotsOptions.length>0" v-model="selectedSlots" multiple label="Slots" :items="slotsOptions"></v-select>
+            <v-select v-if="eventsOptions.length>0" v-model="selectedEvents" multiple label="Events" :items="eventsOptions"></v-select>
             <v-select v-model="htmlElementSelection" label="HTML Element" :items="htmlElementList" @input="onHtmlElSelect"></v-select>
             <v-select v-model="addlProperties" multiple label="Additional Properties" :items="properties" @input="onPropsSelection"></v-select>
             <v-card>
@@ -172,6 +172,9 @@ export default {
       },
       onCompSelect() {
         this.htmlElementSelection = '';
+        this.selectedProps = [],
+        this.selectedSlots = [],
+        this.selectedEvents = [],
         this.dynamicComponentSelection = {organizationId:'', componentId:''};
         this.component = Object.assign({},{component:this.componentSelection});
         this.fetchComponentMetaData();
@@ -215,6 +218,10 @@ export default {
         }, 500);
       },
       onDynamicComponentSelect(item) {
+        this.selectedProps = [],
+        this.selectedSlots = [],
+        this.selectedEvents = [],
+        this.compMetaData = Object.assign({},{props:[], slots:[], events:[]});
         this.dynamicComponents.forEach(c=>{
           if (c.id != item.id) {
             c.selected = false;
