@@ -1,19 +1,19 @@
 <template>
   <div>
-    <v-dialog v-model="componentDialog" @keydown.esc.prevent="componentDialog = false" max-width="800px" scrollable overlay-opacity="0.2">
+    <v-dialog v-model="componentDialog" @keydown.esc.prevent="componentDialog = false" max-width="1000px" scrollable overlay-opacity="0.2">
       <v-card>
         <v-card-title>Insert a Component</v-card-title>
         <v-card-text>
           <v-form ref="componentForm">
             <v-row class="mt-3 d-flex row justify-space-between">
-              <v-col cols="7">
+              <v-col cols="6">
             <v-select id="componentSelector" v-model="componentSelection" label="Component" :items="componentList" @input="onCompSelect" class="mr-4">
               <template v-slot:append>
                 <span class="ml-4" v-if="componentSelection=='dynamicComponent'">({{dynamicComponentSelection.organizationId}}, {{dynamicComponentSelection.componentId}})</span>
               </template>
             </v-select>
               </v-col>
-              <v-col cols="5">
+              <v-col cols="6">
             <v-select v-model="htmlElementSelection" label="HTML Element" :items="htmlElementList" @input="onHtmlElSelect"></v-select>
               </v-col>
             </v-row>
@@ -81,7 +81,7 @@ export default {
     show: Boolean
   },
   data: () => ({
-    panel:[],
+    panel:0,
     showDynamicComponentSearchDlg:false,
     componentDialog: false,
     dynamicComponentSelection: {organizationId:'', componentId:''},
@@ -102,7 +102,7 @@ export default {
       events:[]
     },
     propsHeaders: [
-      { text: 'Name', align: 'start', sortable: true, value: 'name'},
+      { text: 'Name', align: 'start', sortable: true, value: 'name', width:'150px'},
       { text: 'Type', align: 'start', sortable: true, value: 'dataType' },
       { text: 'Default', align: 'start', sortable: true, value: 'defaultValue' },
       { text: 'Description', align: 'start', sortable: true, value: 'description' }
@@ -120,6 +120,7 @@ export default {
     }
   },
   mounted() {
+    this.panel = 0;
     this.resetComponent();
     this.componentList = [''].concat((['dynamicComponent'].concat(Object.keys(vcdnUtils.uiElementToVueCompMap)).sort((a,b)=>(a<b?-1:(a>b?1:0)))));
     this.htmlElementList = [''].concat(vcdnUtils.validHtmlTags);
@@ -201,7 +202,8 @@ export default {
       },
       fetchComponentMetaData() {
         (async () => {
-            var response = await Api().get('/componentmetadata/vuetify/'+this.componentSelection);
+          var componentKey = _.replace(_.kebabCase(this.componentSelection), '-', '_');
+            var response = await Api().get('/componentmetadata/vuetify/'+componentKey);
             if (response.data.success) {
               this.compMetaData = Object.assign({props:[], slots:[], events:[]},_.pick(response.data.metaData, ['props', 'slots', 'events']));
             } else if (response.data.errMsg) {
