@@ -26,12 +26,12 @@
     <v-dialog v-model="dialog" @keydown.esc.prevent="dialog = false" max-width="100%" persistent scrollable overlay-opacity="0.2">
       <v-card>
         <v-card-title>
-          <span class="text-h5">{{editedItem._id?'Edit':'Add'}} Component</span>
+          <span class="text-h5">{{editedItem._id?('Edit Component '+editedItem.componentId):'Add Component'}}</span>
         </v-card-title>
         <v-card-text>
           <v-form ref="appForm" v-model="valid" lazy-validation>
-            <v-text-field v-model="editedItem.componentId" label="Component Id" required :rules="[rules.required, rules.elementName]"></v-text-field>
-            <v-radio-group v-model="editedItem.source" row label="Source">
+            <v-text-field class="mb-0 pb-0" v-model="editedItem.componentId" label="Component Id" required :rules="[rules.required, rules.elementName]"></v-text-field>
+            <v-radio-group hide-details lass="ma-0 pa-0" dense v-model="editedItem.source" row label="Source">
               <v-radio label='App Server' value='App Server'></v-radio>
               <v-radio label='CloudHaven' value='CloudHaven'></v-radio>
             </v-radio-group>
@@ -42,6 +42,9 @@
             <v-tabs dark fixed-tabs background-color="#1E5AC8" color="#FFF10E" >
             <v-tab>Source</v-tab>
             <v-tab>Documentation</v-tab>
+            <v-tab>Properties</v-tab>
+            <v-tab>Slots</v-tab>
+            <v-tab>Events</v-tab>
             <v-tab-item>
               <prism-editor class="my-editor" v-model="editedItem.content" :highlight="highlighter" line-numbers :rules="[rules.required]"></prism-editor>
             </v-tab-item>
@@ -56,6 +59,16 @@
                 </v-col>
               </v-row>
             <tiptap-vuetify v-model="editedItem.documentation" :extensions="extensions" />
+            </v-tab-item>
+            <v-tab-item>
+              <div>{{JSON.stringify(editedItem.props)}}</div>
+              <ComponentProperties arrayName="props" :component="editedItem" />
+            </v-tab-item>
+            <v-tab-item>
+              <ComponentProperties arrayName="slots" :component="editedItem" />
+            </v-tab-item>
+            <v-tab-item>
+              <ComponentProperties arrayName="events" :component="editedItem" />
             </v-tab-item>
           </v-tabs>
           </v-form>
@@ -79,6 +92,7 @@
   import _ from 'lodash';
   import { PrismEditor } from 'vue-prism-editor';
   import { EventBus } from '../event-bus.js';
+  import ComponentProperties from './ComponentProperties.vue'
   import vcdnUtils from '../_helpers/vcdnutils.js'
   import 'vue-prism-editor/dist/prismeditor.min.css'; // import the styles somewhere
  
@@ -93,7 +107,7 @@
   const defaultDocumentation = "<h2>Description</h2><p>Add a description of this component here...</p><h2>Properties (props)</h2><ul><li><p>prop1 (String)<br>prop1 is for ...</p></li><li><p>prop2 (Object)<br>prop2 is for ...</p></li></ul><h2>Events</h2><ul><li><p>input<br>parameter: the parameter for this event contains...<br>input event occurs when... </p></li><li><p>event2<br>parameter: the parameter for this event contains...<br>event2 occurs when... <br></p></li></ul>";
 
   export default {
-    components: { PrismEditor, TiptapVuetify },
+    components: { ComponentProperties, PrismEditor, TiptapVuetify },
     props: ['organization'],
     data: () => ({
       dialog: false,
@@ -119,9 +133,12 @@
         status: 'Draft',
         keywords: [],
         documentation: defaultDocumentation,
-        content: vcdnUtils.getDefaultComponent()
+        content: vcdnUtils.getDefaultComponent(),
+        props:[],
+        slots:[],
+        events:[]
       },
-      editedItem: {keywords:[], content: vcdnUtils.getDefaultComponent()},
+      editedItem: {keywords:[], content: vcdnUtils.getDefaultComponent(), props:[], slots:[], events:[]},
       errors: [],
       extensions: [
         History,
@@ -213,6 +230,10 @@
         return highlight(code, languages.js);
       },
       createFormData(operation) {
+        debugger;
+        var props = [].concat(this.editedItem.props || []);
+        var slots = [].concat(this.editedItem.slots || []);
+        var events = [].concat(this.editedItem.events || []);
         return {
           operation: operation,
           organization_Id:this.organization._id,
@@ -222,20 +243,26 @@
           status: this.editedItem.status,
           keywords: this.editedItem.keywords,
           documentation: this.editedItem.documentation,
-          content: this.editedItem.content
+          content: this.editedItem.content,
+          props: JSON.stringify(props),
+          slots: JSON.stringify(slots),
+          events: JSON.stringify(events)
         };
       },
       editItem (item) {
         if (!this.organization.components) this.organization.components = [];
         this.editedIndex = item?this.organization.components.findIndex((component) => {return component._id === item._id;}):-1;
-        this.editedItem = Object.assign({}, item?item:{
+        this.editedItem = Object.assign({props:[], slots:[], events:[]}, item?item:{
           _id: '',
           componentId:'',
           source: 'App Server',
           status: 'Draft',
           keywords: [],
           documentation: '',
-          content: ''
+          content: '',
+          props: [],
+          slots: [],
+          events: []
         });
         if (!item || !Array.isArray(item.keywords)) this.editedItem.keywords = [];
         if (!item || !this.editedItem.content) {
@@ -279,6 +306,7 @@
       },
 
       save () {
+        debugger;
         var vm = this;
         if (!this.$refs.appForm.validate()) return;
         var operation = this.editedIndex > -1 ? 'update' : 'add';

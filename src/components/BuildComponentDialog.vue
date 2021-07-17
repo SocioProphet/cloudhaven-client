@@ -232,6 +232,7 @@ export default {
         this.component.component = 'dynamicComponent';
         this.component.organizationId = item.organizationId;
         this.component.componentId = item.componentId;
+        this.compMetaData = Object.assign({},{props:item.props||[], slots:item.slots||[], events:item.events||[]});
         this.htmlElementSelection = '';
         this.componentSelection = '';
       },
