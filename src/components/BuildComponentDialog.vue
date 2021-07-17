@@ -229,6 +229,7 @@ export default {
       onDynamicComponentSelect(item) {
         this.componentSelection = 'dynamicComponent';
         this.resetComponent( 'dynamicComponentSelection' );
+        this.compMetaData = Object.assign({props:[], slots:[], events:[]}, _.pick(item, ['props', 'slots', 'events']));
         this.dynamicComponentSelection = Object.assign({}, _.pick(item, ["organizationId", "componentId"]));
         this.componentSelection = 'dynamicComponent';
         this.component = Object.assign({},{component:'dynamicComponent', organizationId: item.organizationId, componentId:item.componentId});

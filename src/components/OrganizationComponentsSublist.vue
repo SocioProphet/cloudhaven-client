@@ -61,7 +61,6 @@
             <tiptap-vuetify v-model="editedItem.documentation" :extensions="extensions" />
             </v-tab-item>
             <v-tab-item>
-              <div>{{JSON.stringify(editedItem.props)}}</div>
               <ComponentProperties arrayName="props" :component="editedItem" />
             </v-tab-item>
             <v-tab-item>
