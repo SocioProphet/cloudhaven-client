@@ -117,7 +117,6 @@
         { text: 'Name', align: 'start', sortable: true, value: 'name'},
         { text: 'Description', align: 'start', sortable: true, value: 'description' },
         { text: 'Actions', value: 'actions', sortable: false }      ],
-      desserts: [],
       editedIndex: -1,
       editedItem: {
         name: '',

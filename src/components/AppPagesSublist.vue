@@ -44,7 +44,7 @@
               <v-select v-model="template" label="Template" :items="['Default','CRUD Example', 'Send Task Message', 'Create Calendar Event', 'Queue Task to Group', 'Task Completer', 'Misc Examples']" @input="onTemplateChange"></v-select>
             </v-col>
             <v-col cols="6" class="justify-end align-end">
-              <div style="text-align:right" class="mb-0 black--text">Type "<span style="background-color:yellow"><b>%%%</b></span>" in the page to select and insert a system function.</div>
+              <div style="text-align:right" class="mb-0 black--text">Type "<span style="background-color:yellow"><b>%%%</b></span>" in the page to select and insert a system function or variable.</div>
               <div style="text-align:right" class="mb-0 black--text">Type "<span style="background-color:yellow"><b>~~~</b></span>" in the page to build and insert a component.</div>
               <div style="text-align:right" class="mb-0 black--text"><b>Note:</b> the "Page Object" must be assigned to a variable named <span style="background-color:yellow"><b>uiConfig</b></span>.</div>
               </v-col>

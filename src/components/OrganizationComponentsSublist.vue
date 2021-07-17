@@ -230,7 +230,6 @@
         return highlight(code, languages.js);
       },
       createFormData(operation) {
-        debugger;
         var props = [].concat(this.editedItem.props || []);
         var slots = [].concat(this.editedItem.slots || []);
         var events = [].concat(this.editedItem.events || []);
@@ -306,7 +305,6 @@
       },
 
       save () {
-        debugger;
         var vm = this;
         if (!this.$refs.appForm.validate()) return;
         var operation = this.editedIndex > -1 ? 'update' : 'add';
