@@ -1,4 +1,4 @@
-05<template>
+<template>
   <v-app light>
   <v-dialog v-model="pwdDialog" max-width="500px" @keydown.esc.prevent="pwdDialog = false" >
     <v-card>
@@ -83,9 +83,42 @@
     <v-main>
       <router-view/>
     </v-main>
+    <v-dialog v-model="termsDialog" @keydown.esc.prevent="termsDialog = false" max-width="100%" scrollable overlay-opacity="0.2">
+      <v-card>
+        <v-card-title><span>Terms &amp; Conditions</span><v-spacer/><v-btn icon @click="termsDialog=false"><v-icon>mdi-close-thick</v-icon></v-btn>
+        </v-card-title>
+        <v-card-text>
+          <TermsAndConditions />
+        </v-card-text>
+      </v-card>
+    </v-dialog>
+    <v-dialog v-model="supportDialog" @keydown.esc.prevent="supportDialog = false" max-width="100%" scrollable overlay-opacity="0.2">
+      <v-card>
+        <v-card-title><span>Contact Us/Support</span></v-btn>
+        </v-card-title>
+        <v-card-text>
+          <v-form ref="contactForm" width="500px" lazy-validation>
+            <div><p>Feel free to contact us with support questions, feature suggestions, other issues or comments.</p></div>
+            <v-textarea v-model="contactFormContent" label="Message" rows="8" auto-grow :rules="[rules.required]">
+            </v-textarea>
+          </v-form>
+        </v-card-text>
+        <v-card-actions>
+          <v-btn elevation="2" color="blue darken-1" text @click.native="supportDialog=false">Cancel</v-btn>
+          <v-spacer></v-spacer>
+          <v-btn elevation="2" color="blue darken-1" text @click.native="sendMessage"><v-icon left dark>mdi-send</v-icon>Send</v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
     <v-footer :fixed="fixed" app :style="{background: 'linear-gradient(to top, #FFFFFF -100%, #00528d 100%)'}">
-      <span class="white--text">&copy; CloudHaven @ 2020-2021 &nbsp;&nbsp;(v0.06)</span>
+      <span class="white--text">&copy; CloudHaven @ 2020-2021 &nbsp;&nbsp;(v0.08)</span>
+      <v-spacer/>
+      <a class="white--text mr-4" @click.stop="termsDialog=true" href="#">Terms and Conditions</a>
+      <a class="white--text" href="https://www.termsfeed.com/live/a38a2f80-8fae-4f14-ba5a-5879e55f29fa">Privacy Policy</a>
+      <v-spacer/>
+      <a class="white--text mr-4" @click.stop="supportDialog=true" href="#">Support/Contact Us</a>
     </v-footer>
+
   </v-app>
 </template>
 
@@ -94,6 +127,7 @@ import { mapState } from 'vuex'
 import { EventBus } from './event-bus.js';
 import Api from '@/services/Api'
 import router from './router'
+import TermsAndConditions from './components/TermsAndConditions.vue'
 const CloudHavenAppDetails = {
   name: 'CloudHaven',
   appBarStyle: {background: 'linear-gradient(to bottom, #FFFFFF -100%, #00528d 100%)'},
@@ -119,6 +153,7 @@ const CloudHavenAppDetails = {
 };
 export default {
   name: 'App',
+  components: {TermsAndConditions},
   data () {
     return {
       showPwdErrMsg: false,
@@ -147,7 +182,10 @@ export default {
         appId: '',
         name: '',
         menuItems: []
-      }
+      },
+      termsDialog: false,
+      supportDialog: false,
+      contactFormContent:''
     }
   },
   created() {
@@ -165,6 +203,11 @@ export default {
       if (!val) {
         this.closePwdDlg()
       }
+    },
+    supportDialog( val ) {
+      if (val) {
+        this.contactFormContent = '';
+      }
     }
   },
   beforeCreate() {
@@ -180,6 +223,7 @@ export default {
     })
   },
   mounted() {
+    this.contactFormContent = '';
     var vm = this;
     EventBus.$on('set app frame', (appDetails) => {
       vm.appDetails = Object.assign({}, appDetails?appDetails:CloudHavenAppDetails)
@@ -214,6 +258,20 @@ export default {
     }
   },
   methods: {
+    sendMessage() {
+      if (!this.$refs.contactForm.validate()) return;
+      (async () => {
+        var postData = {email: this.user.email, message: this.contactFormContent};
+        var response = await Api().post('/usersubscription/supportmessage', postData);
+        if (response.data.success) {
+          EventBus.$emit('global success alert', `Message sent to support@cloudhaven.net`);
+        } else if (response.data.errMsg) {
+          EventBus.$emit('global success alert', `Failed to send message (${response.data.errMsg}).`);
+        }
+        this.supportDialog = false;
+      })();
+
+    },
     showAlert( msg, isError) {
       this.globalAlert.type = isError?'error':'success';
       this.globalAlert.msg = msg;

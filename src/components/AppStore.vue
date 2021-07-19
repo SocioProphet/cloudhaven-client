@@ -76,7 +76,6 @@ import appPlaceHolderDataURI from '../includes/appPlaceHolderDataURI.js';
             EventBus.$emit('global success alert', `Failed to subscribed to ${app.name} (${errMsg}).`);
           }
         })();
-
       }
     }
   }
