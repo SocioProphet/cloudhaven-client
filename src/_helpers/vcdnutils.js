@@ -19,12 +19,12 @@ var validHtmlTags = [
   'sup', 'SVG svg', 'table', 'tbody', 'td', 'template', 'textarea', 'tfoot', 'th', 'thead', 'time', 'title', 'tr', 
   'track', 'u', 'ul', 'var', 'video', 'wbr', 'autonomous custom elements'
 ]
-
 var obj = {};
 obj.validHtmlTags = validHtmlTags;
 obj.clientFunctionMap = {
   _writeAppData:'this._writeAppData({table:"", key:"", dataString:""}, function(results) {});',
-  _readAppData :'this._readAppData({table:"", key:"", searchOperator:"contains"}, function(data) {});',
+  _readAppData :'this._readAppData({table:"", key:"", searchOperator:"contains"}, function(result) {if (result.success) var rows = result.data;});',
+  _deleteAppData:'this._deleteAppData({table:"", id:""}, function(results) {if (result.success) {} else {}});',
   _pdfGet:'this._pdfGet({operationId:""}, function(data) {});',
   _appGet:'this._appGet({operationId:""}, function(data) {});',
   _appGetFile:'this._appGetFile({operationId:"", fileId:""}, function(blob) {});',

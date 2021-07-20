@@ -465,6 +465,20 @@ function makeMethods( ctx, uiMethods ) {
     })();
   }
 
+  methods._deleteAppData = ( params, cb) => {
+    var argValidations = [
+      {name: 'table', rules:['required', 'notblank'], type:'string'},
+      {name: 'id', rules:['required', 'notblank'], type:'string'}
+    ];
+    if (!checkArguments('_deleteAppData', params, cb, argValidations)) return;
+    (async () => {
+      var response = await Api().post('/appstoremgr/delete', params);
+      if (cb) {
+        (cb).call(ctx.rootThis, response.data);
+      }
+    })();
+  }
+
   methods._pdfGet = (params, cb) => {
     var argValidations = [
       {name: 'operationId', rules:['required', 'notblank'], type:'string'}

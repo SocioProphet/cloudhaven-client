@@ -94,7 +94,7 @@ export default {
     selectedEvents:[],
     htmlElementList: [],
     htmlElementSelection:'',
-    properties: ['attrs', 'class', 'style', 'content', 'ref', 'domProps', 'nativeOn', 'template' ],
+    properties: ['ref', 'vmodel', 'attrs', 'class', 'style', ':rules', 'domProps', 'nativeOn', 'template' ],
     component: {component:''},
     compMetaData: {
       props:[],
@@ -115,18 +115,21 @@ export default {
   watch: {
     show(val) {
       if (val) {
+        this.panel = 0;
+        this.resetComponent();
         this.componentDialog = true;
+        this.componentSelection = '';
+        this.component = {component:''};
+        this.includeRef = false;
+        this.addlProperties = [];
       }
     }
   },
   mounted() {
-    this.panel = 0;
-    this.resetComponent();
     this.componentList = [''].concat((['dynamicComponent'].concat(Object.keys(vcdnUtils.uiElementToVueCompMap)).sort((a,b)=>(a<b?-1:(a>b?1:0)))));
     this.htmlElementList = [''].concat(vcdnUtils.validHtmlTags);
   },
   computed: {
-
     propsOptions() {
       return this.compMetaData.props.map(p=>(p.name))
     },
@@ -138,9 +141,14 @@ export default {
     },
     stringifiedComponent() {
       var component = Object.assign({},this.component);
+      var saveContents = this.component.contents;
+      delete component.contents;
       if (this.selectedProps.length>0) {
-        var selectPropsNames = this.selectedProps.map(p=>(p.name))
-        component.props = selectPropsNames.reduce((mp,p)=>{mp[p]=""; return mp;},{});
+        component.props = this.selectedProps.reduce((mp,prop)=>{
+          var propInfo = this.getPropInfo(prop);
+          mp[propInfo.property] = propInfo.defaultValue;
+          return mp;
+        },{});
       }
       if (this.selectedSlots.length>0) {
         var selectedSlotsNames = this.selectedSlots.map(p=>(p.name));
@@ -160,10 +168,38 @@ export default {
         var selectedEventsNames = this.selectedEvents.map(e=>e.name);
         component.on = selectedEventsNames.reduce((mp,p)=>{mp[p]=""; return mp;},{});
       }
+      component.contents = saveContents;
       return JSON5.stringify(component, null, 1).replace(/\n/g,"").replace(/,\s*}/g," }");
     }
   },
   methods: {
+    getPropInfo(prop) {
+      var defaultValue = "";
+      var property = prop.name;
+      if (prop.dataType == 'function' || prop.dataType.indexOf('array')>=0 || prop.dataType.indexOf('object')>=0 ||
+        prop.dataType.indexOf('[]')>=0 || prop.dataType == 'DataOptions') {
+        defaultValue = "";
+        property = ":"+prop.name;
+      } else if (prop.dataType.indexOf('string')>=0) {
+        defaultValue = "";
+      } else if (prop.dataType == 'boolean') {
+        defaultValue = prop.defaultValue=='false'?true:false;
+      } else if (prop.dataType == 'number') {
+        defaultValue = prop.defaultValue;
+      } else if (prop.dataType == 'any') {
+        if (prop.defaultValue=='false') {
+          defaultValue = false;
+        } else if (prop.dataType== 'true') {
+          defaultValue = true;
+        } else {
+          defaultValue = "";
+        }
+      } else {
+        defaultValue = "";
+      }
+      if (defaultValue=='undefined') defaultValue = "";
+      return {property, defaultValue};
+    },
     resetComponent(selectionToKeep) {
       this.showDynamicComponentSearchDlg = false;
       this.selectedProps = [];
@@ -176,17 +212,17 @@ export default {
     },
       onPropsSelection() {
         var obj = _.pick(this.component, ['component', 'organizationId', 'componentId']);
-        var propValMap = { //['props', 'attrs', 'class', 'style', 'content', 'scopedSlots', 'on', 'ref', 'domProps', 'nativeOn', 'template' ],
-          props: {}, attrs: {}, class:"", style:"", content:[], scopedSlots:{}, on:{}, ref:"", domProps:{}, nativeOn:{}, template:""
+        var propValMap = { //['props', 'attrs', 'class', 'style', 'contents', 'scopedSlots', 'on', 'ref', 'domProps', 'nativeOn', 'template' ],
+          "vmodel":"", props: {}, attrs: {}, class:"", style:"", ":rules":"[]", contents:[], scopedSlots:{}, on:{}, ref:"", domProps:{}, nativeOn:{}, template:""
         }
         this.addlProperties.forEach(p=>{
-          obj[p] = propValMap[p] || "";
+          obj[p] = obj[p] || propValMap[p] || "";
         })
         this.component = Object.assign({}, obj);
       },
       onCompSelect() {
         this.resetComponent('component');
-        this.component = Object.assign({},{component:this.componentSelection+''});
+        this.component = Object.assign({},{component:this.componentSelection+'', contents:[]});
         if (this.componentSelection == 'dynamicComponent') {
           this.showDynCompSearchDlg();
         } else {

@@ -30,15 +30,30 @@
         </v-card-title>
         <v-card-text>
           <v-form ref="appForm" v-model="valid" lazy-validation>
-            <v-text-field class="mb-0 pb-0" v-model="editedItem.componentId" label="Component Id" required :rules="[rules.required, rules.elementName]"></v-text-field>
-            <v-radio-group hide-details lass="ma-0 pa-0" dense v-model="editedItem.source" row label="Source">
-              <v-radio label='App Server' value='App Server'></v-radio>
-              <v-radio label='CloudHaven' value='CloudHaven'></v-radio>
-            </v-radio-group>
-            <v-radio-group v-model="editedItem.status" row label="Status">
-              <v-radio label='Draft' value='Draft'></v-radio>
-              <v-radio label='Published' value='Published'></v-radio>
-            </v-radio-group>
+            <v-row class="justify-space-between">
+              <v-col cols="4">
+                <v-text-field class="mb-0 pb-0" v-model="editedItem.componentId" label="Component Id" required :rules="[rules.required, rules.elementName]"></v-text-field>
+              </v-col>
+              <v-col cols="4" class="justify-end align-end">
+                <v-radio-group hide-details lass="ma-0 pa-0" dense v-model="editedItem.source" row label="Source">
+                  <v-radio label='App Server' value='App Server'></v-radio>
+                  <v-radio label='CloudHaven' value='CloudHaven'></v-radio>
+                </v-radio-group>
+              </v-col>
+              <v-col cols="4" class="justify-end align-end">
+                <v-radio-group v-model="editedItem.status" row label="Status">
+                  <v-radio label='Draft' value='Draft'></v-radio>
+                  <v-radio label='Published' value='Published'></v-radio>
+                </v-radio-group>
+              </v-col>
+            </v-row>
+             <div class="d-flex justify-space-between align-end">
+              <div style="text-align:right" class="mb-0 black--text">Type "<span style="background-color:yellow"><b>%%%</b></span>" in the page to select and insert a system function or variable.</div>
+              <v-spacer/>
+              <v-select v-model="template" label="Template" :items="['Default', 'CRUD Example', 'CRUD Example 2', 'Send Task Message', 'Create Calendar Event', 'Queue Task to Group', 'Task Completer', 'Misc Examples', 'Date Component']" @input="onTemplateChange"></v-select>
+              <v-spacer/>
+              <div style="text-align:right" class="mb-0 black--text">Type "<span style="background-color:yellow"><b>~~~</b></span>" in the page to build and insert a component.</div>
+             </div>
             <v-tabs dark fixed-tabs background-color="#1E5AC8" color="#FFF10E" >
             <v-tab>Source</v-tab>
             <v-tab>Documentation</v-tab>
@@ -46,7 +61,7 @@
             <v-tab>Slots</v-tab>
             <v-tab>Events</v-tab>
             <v-tab-item>
-              <prism-editor class="my-editor" v-model="editedItem.content" :highlight="highlighter" line-numbers :rules="[rules.required]"></prism-editor>
+              <prism-editor class="my-editor" v-model="editedItem.content" :highlight="highlighter" line-numbers :rules="[rules.required]" @input="onPageChange"></prism-editor>
             </v-tab-item>
             <v-tab-item>
               <v-row class="mt-1 mb-2">
@@ -82,6 +97,17 @@
         </v-textarea>
       </v-card>
     </v-dialog>
+    <BuildComponentDialog :show="buildComponentDialog" @onSelect="insertComponent" @cancel="buildComponentDialog=false"/>
+    <v-dialog v-model="clientFuncSelectDialog" @keydown.esc.prevent="clientFuncSelectDialog = false" max-width="500px" scrollable overlay-opacity="0.2">
+      <v-card>
+        <v-card-title>Available Functions</v-card-title>
+        <v-card-text>
+          <v-form ref="clientFuncForm">
+            <v-select v-model="clientFunction" label="Selection " :items="clientFunctions" @change="onClientFunctionSelect" persistent-hint hint="Select a client function or component to insert."></v-select>
+          </v-form>
+        </v-card-text>
+      </v-card>
+    </v-dialog>
   </div>
 </template>
 
@@ -93,6 +119,15 @@
   import { EventBus } from '../event-bus.js';
   import ComponentProperties from './ComponentProperties.vue'
   import vcdnUtils from '../_helpers/vcdnutils.js'
+  import sendTaskMsg from '../apptemplates/sendtaskmessage.js'
+  import createCalendarEvent from '../apptemplates/createcalendarevent.js'
+  import dateComponent from '../apptemplates/datecomponent.js'
+  import crudExample from '../apptemplates/crudexample.js'
+  import crudExample2 from '../apptemplates/crudexample2.js'
+  import miscExamples from '../apptemplates/miscexamples.js'
+  import queueTaskToGroup from '../apptemplates/queuetasktogroup.js'
+  import taskCompleter from '../apptemplates/taskcompleter.js'
+  import BuildComponentDialog from './BuildComponentDialog'
   import 'vue-prism-editor/dist/prismeditor.min.css'; // import the styles somewhere
  
   // import highlighting library (you can use any library you want just return html string)
@@ -106,10 +141,14 @@
   const defaultDocumentation = "<h2>Description</h2><p>Add a description of this component here...</p><h2>Properties (props)</h2><ul><li><p>prop1 (String)<br>prop1 is for ...</p></li><li><p>prop2 (Object)<br>prop2 is for ...</p></li></ul><h2>Events</h2><ul><li><p>input<br>parameter: the parameter for this event contains...<br>input event occurs when... </p></li><li><p>event2<br>parameter: the parameter for this event contains...<br>event2 occurs when... <br></p></li></ul>";
 
   export default {
-    components: { ComponentProperties, PrismEditor, TiptapVuetify },
+    components: { ComponentProperties, PrismEditor, TiptapVuetify, BuildComponentDialog },
     props: ['organization'],
     data: () => ({
       dialog: false,
+      buildComponentDialog: false,
+      clientFuncSelectDialog: false,
+      clientFunctions: [],
+      clientFunction:'',
       valid: true,
       rawHeaders: [
         { text: 'Actions', value: 'name', sortable: false, align:'center', width:"80px" },
@@ -204,14 +243,66 @@
     },
 
     mounted () {
-      this.content = vcdnUtils.getDefaultComponent();
+      this.editedItem.content = vcdnUtils.getDefaultComponent();
       if (this.isAdmin) {
         this.$store.commit('SET_CRUDAPISERVCE', 'organizations');
         this.loadOrganizations();
       }
+      this.clientFunctions = Object.keys(vcdnUtils.clientFunctionMap);
+      this.valid = true;
+      this.buildComponentDialog = false;
     },
 
     methods: {
+      onTemplateChange() {
+        if (this.template == 'Default') {
+          this.editedItem.content = vcdnUtils.getDefaultPage();
+        } else if (this.template == 'CRUD Example') {
+          this.editedItem.content = crudExample;
+        } else if (this.template == 'CRUD Example 2') {
+          this.editedItem.content = crudExample2;
+        } else if (this.template == 'Misc Examples') {
+          this.editedItem.content = miscExamples;
+        } else if (this.template == 'Send Task Message') {
+          this.editedItem.content = sendTaskMsg;
+        } else if (this.template == 'Create Calendar Event') {
+          this.editedItem.content = createCalendarEvent;
+        } else if (this.template == 'Queue Task to Group') {
+          this.editedItem.content = queueTaskToGroup;
+        } else if (this.template == 'Task Completer') {
+          this.editedItem.content = taskCompleter;
+        } else if (this.template == 'Date Component') {
+          this.editedItem.content = dateComponent;
+        }
+      },
+      onPageChange( value ) {
+        var found = value.indexOf('%%%')>=0;
+        if (found) {
+          this.clientFuncSelectDialog = true;
+        }
+        var found = value.indexOf('~~~')>=0;
+        if (found) {
+          this.buildComponentDialog = true;
+          setTimeout(()=>{
+            this.buildComponentDialog = false;
+            console.log('buildComponentDialog set false');
+          }, 2000)
+        }
+      },
+      onClientFunctionSelect( clientFunction ) {
+        if (clientFunction) {
+          var script = vcdnUtils.clientFunctionMap[clientFunction];
+          if (script) {
+            this.editedItem.content = this.editedItem.content.replace('%%%', script);
+            this.clientFunction = '';
+          }
+        }
+        this.clientFuncSelectDialog = false;
+      },
+      insertComponent( comp ) {
+        this.editedItem.content = this.editedItem.content.replace('~~~', comp);
+        this.buildComponentDialog = false;
+      },
       loadOrganizations() {
         this.$store.dispatch('loadRecords', 'organizations');
       },
