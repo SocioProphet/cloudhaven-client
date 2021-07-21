@@ -111,7 +111,7 @@
       </v-card>
     </v-dialog>
     <v-footer :fixed="fixed" app :style="{background: 'linear-gradient(to top, #FFFFFF -100%, #00528d 100%)'}">
-      <span class="white--text">&copy; CloudHaven @ 2020-2021 &nbsp;&nbsp;(v0.08)</span>
+      <span class="white--text">&copy; CloudHaven @ 2020-2021 &nbsp;&nbsp;(v0.092)</span>
       <v-spacer/>
       <a class="white--text mr-4" @click.stop="termsDialog=true" href="#">Terms and Conditions</a>
       <a class="white--text" href="https://www.termsfeed.com/live/a38a2f80-8fae-4f14-ba5a-5879e55f29fa">Privacy Policy</a>

@@ -1,6 +1,6 @@
 <template>
   <div>
-    <v-dialog v-model="componentDialog" @keydown.esc.prevent="componentDialog = false" max-width="1000px" scrollable overlay-opacity="0.2">
+    <v-dialog v-model="componentDialog" @keydown.esc.prevent="componentDialog = false" max-width="1000px" scrollable overlay-opacity="0.2" @click:outside="close">
       <v-card>
         <v-card-title>Insert a Component</v-card-title>
         <v-card-text>
@@ -253,7 +253,7 @@ export default {
       },
       close() {
         this.componentDialog=false;
-        this.$emit('cancel');
+        this.$emit('onSelect', '');
       },
       insert() {
         var s = this.stringifiedComponent;

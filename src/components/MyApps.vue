@@ -5,14 +5,14 @@
     </v-toolbar>
     <v-layout>
       <v-row no-gutters>
-          <v-card class="pa-2 ma-2" elevation="4" v-for="app in applications" :key="app.key" @click="launchApp(app)">
-            <v-card-title>{{app.name}}</v-card-title>
-            <v-card-subtitle>{{app.organization.name}}</v-card-subtitle>
-            <v-card-text>
-              <v-img width="150px" :src="app.logoSrc"></v-img>
+          <v-card color="grey lighten-5" class="pa-0 mx-2 mt-2" elevation="2" v-for="app in applications" :key="app.key" @click="launchApp(app)">
+            <v-card-title  class="pt-1"><h5>{{app.name}}</h5></v-card-title>
+            <v-card-subtitle  class="pb-1">{{app.organization.name}}</v-card-subtitle>
+            <v-card-text  class="pa-0">
+              <v-img class="mx-auto" width="100px" :src="app.logoSrc"></v-img>
             </v-card-text>
-            <v-card-actions>
-              <v-btn text color="red darken-2" @click.stop="unsubscribe(app)" >
+            <v-card-actions class="my-0 pt-1">
+              <v-btn text style="background-color:#ea0109" class="mx-auto elevation-1" color="white" @click.stop="unsubscribe(app)" >
                 Unsubscribe
               </v-btn>
             </v-card-actions>

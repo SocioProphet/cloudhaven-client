@@ -238,7 +238,8 @@ var defaultPage = `var uiConfig = {
   }
 };
 `;
-var defaultComponent = `var uiConfig = {
+var defaultComponent = `//This component has one named slot, "actions"
+var uiConfig = {
   props: {
     exampleString: {type: "String"},
     exampleBoolean: {type: "Boolean"},
@@ -282,7 +283,8 @@ var defaultComponent = `var uiConfig = {
         {component: 'cardText', contents: [
             {component: 'sheet', props:{'min-width':'200px', 'min-height':'200px'}, class: 'mt-auto mb-auto ml-auto mr-auto',
               template: '<span>{{decoratedDisplayString}}</span>'}]}
-        ]}
+        ]},
+        {component: 'cardActions', template:"<slot name='actions'></slot>"}
     ]
   }
 };

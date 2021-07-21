@@ -20,7 +20,7 @@
         <v-btn color="primary" dark class="mb-3" @click.native="editItem()">New Page</v-btn>
       </template>
     </v-data-table>
-    <v-dialog v-model="clientFuncSelectDialog" @keydown.esc.prevent="clientFuncSelectDialog = false" max-width="500px" scrollable overlay-opacity="0.2">
+    <v-dialog v-model="clientFuncSelectDialog" @keydown.esc.stop="clientFuncSelectDialog = false" max-width="500px" scrollable overlay-opacity="0.2">
       <v-card>
         <v-card-title>Available Functions</v-card-title>
         <v-card-text>
@@ -30,7 +30,7 @@
         </v-card-text>
       </v-card>
     </v-dialog>
-    <v-dialog v-model="pageDialog" @keydown.esc.prevent="pageDialog = false" max-width="100%" scrollable overlay-opacity="0.2" persistent>
+    <v-dialog v-model="pageDialog" @keydown.esc.stop="close(true)" max-width="100%" scrollable overlay-opacity="0.2" @click:outside="close(true)">
       <v-card>
         <v-card-title>
           <span class="text-h5">{{application.name}} Page</span>
@@ -41,7 +41,7 @@
               <v-text-field v-model="page.name" label="Name" required :rules="[rules.required]"></v-text-field>
             </v-col>
             <v-col cols="3">
-              <v-select v-model="template" label="Template" :items="['Default', 'CRUD Example', 'CRUD Example 2', 'Send Task Message', 'Create Calendar Event', 'Queue Task to Group', 'Task Completer', 'Misc Examples', 'Date Component']" @input="onTemplateChange"></v-select>
+              <v-select v-model="template" label="Template" :items="['Default', 'CRUD Example', 'CRUD Example 2', 'Send Task Message', 'Create Calendar Event', 'Queue Task to Group', 'Task Completer', 'Misc Examples']" @input="onTemplateChange"></v-select>
             </v-col>
             <v-col cols="6" class="justify-end align-end">
               <div style="text-align:right" class="mb-0 black--text">Type "<span style="background-color:yellow"><b>%%%</b></span>" in the page to select and insert a system function or variable.</div>
@@ -53,9 +53,9 @@
             <prism-editor class="my-editor" v-model="page.content" :highlight="highlighter" line-numbers :rules="[rules.required]" @input="onPageChange"></prism-editor>
           </v-form>
         </v-card-text>
-        <BuildComponentDialog :show="buildComponentDialog" @onSelect="insertComponent" @cancel="buildComponentDialog=false"/>
+        <BuildComponentDialog :show="buildComponentDialog" @onSelect="insertComponent" />
         <v-card-actions>
-          <v-btn elevation="2" color="blue darken-1" text @click.native="pageDialog=false">Cancel</v-btn>
+          <v-btn elevation="2" color="blue darken-1" text @click.native="close">Cancel</v-btn>
           <!--v-spacer></v-spacer>
           <v-btn elevation="2" color="blue darken-1" text @click.native.stop="openTreeEditor"><v-icon left dark>mdi-file-tree</v-icon>Tree Editor</v-btn-->
           <v-spacer></v-spacer>
@@ -78,7 +78,6 @@
   import vcdnUtils from '../_helpers/vcdnutils.js'
   import sendTaskMsg from '../apptemplates/sendtaskmessage.js'
   import createCalendarEvent from '../apptemplates/createcalendarevent.js'
-  import dateComponent from '../apptemplates/datecomponent.js'
   import crudExample from '../apptemplates/crudexample.js'
   import crudExample2 from '../apptemplates/crudexample2.js'
   import miscExamples from '../apptemplates/miscexamples.js'
@@ -103,12 +102,6 @@
         var pgs = [].concat(this.application.pages) || [];
         return pgs;
       }
-    },
-    watch: {
-      pageDialog (val) {
-        val || this.close()
-      },
-
     },
 
     mounted () {
@@ -147,8 +140,6 @@
           this.page.content = queueTaskToGroup;
         } else if (this.template == 'Task Completer') {
           this.page.content = taskCompleter;
-        } else if (this.template == 'Date Component') {
-          this.page.content = dateComponent;
         }
       },
       onClientFunctionSelect( clientFunction ) {
@@ -222,7 +213,17 @@
         }
       },
 
-      close () {
+      close (ensureFilled) {
+        if (confirm('Do you want to "Save" before exiting?')) {
+          if (ensureFilled===true && (!this.page.name)) {
+            this.page.name = "tempid-"+(new Date()).getTime();
+          }
+          this.$nextTick(()=>{this.save(null, ()=>{this.closePageDialog();})});
+        } else {
+          this.closePageDialog();
+        }
+      },
+      closePageDialog() {
         this.pageDialog = false;
         setTimeout(() => {
           this.page = {
@@ -232,9 +233,8 @@
           this.editedIndex = -1;
         }, 300)
       },
-
-      save (e) {
-        e.preventDefault();
+      save (e, cb) {
+        if (e) e.preventDefault();
         var vm = this;
         if (!this.$refs.pageForm.validate()) return;
         var operation = this.page._id ? 'update' : 'add';
@@ -262,6 +262,7 @@
             } else if (response.data.errMsg) {
               EventBus.$emit('global error alert',  response.data.errMsg );
             }
+            if (cb) (cb)();
           })();
         } else {
           var pages = [].concat(this.application.pages);
@@ -271,6 +272,7 @@
           if (errors.length==0) {
             this.pageDialog = false;
           }
+          if (cb) (cb)();
         }
       }
     },

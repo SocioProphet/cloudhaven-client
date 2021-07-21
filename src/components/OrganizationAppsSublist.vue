@@ -6,6 +6,12 @@
       hide-default-footer disable-pagination
       class="elevation-1"
     >
+      <template v-slot:top>
+        <div class="d-flex justify-space-between">
+          <v-spacer></v-spacer>
+          <v-text-field style="max-width:400px" v-model="searchFilter" label="Search Filter" single-line dense @input=""/>
+        </div>
+      </template>
       <template v-slot:item="{ item }">
         <tr @click="editItem(item)">
         <td class="d-flex justify-center align-center px-0">
@@ -35,7 +41,7 @@
           <v-btn color="primary" dark class="mb-3" @click.native="editItem()">New Application</v-btn>
       </template>
     </v-data-table>
-    <v-dialog v-model="dialog" @keydown.esc.prevent="dialog = false" max-width="500px" scrollable overlay-opacity="0.2" >
+    <v-dialog v-model="dialog" @keydown.esc.stop="close(true)" max-width="500px" scrollable overlay-opacity="0.2" @click:outside="close(true)">
       <v-card>
         <v-card-title>
           <span class="text-h5">{{editedItem._id?'Edit':'Add'}} Application</span>
@@ -104,6 +110,7 @@
     data: () => ({
       dialog: false,
       valid: true,
+      searchFilter:'',
       rawHeaders: [
         { text: 'Actions', value: 'name', sortable: false, align:'center', width:"80px" },
         { text: 'Name', align: 'left', sortable: true, value: 'name' },
@@ -161,8 +168,9 @@
         }
       },
       applications() {
+        var apps = [];
         if (this.isAdmin) {
-          var apps = this.organizations.reduce((ar,org)=>{
+          apps = this.organizations.reduce((ar,org)=>{
             org.applications.forEach(a=>{
               var app = Object.assign({organizationName:org.name, organizationId:org.organizationId}, a);
               ar.push(app);
@@ -174,10 +182,10 @@
             var bKey = b.organizationName+'-'+b.name;
             return aKey<bKey?-1:(aKey>bKey?1:0);
           });
-          return apps;
         } else {
-          return this.organization.applications;
+          apps = this.organization.applications;
         }
+        return this.searchFilter?apps.filter(app=>(app.name.indexOf(this.searchFilter)>=0 || app.applicationId.indexOf(this.searchFilter)>=0)):apps;
       },
       isAdmin() {
         return this.user.rolesMap['SYSADMIN'];
@@ -306,18 +314,20 @@
           }
         }
       },
-      close () {
-        if (this.pagesChanged) {
-          if (confirm('Pages changed - do you really want to exit without saving?')) {
-            this.dialog = false;
+      close (ensureFilled) {
+        if (confirm('Do you want to "Save" before exiting?')) {
+          if (ensureFilled===true && (!this.editedItem.applicationId || !this.editedItem.name)) {
+            var tempId = 'tempid-'+(new Date()).getTime();
+            if (!this.editedItem.name) this.editedItem.name = tempId;
+            if (!this.editedItem.applicationId) this.editedItem.applicationId = tempId;
           }
-           this.$emit("orgAppsChanged");
+          this.$nextTick(()=>{this.save(()=>{this.dialog=false;});})
         } else {
           this.dialog = false;
+          this.$emit("orgAppsChanged");
         }
       },
-
-      save () {
+      save (cb) {
         var vm = this;
         if (!this.$refs.appForm.validate()) return;
         var operation = this.editedIndex > -1 ? 'update' : 'add';
@@ -332,11 +342,13 @@
             } else if (response.data.errMsg) {
               EventBus.$emit('global error alert', response.data.errMsg );
             }
+            if (cb) (cb)();
           })();
         } else {
           var apps = [].concat( this.organization.applications );
           apps.push(this.editedItem);
           vm.$emit('orgAppsChanged', response.data.applications );
+          if (cb) (cb)();
           this.dialog = false;
         }
       }

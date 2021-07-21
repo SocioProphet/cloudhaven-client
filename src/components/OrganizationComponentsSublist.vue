@@ -23,7 +23,7 @@
        <v-btn color="primary" dark class="mb-3" @click.native="editItem()">New Component</v-btn>
       </template>
     </v-data-table>
-    <v-dialog v-model="dialog" @keydown.esc.prevent="dialog = false" max-width="100%" persistent scrollable overlay-opacity="0.2">
+    <v-dialog v-model="dialog" @keydown.esc.stop="close(true)" max-width="100%" scrollable overlay-opacity="0.2" @click:outside.stop="close(true)">
       <v-card>
         <v-card-title>
           <span class="text-h5">{{editedItem._id?('Edit Component '+editedItem.componentId):'Add Component'}}</span>
@@ -50,7 +50,7 @@
              <div class="d-flex justify-space-between align-end">
               <div style="text-align:right" class="mb-0 black--text">Type "<span style="background-color:yellow"><b>%%%</b></span>" in the page to select and insert a system function or variable.</div>
               <v-spacer/>
-              <v-select v-model="template" label="Template" :items="['Default', 'CRUD Example', 'CRUD Example 2', 'Send Task Message', 'Create Calendar Event', 'Queue Task to Group', 'Task Completer', 'Misc Examples', 'Date Component']" @input="onTemplateChange"></v-select>
+              <v-select v-model="template" label="Template" :items="['Default', 'Date Component']" @input="onTemplateChange"></v-select>
               <v-spacer/>
               <div style="text-align:right" class="mb-0 black--text">Type "<span style="background-color:yellow"><b>~~~</b></span>" in the page to build and insert a component.</div>
              </div>
@@ -89,7 +89,7 @@
         </v-card-text>
 
         <v-card-actions>
-          <v-btn elevation="2" color="blue darken-1" text @click.native="dialog=false">Cancel</v-btn>
+          <v-btn elevation="2" color="blue darken-1" text @click.native="close">Cancel</v-btn>
           <v-spacer></v-spacer>
           <v-btn elevation="2" color="blue darken-1" text @click.native="save"><v-icon left dark>mdi-content-save</v-icon>Save</v-btn>
         </v-card-actions>
@@ -97,7 +97,7 @@
         </v-textarea>
       </v-card>
     </v-dialog>
-    <BuildComponentDialog :show="buildComponentDialog" @onSelect="insertComponent" @cancel="buildComponentDialog=false"/>
+    <BuildComponentDialog :show="buildComponentDialog" @onSelect="insertComponent" />
     <v-dialog v-model="clientFuncSelectDialog" @keydown.esc.prevent="clientFuncSelectDialog = false" max-width="500px" scrollable overlay-opacity="0.2">
       <v-card>
         <v-card-title>Available Functions</v-card-title>
@@ -119,14 +119,7 @@
   import { EventBus } from '../event-bus.js';
   import ComponentProperties from './ComponentProperties.vue'
   import vcdnUtils from '../_helpers/vcdnutils.js'
-  import sendTaskMsg from '../apptemplates/sendtaskmessage.js'
-  import createCalendarEvent from '../apptemplates/createcalendarevent.js'
   import dateComponent from '../apptemplates/datecomponent.js'
-  import crudExample from '../apptemplates/crudexample.js'
-  import crudExample2 from '../apptemplates/crudexample2.js'
-  import miscExamples from '../apptemplates/miscexamples.js'
-  import queueTaskToGroup from '../apptemplates/queuetasktogroup.js'
-  import taskCompleter from '../apptemplates/taskcompleter.js'
   import BuildComponentDialog from './BuildComponentDialog'
   import 'vue-prism-editor/dist/prismeditor.min.css'; // import the styles somewhere
  
@@ -149,6 +142,7 @@
       clientFuncSelectDialog: false,
       clientFunctions: [],
       clientFunction:'',
+      template: 'Default',
       valid: true,
       rawHeaders: [
         { text: 'Actions', value: 'name', sortable: false, align:'center', width:"80px" },
@@ -236,11 +230,6 @@
       },
       ...mapState(['organizations','user'])
     },
-    watch: {
-      dialog (val) {
-        val || this.close()
-      }
-    },
 
     mounted () {
       this.editedItem.content = vcdnUtils.getDefaultComponent();
@@ -256,21 +245,7 @@
     methods: {
       onTemplateChange() {
         if (this.template == 'Default') {
-          this.editedItem.content = vcdnUtils.getDefaultPage();
-        } else if (this.template == 'CRUD Example') {
-          this.editedItem.content = crudExample;
-        } else if (this.template == 'CRUD Example 2') {
-          this.editedItem.content = crudExample2;
-        } else if (this.template == 'Misc Examples') {
-          this.editedItem.content = miscExamples;
-        } else if (this.template == 'Send Task Message') {
-          this.editedItem.content = sendTaskMsg;
-        } else if (this.template == 'Create Calendar Event') {
-          this.editedItem.content = createCalendarEvent;
-        } else if (this.template == 'Queue Task to Group') {
-          this.editedItem.content = queueTaskToGroup;
-        } else if (this.template == 'Task Completer') {
-          this.editedItem.content = taskCompleter;
+          this.editedItem.content = vcdnUtils.getDefaultComponent();
         } else if (this.template == 'Date Component') {
           this.editedItem.content = dateComponent;
         }
@@ -385,8 +360,19 @@
           }
         }
       },
-
-      close () {
+      close(ensureFilled) {
+        if (confirm('Do you want to "Save" before exiting?')) {
+          if (ensureFilled===true && !this.editedItem.componentId) {
+            this.editedItem.componentId = "tempid-"+(new Date()).getTime();
+          }
+          this.$nextTick(()=>{
+            this.save(()=>{this.closeDialog();});
+          })
+        } else {
+          this.closeDialog();
+        }
+      },
+      closeDialog () {
         this.dialog = false;
         setTimeout(() => {
           this.resetPage();
@@ -394,7 +380,7 @@
         }, 300)
       },
 
-      save () {
+      save (cb) {
         var vm = this;
         if (!this.$refs.appForm.validate()) return;
         var operation = this.editedIndex > -1 ? 'update' : 'add';
