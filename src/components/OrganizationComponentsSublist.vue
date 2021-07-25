@@ -50,7 +50,7 @@
              <div class="d-flex justify-space-between align-end">
               <div style="text-align:right" class="mb-0 black--text">Type "<span style="background-color:yellow"><b>%%%</b></span>" in the page to select and insert a system function or variable.</div>
               <v-spacer/>
-              <v-select v-model="template" label="Template" :items="['Default', 'Date Component']" @input="onTemplateChange"></v-select>
+              <v-select v-model="template" label="Template" :items="['Default', 'Date Component', 'Scoped Slot Component']" @input="onTemplateChange"></v-select>
               <v-spacer/>
               <div style="text-align:right" class="mb-0 black--text">Type "<span style="background-color:yellow"><b>~~~</b></span>" in the page to build and insert a component.</div>
              </div>
@@ -119,6 +119,7 @@
   import { EventBus } from '../event-bus.js';
   import ComponentProperties from './ComponentProperties.vue'
   import vcdnUtils from '../_helpers/vcdnutils.js'
+  import scopedSlotComponent from '../apptemplates/scopednamedslotcomponent.js'
   import dateComponent from '../apptemplates/datecomponent.js'
   import BuildComponentDialog from './BuildComponentDialog'
   import 'vue-prism-editor/dist/prismeditor.min.css'; // import the styles somewhere
@@ -248,6 +249,8 @@
           this.editedItem.content = vcdnUtils.getDefaultComponent();
         } else if (this.template == 'Date Component') {
           this.editedItem.content = dateComponent;
+        } else if (this.template == 'Scoped Slot Component') {
+          this.editedItem.content = scopedSlotComponent;
         }
       },
       onPageChange( value ) {

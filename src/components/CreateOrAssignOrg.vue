@@ -47,9 +47,29 @@ import router from '../router'
     methods: {
       save () {
         if (!this.$refs.form.validate()) return;
+        this.alertType = '';
+        this.alertMsg = '';
         (async () => {
           var response = await Api().post("/organizationuser/createorg", {name:this.name, organizationId:this.orgId});
-          if (response.data.success) {
+          if (response.data.orgAlreadyExists) {
+            if (confirm('This organization already exists - ok to join?')) {
+              response = await Api().post("/organizationuser/createorg", {name:this.name, organizationId:this.orgId, joinExisting:true});
+              if (response.data.success) {
+                this.alertType = 'success';
+                this.alertMsg = 'Organization joined.';
+                var dummy = await this.$store.dispatch('reloadUser');
+                setTimeout(() => {
+                  this.$router.push('/appstore');
+                }, 2000);
+              } else {
+                this.alertType = 'error';
+                this.alertMsg = response.data.errMsg;
+              }
+            } else {
+              this.alertType = 'error';
+              this.alertMsg = 'You declined to join this organization - try another.';
+            }
+          } else if (response.data.success) {
             this.alertType = 'success';
             this.alertMsg = 'Organization created.';
             var dummy = await this.$store.dispatch('reloadUser');

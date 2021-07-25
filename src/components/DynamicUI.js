@@ -43,38 +43,38 @@ function makeFunction( funcSpec, name ) {
   }
 }
 
-function getModelValue( rootThis, pScopedProps, src ) {
+function getModelValue( rootThis, pScopedProps, path ) {
   try {
-    var isObjRef = /^[\w\$\s\.]+$/.test(src);
+    var isObjRef = /^[\w\$\s\.]+$/.test(path);
     if (isObjRef) {
       var val = null;
       if (pScopedProps) {
-        val = deepGet(pScopedProps, src);
+        val = deepGet(pScopedProps, path);
         if (val !== undefined) return val;
       }
-      return deepGet(rootThis, src)/* || null*/;
+      return deepGet(rootThis, path)/* || null*/;
     }
-    var script = prepScriptletScope(rootThis, pScopedProps, src);
+    var script = prepScriptletScope(rootThis, pScopedProps, path);
     var func = Function.apply( null, ["rootThis", "scopedProps", 'return '+script]);
     return (func)(rootThis, pScopedProps);
   } catch(e) {
-    console.log('getModelValue error for '+src+' ('+e+')');
+    console.log('getModelValue error for '+path+' ('+e+')');
   }
 }
-function setModelValue( rootThis, pScopedProps, src, val ) {
+function setModelValue( rootThis, pScopedProps, path, val ) {
   try {
-    var retVal = deepSet(rootThis, src, val);
+    var retVal = deepSet(rootThis, path, val);
     if (retVal !== undefined) {
       return retVal;
     }
-    var script = src + ' = val;' 
+    var script = path + ' = val;' 
     script = prepScriptletScope(rootThis, pScopedProps, script);
     var func = Function.apply( null, ["rootThis", "scopedProps", "val", script]);
 
     (func)(rootThis, pScopedProps, val);
 
   } catch(e) {
-    console.log('setModelValue error for '+src+' ('+e+')');
+    console.log('setModelValue error for '+path+' ('+e+')');
   }
 }
 function propValsFromModel( ctx, props ) {
@@ -112,7 +112,7 @@ function makeComponent( h, metaData, ctx, pScopedProps ) {
       var index = 0;
       var dataList = getModelValue( rootThis, pScopedProps, metaData.dataList) || [];
       return dataList.map((e)=>{
-        var contentMeta = Object.assign({}, metaData.contents);
+        var contentMeta = Array.isArray(metaData.contents)?metaData.contents:Object.assign({}, metaData.contents);
         var loopItemProps = {}
         loopItemProps[metaData.itemAlias || 'item'] = e;
         var newScopedProps = Object.assign( {}, pScopedProps||{}, loopItemProps)
@@ -354,7 +354,7 @@ function makeComponent( h, metaData, ctx, pScopedProps ) {
     }
   } else if (metaData.template) {
     var context = pScopedProps?_.assignIn({},pScopedProps, rootThis):rootThis;
-  children = [Vue.compile(metaData.template).render.call( context, h)];
+    children = [Vue.compile(metaData.template).render.call( context, h)];
   }
   if (isArray) {
     return children;
